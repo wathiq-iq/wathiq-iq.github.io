@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق اختبار React</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { font-family: sans-serif; }
+        input[type="url"] { direction: ltr; text-align: left; }
+        pre.dir-ltr { direction: ltr; text-align: left; }
+        .results-list li { border-bottom: 1px solid #eee; padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
+        .results-list li:last-child { border-bottom: none; margin-bottom: 0; }
+        .correct-answer-indicator { color: #16a34a; font-weight: bold; }
+        .incorrect-answer-indicator { color: #dc2626; font-weight: bold; }
+        .correct-answer-text { color: #15803d; }
+
+        /* --- جديد: مؤثرات بصرية إضافية --- */
+
+        /* تأثير اهتزاز للإجابة الخاطئة */
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+
+        /* تأثير نبض للإجابة الصحيحة */
+        @keyframes pulse-correct {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); } /* green-600 */
+          50% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+        }
+        .animate-pulse-correct {
+          animation: pulse-correct 0.6s ease-out;
+        }
+
+        /* تأثير ظهور العناصر (مثال للأسئلة أو البطاقات) */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        /* تأثير تحميل بسيط (يمكن استخدامه بدل النص) */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block; /* To center with text if needed */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Default questions data (in Arabic)
+        const defaultQuestions = [
+          // ... (default questions remain the same)
+           { question: "ما هي عاصمة العراق؟", options: ["بغداد", "دمشق", "عمان", "بيروت"], correctAnswer: "بغداد" },
+          { question: "من هو مؤلف كتاب كليلة ودمنة؟", options: ["الجاحظ", "ابن المقفع", "المتنبي", "ابن خلدون"], correctAnswer: "ابن المقفع" },
+          { question: "في أي قارة تقع مصر؟", options: ["آسيا", "أفريقيا", "أوروبا", "أمريكا الشمالية"], correctAnswer: "أفريقيا" },
+          { question: "ما هو أطول نهر في العالم؟", options: ["النيل", "الأمازون", "المسيسيبي", "دجلة"], correctAnswer: "النيل" },
+          { question: "كم عدد أضلاع المسدس؟", options: ["5", "6", "7", "8"], correctAnswer: "6" }
+        ];
+
+        // Main Quiz App Component
+        const QuizApp = () => {
+          // State variables (remain the same)
+          const [questions, setQuestions] = useState(defaultQuestions);
+          const [currentIndex, setCurrentIndex] = useState(0);
+          const [score, setScore] = useState(0);
+          const [showResult, setShowResult] = useState(false);
+          const [feedback, setFeedback] = useState(null);
+          const [isNextVisible, setIsNextVisible] = useState(false);
+          const [numQuestions, setNumQuestions] = useState(5);
+          const [selectedQuestions, setSelectedQuestions] = useState([]);
+          const [quizStarted, setQuizStarted] = useState(false);
+          const [apiUrl, setApiUrl] = useState('');
+          const [isLoading, setIsLoading] = useState(false);
+          const [error, setError] = useState('');
+          const [sourceType, setSourceType] = useState('default');
+          const [showFormatInfo, setShowFormatInfo] = useState(false);
+          const [notification, setNotification] = useState({ message: '', type: '' });
+          const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+          const [userAnswers, setUserAnswers] = useState({});
+          const [uploadedFileHistory, setUploadedFileHistory] = useState([]);
+
+          // --- Functions (remain mostly the same, added loading indicator logic) ---
+
+          const showNotification = (message, type = 'info', duration = 3000) => {
+            setNotification({ message, type });
+            setTimeout(() => { setNotification({ message: '', type: '' }); }, duration);
+          };
+
+          const validateQuestions = (data) => { /* ... validation logic ... */
+             if (!Array.isArray(data)) throw new Error("البيانات المستلمة ليست مصفوفة");
+            if (data.length === 0) throw new Error("لا توجد أسئلة في البيانات المستلمة");
+            const invalidQuestions = data.filter(q => !q.question || !Array.isArray(q.options) || q.options.length < 2 || !q.correctAnswer || !q.options.includes(q.correctAnswer));
+            if (invalidQuestions.length > 0) {
+              const firstInvalid = invalidQuestions[0];
+              let detail = `السؤال: "${firstInvalid.question ? String(firstInvalid.question).substring(0, 30)+'...' : 'غير محدد'}"`;
+              throw new Error(`تم العثور على ${invalidQuestions.length} سؤال غير صالح. مثال: ${detail}`);
+            }
+            return true;
+          };
+
+          const shuffleArray = (array) => { /* ... shuffle logic ... */
+             if (!array || array.length === 0) return [];
+            let currentIndex = array.length, randomIndex;
+            const shuffledArray = [...array];
+            while (currentIndex !== 0) {
+              randomIndex = Math.floor(Math.random() * currentIndex);
+              currentIndex--;
+              [shuffledArray[currentIndex], shuffledArray[randomIndex]] = [shuffledArray[randomIndex], shuffledArray[currentIndex]];
+            }
+            return shuffledArray;
+          };
+
+          const fetchQuestionsFromApi = async () => {
+             if (!apiUrl.trim()) { setError("الرجاء إدخال رابط صحيح"); return; }
+            try { new URL(apiUrl); } catch (_) { setError("الرابط الذي أدخلته غير صالح"); return; }
+            setIsLoading(true); // Start loading
+            setError(''); setNotification({ message: '', type: '' });
+            try {
+              // Simulate network delay for visual effect (optional)
+              // await new Promise(resolve => setTimeout(resolve, 1000));
+              const response = await fetch(apiUrl);
+              if (!response.ok) throw new Error(`فشل تحميل الرابط، الحالة: ${response.status}`);
+              const data = await response.json();
+              validateQuestions(data);
+              setQuestions(data);
+              setSourceType('api');
+              showNotification("تم استيراد الأسئلة من الرابط بنجاح!", 'success');
+            } catch (err) { console.error("Error fetching data:", err); setError(`حدث خطأ أثناء استيراد الأسئلة من الرابط: ${err.message}`); }
+            finally { setIsLoading(false); } // Stop loading
+          };
+
+          const handleFileUpload = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.type !== "application/json" && !file.name.endsWith('.json')) {
+              setError("يرجى تحميل ملف بصيغة JSON فقط");
+              if (event.target) event.target.value = null; return;
+            }
+            setIsLoading(true); // Start loading
+            setError(''); setNotification({ message: '', type: '' });
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              try {
+                // Simulate processing delay (optional)
+                // await new Promise(resolve => setTimeout(resolve, 500));
+                const content = e.target.result;
+                const data = JSON.parse(content);
+                validateQuestions(data);
+                const newHistoryEntry = { name: file.name, questions: data };
+                setUploadedFileHistory(prevHistory => {
+                    const updatedHistory = [newHistoryEntry, ...prevHistory.filter(item => item.name !== file.name)];
+                    return updatedHistory.slice(0, 5);
+                });
+                setQuestions(data);
+                setSourceType('file');
+                showNotification(`تم استيراد "${file.name}" بنجاح!`, 'success');
+              } catch (err) { console.error("Error reading file:", err); setError(`خطأ في قراءة أو تحليل الملف: ${err.message}`); }
+              finally { setIsLoading(false); if (event.target) event.target.value = null; } // Stop loading
+            };
+            reader.onerror = () => { setError("حدث خطأ أثناء قراءة الملف"); setIsLoading(false); if (event.target) event.target.value = null; }; // Stop loading on error
+            reader.readAsText(file);
+          };
+
+          const loadFromHistory = (fileName) => { /* ... load from history logic ... */
+               const historyItem = uploadedFileHistory.find(item => item.name === fileName);
+              if (historyItem) {
+                  setQuestions(historyItem.questions);
+                  setSourceType('history');
+                  setError('');
+                  setNotification({ message: '', type: '' });
+                  showNotification(`تم تحميل الأسئلة من "${fileName}"`, 'info');
+                  setApiUrl('');
+              }
+          };
+
+          const useDefaultQuestions = () => { /* ... use default logic ... */
+             setQuestions(defaultQuestions);
+            setSourceType('default');
+            setError(''); setNotification({ message: '', type: '' });
+            showNotification("تم العودة إلى الأسئلة الافتراضية", 'info');
+            setApiUrl('');
+          };
+
+          const startQuiz = () => { /* ... start quiz logic ... */
+            if (!questions || questions.length === 0) { setError("لا توجد أسئلة متاحة، يرجى استيراد الأسئلة أولاً أو استخدام الافتراضية"); return; }
+            const num = parseInt(numQuestions);
+            if (isNaN(num) || !Number.isInteger(num) || num <= 0) { setError(`يرجى إدخال عدد صحيح موجب للأسئلة.`); setNumQuestions(1); return; }
+            if (num > questions.length) { setError(`لا يمكن اختيار أكثر من ${questions.length} سؤال (العدد المتاح). تم ضبط العدد إلى ${questions.length}.`); setNumQuestions(questions.length); return; }
+            setError(''); setNotification({ message: '', type: '' });
+            const shuffled = shuffleArray(questions).slice(0, num);
+            setSelectedQuestions(shuffled);
+            setUserAnswers({});
+            setCurrentIndex(0); setScore(0); setShowResult(false);
+            setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false);
+            setQuizStarted(true);
+          };
+
+          const handleAnswer = (answer) => { /* ... handle answer logic ... */
+             if (!selectedQuestions[currentIndex] || feedback) return;
+            const isCorrect = answer === selectedQuestions[currentIndex].correctAnswer;
+            if (isCorrect) { setScore(score + 1); }
+            setUserAnswers(prev => ({ ...prev, [currentIndex]: answer }));
+            setFeedback({ correct: isCorrect, correctAnswer: selectedQuestions[currentIndex].correctAnswer, userAnswer: answer });
+            setIsNextVisible(true);
+          };
+
+          const goToNextQuestion = () => { /* ... go to next logic ... */
+            const nextIndex = currentIndex + 1;
+            if (nextIndex < selectedQuestions.length) { setCurrentIndex(nextIndex); setFeedback(null); setIsNextVisible(false); }
+            else { setShowResult(true); }
+          };
+
+          const resetQuiz = () => { /* ... reset logic ... */
+             setSelectedQuestions([]); setUserAnswers({}); setCurrentIndex(0); setScore(0);
+            setShowResult(false); setFeedback(null); setIsNextVisible(false); setQuizStarted(false);
+            setError(''); setNotification({ message: '', type: '' }); setShowCancelConfirm(false);
+          };
+
+          const handleCancelRequest = () => { setShowCancelConfirm(true); };
+          const confirmCancel = () => { resetQuiz(); };
+          const abortCancel = () => { setShowCancelConfirm(false); };
+
+          useEffect(() => { /* ... useEffect logic ... */
+             if (questions && questions.length > 0) {
+              const maxQuestions = questions.length;
+              setNumQuestions(prevNum => {
+                  const currentNum = parseInt(prevNum);
+                  if (isNaN(currentNum) || currentNum <= 0) return Math.min(5, maxQuestions);
+                  else if (currentNum > maxQuestions) return maxQuestions;
+                  else return currentNum;
+              });
+            } else { setNumQuestions(0); }
+          }, [questions]);
+
+          // --- Render Functions ---
+
+          // Import Questions Form component (with loading indicators)
+          const ImportQuestionsForm = () => (
+            // *** إضافة تأثير ظهور للبطاقة ***
+            <div className="bg-white p-4 rounded-lg shadow-md mb-6 animate-fadeIn">
+              <h2 className="text-xl font-bold mb-4 text-center text-indigo-600">استيراد الأسئلة</h2>
+              {/* API Import */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-2">من رابط API:</h3>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input type="url" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="أدخل رابط API (JSON)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLoading ? 'bg-gray-100' : ''}`} aria-label="API URL Input" disabled={isLoading} />
+                  {/* *** تعديل زر الاستيراد + إضافة تأثيرات + مؤشر تحميل *** */}
+                  <button onClick={fetchQuestionsFromApi} disabled={isLoading || !apiUrl.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isLoading || !apiUrl.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                    {isLoading ? <><span className="loader"></span> <span>جاري التحميل...</span></> : "استيراد"}
+                  </button>
+                </div>
+              </div>
+              {/* File Import */}
+              <div className="mb-6">
+                 <h3 className="text-lg font-medium mb-2">من ملف JSON:</h3>
+                 <div className="flex items-center justify-center w-full">
+                   {/* *** إضافة تأثير نبض عند التحميل للمنطقة *** */}
+                   <label htmlFor="file-upload" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg ${isLoading ? 'bg-gray-100 cursor-wait animate-pulse' : 'cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300 hover:border-gray-400 transition-colors'}`}>
+                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                       <svg className="w-8 h-8 mb-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                       <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">اضغط للتحميل</span> أو اسحب ملفك هنا</p>
+                       <p className="text-xs text-gray-500">JSON فقط</p>
+                     </div>
+                     <input id="file-upload" type="file" className="hidden" accept=".json,application/json" onChange={handleFileUpload} disabled={isLoading} aria-label="JSON File Upload"/>
+                   </label>
+                 </div>
+              </div>
+              {/* Default Questions Button */}
+              <div className="text-center mb-6">
+                 {/* *** إضافة تأثيرات للزر *** */}
+                 <button onClick={useDefaultQuestions} disabled={isLoading} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out ${isLoading ? 'bg-gray-400 cursor-not-allowed animate-pulse' : 'bg-gray-500 hover:bg-gray-600 text-white hover:shadow-md transform hover:-translate-y-0.5'}`}>استخدام الأسئلة الافتراضية</button>
+              </div>
+              {/* Error Display (Fade in) */}
+              {error && (<div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-center break-words animate-fadeIn" role="alert">{error}</div>)}
+              {/* Notification Display (Fade in) */}
+              {notification.message && (<div className={`mt-4 p-3 rounded-lg text-center animate-fadeIn ${notification.type === 'success' ? 'bg-green-100 text-green-700' : notification.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`} role="status">{notification.message}</div>)}
+              {/* JSON Format Info */}
+              <div className="mt-6">
+                 <button onClick={() => setShowFormatInfo(!showFormatInfo)} className="text-blue-600 hover:text-blue-800 underline text-sm transition-colors">{showFormatInfo ? "إخفاء" : "عرض"} معلومات تنسيق JSON المطلوب</button>
+                 {showFormatInfo && (
+                   <div className="mt-2 p-3 bg-blue-50 rounded-lg animate-fadeIn">
+                     <h4 className="font-medium text-blue-800 mb-2">تنسيق JSON المطلوب:</h4>
+                     <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto dir-ltr">{`[ { "question": "...", "options": ["...", "..."], "correctAnswer": "..." }, ... ]`}</pre>
+                   </div>
+                 )}
+              </div>
+              {/* Recently Uploaded Questions Section */}
+              {uploadedFileHistory.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-gray-200 animate-fadeIn">
+                      <h3 className="text-lg font-medium mb-3 text-center text-gray-700">الأسئلة المحملة مؤخراً:</h3>
+                      <ul className="space-y-2">
+                          {uploadedFileHistory.map((item, index) => (
+                              <li key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg shadow-sm hover:bg-gray-100 transition-colors">
+                                  <span className="text-gray-800 truncate pr-2" title={item.name}>{item.name}</span>
+                                  {/* *** إضافة تأثيرات للزر *** */}
+                                  <button
+                                      onClick={() => loadFromHistory(item.name)}
+                                      className={`text-sm bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-1 px-3 rounded-md transition-all duration-200 ease-in-out whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${isLoading ? '' : 'hover:shadow-md transform hover:-translate-y-0.5'}`}
+                                      disabled={isLoading}
+                                  >
+                                      استخدام
+                                  </button>
+                              </li>
+                          ))}
+                      </ul>
+                  </div>
+              )}
+            </div>
+          );
+
+          // --- Main Conditional Rendering ---
+
+          // 1. Setup Screen
+          if (!quizStarted) {
+            const getSourceName = () => { /* ... get source name logic ... */
+                 switch (sourceType) {
+                    case 'default': return 'الأسئلة الافتراضية';
+                    case 'api': return 'API خارجي';
+                    case 'file': return 'ملف محلي';
+                    case 'history': return 'ملف محمل مؤخراً';
+                    default: return 'غير محدد';
+                }
+            };
+            return (
+              <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-green-200 via-blue-200 to-purple-300 p-4 font-sans">
+                <div className="w-full max-w-xl">
+                  <ImportQuestionsForm />
+                  {/* *** إضافة تأثير ظهور للبطاقة *** */}
+                  <div className="bg-white p-6 rounded-lg shadow-md text-center animate-fadeIn" style={{animationDelay: '0.1s'}}>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">بدء الاختبار</h2>
+                    <div className="flex flex-col items-center">
+                      <p className="text-lg mb-2">مصدر الأسئلة: <span className="font-semibold">{getSourceName()}</span></p>
+                      <p className="text-lg mb-4">إجمالي الأسئلة المتاحة: {questions.length}</p>
+                      {questions.length > 0 && (
+                           <div className="mb-4">
+                             <label htmlFor="num-questions" className="block text-gray-700 mb-2">اختر عدد الأسئلة:</label>
+                             <input id="num-questions" type="number" className="border-2 border-gray-300 rounded-lg p-2 bg-white text-gray-700 w-32 text-center focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-colors" value={numQuestions || ''} onChange={(e) => setNumQuestions(e.target.value)} onBlur={(e) => { const val = parseInt(e.target.value); if (isNaN(val) || val < 1) setNumQuestions(1); else if (val > questions.length) setNumQuestions(questions.length); else setNumQuestions(val); }} max={questions.length} min={1} aria-label="Number of questions to start" />
+                           </div>
+                      )}
+                      {/* *** إضافة تأثيرات لزر البدء *** */}
+                      <button className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${isLoading ? 'animate-pulse' : ''}`} onClick={startQuiz} disabled={isLoading || questions.length === 0 || !parseInt(numQuestions) || parseInt(numQuestions) <= 0 || parseInt(numQuestions) > questions.length}> بدء الاختبار </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // 2. Results Screen
+          if (showResult) {
+            const percentage = selectedQuestions.length > 0 ? (score / selectedQuestions.length) * 100 : 0;
+            const message = percentage === 100 ? '🎉 أداء رائع! لقد أجبت على جميع الأسئلة بشكل صحيح 👏' : percentage >= 70 ? '💪 عمل جيد! واصل التعلم والمثابرة' : percentage >= 50 ? '👍 نتيجة جيدة، لكن يمكنك التحسن أكثر' : '✨ لا تيأس، كل محاولة تقربك من النجاح';
+            const bgColor = percentage === 100 ? 'bg-green-100' : percentage >= 70 ? 'bg-teal-100' : percentage >= 50 ? 'bg-blue-100' : 'bg-yellow-100';
+            const textColor = percentage === 100 ? 'text-green-800' : percentage >= 70 ? 'text-teal-800' : percentage >= 50 ? 'text-blue-800' : 'text-yellow-800';
+
+            return (
+                <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 font-sans">
+                    {/* *** إضافة تأثير ظهور لبطاقة النتائج *** */}
+                    <div className={`p-6 rounded-lg shadow-xl ${bgColor} max-w-2xl mx-auto w-full ${textColor} transition-all duration-500 ease-out transform scale-95 opacity-0 animate-fadeIn`} style={{ animationFillMode: 'forwards', animationDelay: '0.1s', '--tw-scale-x': '1', '--tw-scale-y': '1', opacity: '1' }}> {/* Force final state */}
+                        <h2 className="text-3xl font-bold text-gray-800 mb-4 text-center">انتهى الاختبار!</h2>
+                        <div className="text-center mb-6">
+                            <p className="text-xl font-semibold mb-2">درجتك: {score} من {selectedQuestions.length}</p>
+                            <p className="text-xl font-semibold mb-4">النسبة المئوية: {percentage.toFixed(1)}%</p>
+                            <p className="text-md mt-2 font-medium">{message}</p>
+                        </div>
+                        {/* Details Section */}
+                        <div className="mt-8 pt-6 border-t border-gray-300">
+                            <h3 className="text-xl font-semibold text-gray-700 mb-4 text-center">تفاصيل الإجابات:</h3>
+                            <ul className="results-list list-none p-0 text-sm md:text-base">
+                                {selectedQuestions.map((question, index) => {
+                                    const userAnswer = userAnswers[index]; const isCorrect = userAnswer === question.correctAnswer;
+                                    return (
+                                        <li key={index} className={`p-3 rounded-lg mb-3 ${isCorrect ? 'bg-green-50' : 'bg-red-50'} transition-colors duration-300`}>
+                                            <p className="font-semibold text-gray-800 mb-2">{index + 1}. {question.question}</p>
+                                            <p className="text-gray-700 mb-1"><span className="font-medium">إجابتك: </span><span className={`user-answer-text ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>{userAnswer !== undefined ? userAnswer : <span className="text-gray-500 italic">(لم تتم الإجابة)</span>}</span>{isCorrect ? <span className="correct-answer-indicator ml-2">✔️</span> : <span className="incorrect-answer-indicator ml-2">❌</span>}</p>
+                                            {!isCorrect && (<p className="text-gray-700"><span className="font-medium">الإجابة الصحيحة: </span><span className="correct-answer-text">{question.correctAnswer}</span></p>)}
+                                        </li> );
+                                })}
+                            </ul>
+                        </div>
+                        {/* Action Buttons */}
+                        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                             {/* *** إضافة تأثيرات للأزرار *** */}
+                            <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={resetQuiz}> اختبار جديد </button>
+                            <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={() => { setUserAnswers({}); setCurrentIndex(0); setScore(0); setShowResult(false); setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false); }}> إعادة نفس الاختبار </button>
+                        </div>
+                    </div>
+                </div> );
+          }
+
+          // 3. Active Quiz Screen
+          if (!selectedQuestions.length || !selectedQuestions[currentIndex]) {
+            return ( <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 font-sans"><div className="p-6 text-center bg-white shadow-lg rounded-lg max-w-md mx-auto w-full"><h2 className="text-xl font-semibold mb-4 text-red-600">حدث خطأ غير متوقع في تحميل السؤال.</h2><button className="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full" onClick={resetQuiz}>العودة إلى البداية</button></div></div> );
+          }
+          const currentQuestion = selectedQuestions[currentIndex];
+          const currentOptions = shuffleArray(currentQuestion.options);
+
+          return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 font-sans">
+                {/* *** إضافة تأثير ظهور لبطاقة السؤال *** */}
+                <div className="p-6 bg-white shadow-xl rounded-lg max-w-md mx-auto w-full animate-fadeIn">
+                    {/* Progress/Score */}
+                    <div className="flex justify-between items-center mb-5 text-sm"><span className="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full"> السؤال {currentIndex + 1} من {selectedQuestions.length} </span><span className="bg-green-100 text-green-800 font-medium px-3 py-1 rounded-full"> النتيجة: {score} </span></div>
+                    {/* Question */}
+                    <h2 className="text-xl md:text-2xl font-semibold mb-6 text-gray-800 text-right" dir="rtl"> {currentQuestion.question} </h2>
+                    {/* Options */}
+                    <div className="grid grid-cols-1 gap-3 mb-4 text-right" dir="rtl">
+                        {currentOptions.map((option, idx) => {
+                            let buttonClass = 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white';
+                            let animationClass = ''; // لتأثيرات الإجابة
+
+                            if (feedback) {
+                                if (option === currentQuestion.correctAnswer) {
+                                     buttonClass = 'bg-green-500 text-white ring-2 ring-green-700 ring-offset-2';
+                                     // *** تطبيق تأثير النبض للإجابة الصحيحة ***
+                                     if (option === feedback.userAnswer) animationClass = 'animate-pulse-correct';
+                                } else if (option === feedback.userAnswer) {
+                                     buttonClass = 'bg-red-500 text-white ring-2 ring-red-700 ring-offset-2';
+                                     // *** تطبيق تأثير الاهتزاز للإجابة الخاطئة ***
+                                     animationClass = 'animate-shake';
+                                } else {
+                                     buttonClass = 'bg-gray-300 text-gray-600 opacity-60 cursor-not-allowed';
+                                }
+                            }
+                            // *** إضافة تأثيرات انتقال وتحويل للزر + تطبيق animationClass ***
+                            return ( <button key={idx} className={`w-full py-3 px-4 rounded-lg font-medium shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed ${buttonClass} ${animationClass}`} onClick={() => !feedback && handleAnswer(option)} disabled={!!feedback} aria-pressed={!!feedback && option === feedback.userAnswer}> {option} </button> );
+                        })}
+                    </div>
+                    {/* Feedback Area (Fade in) */}
+                    {feedback && ( <div className={`mt-4 p-3 rounded-lg text-center font-semibold text-lg animate-fadeIn ${feedback.correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}> {feedback.correct ? "✔️ إجابة صحيحة!" : `❌ إجابة خاطئة! الإجابة الصحيحة هي: ${feedback.correctAnswer}`} </div> )}
+                    {/* Navigation */}
+                    <div className="mt-6 flex justify-between items-center">
+                         {/* *** إضافة تأثيرات لزر الإلغاء *** */}
+                        {!showCancelConfirm ? ( <button className="text-gray-500 hover:text-red-600 text-sm underline disabled:text-gray-300 disabled:no-underline disabled:cursor-not-allowed transition-colors" onClick={handleCancelRequest} disabled={showResult || !!feedback}> إلغاء الاختبار </button> ) : ( <div className="flex gap-2 items-center animate-fadeIn"><p className="text-sm text-red-600 font-medium">هل أنت متأكد؟</p><button onClick={confirmCancel} className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors">نعم</button><button onClick={abortCancel} className="text-xs bg-gray-300 px-2 py-1 rounded hover:bg-gray-400 transition-colors">لا</button></div> )}
+                         {/* *** إضافة تأثيرات لزر التالي/النتيجة *** */}
+                        {isNextVisible ? ( <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={goToNextQuestion}> {currentIndex === selectedQuestions.length - 1 ? "إظهار النتيجة" : "السؤال التالي"} </button> ) : ( <div className="h-10 w-24"></div> )}
+                    </div>
+                </div>
+            </div> );
+        };
+
+        // Render the QuizApp component
+        ReactDOM.render(<QuizApp />, document.getElementById('root'));
+
+    </script>
+    </body>
+</html>
