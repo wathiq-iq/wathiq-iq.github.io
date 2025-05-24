@@ -90,7 +90,7 @@
           const [showResult, setShowResult] = useState(false);
           const [feedback, setFeedback] = useState(null);
           const [isNextVisible, setIsNextVisible] = useState(false);
-          const [numQuestions, setNumQuestions] = useState(50);
+          const [numQuestions, setNumQuestions] = useState(10);
           const [selectedQuestions, setSelectedQuestions] = useState([]);
           const [quizStarted, setQuizStarted] = useState(false);
           const [apiUrl, setApiUrl] = useState('');
@@ -219,7 +219,7 @@
             setNotification({ message: '', type: '' });
 
             try {
-                const prompt = `Generate 50 multiple-choice quiz questions about "${llmTopic}". Each question should have 4 options, and one of them must be the correct answer. Provide the output as a JSON array of objects, where each object has "question" (string), "options" (array of strings), and "correctAnswer" (string, which must be one of the options). Ensure the questions are in Arabic.`;
+                const prompt = `Generate 10 multiple-choice quiz questions about "${llmTopic}". Each question should have 4 options, and one of them must be the correct answer. Provide the output as a JSON array of objects, where each object has "question" (string), "options" (array of strings), and "correctAnswer" (string, which must be one of the options). Ensure the questions are in Arabic.`;
 
                 let chatHistory = [];
                 chatHistory.push({ role: "user", parts: [{ text: prompt }] });
