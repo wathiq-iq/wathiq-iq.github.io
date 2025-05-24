@@ -90,7 +90,7 @@
           const [showResult, setShowResult] = useState(false);
           const [feedback, setFeedback] = useState(null);
           const [isNextVisible, setIsNextVisible] = useState(false);
-          const [numQuestions, setNumQuestions] = useState(5);
+          const [numQuestions, setNumQuestions] = useState(50);
           const [selectedQuestions, setSelectedQuestions] = useState([]);
           const [quizStarted, setQuizStarted] = useState(false);
           const [apiUrl, setApiUrl] = useState('');
@@ -342,7 +342,7 @@
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input type="text" value={llmTopic} onChange={(e) => setLlmTopic(e.target.value)} placeholder="أدخل موضوعاً (مثال: تاريخ الأندلس)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 ${isGeneratingQuestions ? 'bg-gray-100' : ''}`} aria-label="LLM Topic Input" disabled={isGeneratingQuestions} />
                   <button onClick={generateQuestionsFromLLM} disabled={isGeneratingQuestions || !llmTopic.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isGeneratingQuestions || !llmTopic.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
-                    {isGeneratingQuestions ? <><span className="loader"></span> <span>جاري التوليد...</span></> : "توليد الأسئلة ✨"}
+                    {isGeneratingQuestions ? <><span></span> <span>جاري التوليد...</span></> : "توليد الأسئلة ✨"}
                   </button>
                 </div>
               </div>
@@ -353,7 +353,7 @@
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input type="url" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="أدخل رابط API (JSON)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLoading || isGeneratingQuestions ? 'bg-gray-100' : ''}`} aria-label="API URL Input" disabled={isLoading || isGeneratingQuestions} />
                   <button onClick={fetchQuestionsFromApi} disabled={isLoading || isGeneratingQuestions || !apiUrl.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isLoading || isGeneratingQuestions || !apiUrl.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
-                    {isLoading ? <><span className="loader"></span> <span>جاري التحميل...</span></> : "استيراد"}
+                    {isLoading ? <><span></span> <span>جاري التحميل...</span></> : "استيراد"}
                   </button>
                 </div>
               </div>
