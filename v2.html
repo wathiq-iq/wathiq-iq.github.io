@@ -11,7 +11,7 @@
 
     <style>
         body { font-family: sans-serif; }
-        input[type="url"] { direction: ltr; text-align: left; }
+        input[type="url"], input[type="text"] { direction: ltr; text-align: left; } /* Ensure text input for topic is LTR */
         pre.dir-ltr { direction: ltr; text-align: left; }
         .results-list li { border-bottom: 1px solid #eee; padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
         .results-list li:last-child { border-bottom: none; margin-bottom: 0; }
@@ -74,17 +74,16 @@
 
         // Default questions data (in Arabic)
         const defaultQuestions = [
-          // ... (default questions remain the same)
            { question: "ما هي عاصمة العراق؟", options: ["بغداد", "دمشق", "عمان", "بيروت"], correctAnswer: "بغداد" },
-          { question: "من هو مؤلف كتاب كليلة ودمنة؟", options: ["الجاحظ", "ابن المقفع", "المتنبي", "ابن خلدون"], correctAnswer: "ابن المقفع" },
-          { question: "في أي قارة تقع مصر؟", options: ["آسيا", "أفريقيا", "أوروبا", "أمريكا الشمالية"], correctAnswer: "أفريقيا" },
-          { question: "ما هو أطول نهر في العالم؟", options: ["النيل", "الأمازون", "المسيسيبي", "دجلة"], correctAnswer: "النيل" },
-          { question: "كم عدد أضلاع المسدس؟", options: ["5", "6", "7", "8"], correctAnswer: "6" }
+           { question: "من هو مؤلف كتاب كليلة ودمنة؟", options: ["الجاحظ", "ابن المقفع", "المتنبي", "ابن خلدون"], correctAnswer: "ابن المقفع" },
+           { question: "في أي قارة تقع مصر؟", options: ["آسيا", "أفريقيا", "أوروبا", "أمريكا الشمالية"], correctAnswer: "أفريقيا" },
+           { question: "ما هو أطول نهر في العالم؟", options: ["النيل", "الأمازون", "المسيسيبي", "دجلة"], correctAnswer: "النيل" },
+           { question: "كم عدد أضلاع المسدس؟", options: ["5", "6", "7", "8"], correctAnswer: "6" }
         ];
 
         // Main Quiz App Component
         const QuizApp = () => {
-          // State variables (remain the same)
+          // State variables
           const [questions, setQuestions] = useState(defaultQuestions);
           const [currentIndex, setCurrentIndex] = useState(0);
           const [score, setScore] = useState(0);
@@ -104,14 +103,19 @@
           const [userAnswers, setUserAnswers] = useState({});
           const [uploadedFileHistory, setUploadedFileHistory] = useState([]);
 
-          // --- Functions (remain mostly the same, added loading indicator logic) ---
+          // New state for LLM integration
+          const [llmTopic, setLlmTopic] = useState('');
+          const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+
+
+          // --- Functions ---
 
           const showNotification = (message, type = 'info', duration = 3000) => {
             setNotification({ message, type });
             setTimeout(() => { setNotification({ message: '', type: '' }); }, duration);
           };
 
-          const validateQuestions = (data) => { /* ... validation logic ... */
+          const validateQuestions = (data) => {
              if (!Array.isArray(data)) throw new Error("البيانات المستلمة ليست مصفوفة");
             if (data.length === 0) throw new Error("لا توجد أسئلة في البيانات المستلمة");
             const invalidQuestions = data.filter(q => !q.question || !Array.isArray(q.options) || q.options.length < 2 || !q.correctAnswer || !q.options.includes(q.correctAnswer));
@@ -123,7 +127,7 @@
             return true;
           };
 
-          const shuffleArray = (array) => { /* ... shuffle logic ... */
+          const shuffleArray = (array) => {
              if (!array || array.length === 0) return [];
             let currentIndex = array.length, randomIndex;
             const shuffledArray = [...array];
@@ -138,11 +142,9 @@
           const fetchQuestionsFromApi = async () => {
              if (!apiUrl.trim()) { setError("الرجاء إدخال رابط صحيح"); return; }
             try { new URL(apiUrl); } catch (_) { setError("الرابط الذي أدخلته غير صالح"); return; }
-            setIsLoading(true); // Start loading
+            setIsLoading(true);
             setError(''); setNotification({ message: '', type: '' });
             try {
-              // Simulate network delay for visual effect (optional)
-              // await new Promise(resolve => setTimeout(resolve, 1000));
               const response = await fetch(apiUrl);
               if (!response.ok) throw new Error(`فشل تحميل الرابط، الحالة: ${response.status}`);
               const data = await response.json();
@@ -151,7 +153,7 @@
               setSourceType('api');
               showNotification("تم استيراد الأسئلة من الرابط بنجاح!", 'success');
             } catch (err) { console.error("Error fetching data:", err); setError(`حدث خطأ أثناء استيراد الأسئلة من الرابط: ${err.message}`); }
-            finally { setIsLoading(false); } // Stop loading
+            finally { setIsLoading(false); }
           };
 
           const handleFileUpload = (event) => {
@@ -161,13 +163,11 @@
               setError("يرجى تحميل ملف بصيغة JSON فقط");
               if (event.target) event.target.value = null; return;
             }
-            setIsLoading(true); // Start loading
+            setIsLoading(true);
             setError(''); setNotification({ message: '', type: '' });
             const reader = new FileReader();
             reader.onload = (e) => {
               try {
-                // Simulate processing delay (optional)
-                // await new Promise(resolve => setTimeout(resolve, 500));
                 const content = e.target.result;
                 const data = JSON.parse(content);
                 validateQuestions(data);
@@ -180,13 +180,13 @@
                 setSourceType('file');
                 showNotification(`تم استيراد "${file.name}" بنجاح!`, 'success');
               } catch (err) { console.error("Error reading file:", err); setError(`خطأ في قراءة أو تحليل الملف: ${err.message}`); }
-              finally { setIsLoading(false); if (event.target) event.target.value = null; } // Stop loading
+              finally { setIsLoading(false); if (event.target) event.target.value = null; }
             };
-            reader.onerror = () => { setError("حدث خطأ أثناء قراءة الملف"); setIsLoading(false); if (event.target) event.target.value = null; }; // Stop loading on error
+            reader.onerror = () => { setError("حدث خطأ أثناء قراءة الملف"); setIsLoading(false); if (event.target) event.target.value = null; };
             reader.readAsText(file);
           };
 
-          const loadFromHistory = (fileName) => { /* ... load from history logic ... */
+          const loadFromHistory = (fileName) => {
                const historyItem = uploadedFileHistory.find(item => item.name === fileName);
               if (historyItem) {
                   setQuestions(historyItem.questions);
@@ -195,18 +195,89 @@
                   setNotification({ message: '', type: '' });
                   showNotification(`تم تحميل الأسئلة من "${fileName}"`, 'info');
                   setApiUrl('');
+                  setLlmTopic(''); // Clear LLM topic when loading from history
               }
           };
 
-          const useDefaultQuestions = () => { /* ... use default logic ... */
+          const useDefaultQuestions = () => {
              setQuestions(defaultQuestions);
             setSourceType('default');
             setError(''); setNotification({ message: '', type: '' });
             showNotification("تم العودة إلى الأسئلة الافتراضية", 'info');
             setApiUrl('');
+            setLlmTopic(''); // Clear LLM topic when using default
           };
 
-          const startQuiz = () => { /* ... start quiz logic ... */
+          // ✨ New LLM feature: Generate questions
+          const generateQuestionsFromLLM = async () => {
+            if (!llmTopic.trim()) {
+              setError("الرجاء إدخال موضوع لتوليد الأسئلة.");
+              return;
+            }
+            setIsGeneratingQuestions(true);
+            setError('');
+            setNotification({ message: '', type: '' });
+
+            try {
+                const prompt = `Generate 5 multiple-choice quiz questions about "${llmTopic}". Each question should have 4 options, and one of them must be the correct answer. Provide the output as a JSON array of objects, where each object has "question" (string), "options" (array of strings), and "correctAnswer" (string, which must be one of the options). Ensure the questions are in Arabic.`;
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    "question": { "type": "STRING" },
+                                    "options": {
+                                        "type": "ARRAY",
+                                        "items": { "type": "STRING" }
+                                    },
+                                    "correctAnswer": { "type": "STRING" }
+                                },
+                                "required": ["question", "options", "correctAnswer"]
+                            }
+                        }
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    const generatedQuestions = JSON.parse(jsonString);
+
+                    validateQuestions(generatedQuestions); // Use existing validation
+
+                    setQuestions(generatedQuestions);
+                    setSourceType('llm');
+                    showNotification("تم توليد الأسئلة بنجاح باستخدام Gemini API! ✨", 'success');
+                } else {
+                    throw new Error("لم يتمكن Gemini من توليد أسئلة صالحة. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error generating questions with LLM:", err);
+                setError(`حدث خطأ أثناء توليد الأسئلة: ${err.message}. يرجى التأكد من أن الموضوع واضح.`);
+            } finally {
+                setIsGeneratingQuestions(false);
+            }
+          };
+
+          const startQuiz = () => {
             if (!questions || questions.length === 0) { setError("لا توجد أسئلة متاحة، يرجى استيراد الأسئلة أولاً أو استخدام الافتراضية"); return; }
             const num = parseInt(numQuestions);
             if (isNaN(num) || !Number.isInteger(num) || num <= 0) { setError(`يرجى إدخال عدد صحيح موجب للأسئلة.`); setNumQuestions(1); return; }
@@ -220,7 +291,7 @@
             setQuizStarted(true);
           };
 
-          const handleAnswer = (answer) => { /* ... handle answer logic ... */
+          const handleAnswer = (answer) => {
              if (!selectedQuestions[currentIndex] || feedback) return;
             const isCorrect = answer === selectedQuestions[currentIndex].correctAnswer;
             if (isCorrect) { setScore(score + 1); }
@@ -229,23 +300,24 @@
             setIsNextVisible(true);
           };
 
-          const goToNextQuestion = () => { /* ... go to next logic ... */
+          const goToNextQuestion = () => {
             const nextIndex = currentIndex + 1;
             if (nextIndex < selectedQuestions.length) { setCurrentIndex(nextIndex); setFeedback(null); setIsNextVisible(false); }
             else { setShowResult(true); }
           };
 
-          const resetQuiz = () => { /* ... reset logic ... */
+          const resetQuiz = () => {
              setSelectedQuestions([]); setUserAnswers({}); setCurrentIndex(0); setScore(0);
             setShowResult(false); setFeedback(null); setIsNextVisible(false); setQuizStarted(false);
             setError(''); setNotification({ message: '', type: '' }); setShowCancelConfirm(false);
+            setLlmTopic(''); // Clear LLM topic on full reset
           };
 
           const handleCancelRequest = () => { setShowCancelConfirm(true); };
           const confirmCancel = () => { resetQuiz(); };
           const abortCancel = () => { setShowCancelConfirm(false); };
 
-          useEffect(() => { /* ... useEffect logic ... */
+          useEffect(() => {
              if (questions && questions.length > 0) {
               const maxQuestions = questions.length;
               setNumQuestions(prevNum => {
@@ -261,44 +333,56 @@
 
           // Import Questions Form component (with loading indicators)
           const ImportQuestionsForm = () => (
-            // *** إضافة تأثير ظهور للبطاقة ***
             <div className="bg-white p-4 rounded-lg shadow-md mb-6 animate-fadeIn">
               <h2 className="text-xl font-bold mb-4 text-center text-indigo-600">استيراد الأسئلة</h2>
+
+              {/* LLM Question Generation */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-2">✨ توليد أسئلة باستخدام الذكاء الاصطناعي:</h3>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input type="text" value={llmTopic} onChange={(e) => setLlmTopic(e.target.value)} placeholder="أدخل موضوعاً (مثال: تاريخ الأندلس)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 ${isGeneratingQuestions ? 'bg-gray-100' : ''}`} aria-label="LLM Topic Input" disabled={isGeneratingQuestions} />
+                  <button onClick={generateQuestionsFromLLM} disabled={isGeneratingQuestions || !llmTopic.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isGeneratingQuestions || !llmTopic.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                    {isGeneratingQuestions ? <><span className="loader"></span> <span>جاري التوليد...</span></> : "توليد الأسئلة ✨"}
+                  </button>
+                </div>
+              </div>
+
               {/* API Import */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-2">من رابط API:</h3>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <input type="url" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="أدخل رابط API (JSON)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLoading ? 'bg-gray-100' : ''}`} aria-label="API URL Input" disabled={isLoading} />
-                  {/* *** تعديل زر الاستيراد + إضافة تأثيرات + مؤشر تحميل *** */}
-                  <button onClick={fetchQuestionsFromApi} disabled={isLoading || !apiUrl.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isLoading || !apiUrl.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                  <input type="url" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="أدخل رابط API (JSON)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLoading || isGeneratingQuestions ? 'bg-gray-100' : ''}`} aria-label="API URL Input" disabled={isLoading || isGeneratingQuestions} />
+                  <button onClick={fetchQuestionsFromApi} disabled={isLoading || isGeneratingQuestions || !apiUrl.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isLoading || isGeneratingQuestions || !apiUrl.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
                     {isLoading ? <><span className="loader"></span> <span>جاري التحميل...</span></> : "استيراد"}
                   </button>
                 </div>
               </div>
+
               {/* File Import */}
               <div className="mb-6">
                  <h3 className="text-lg font-medium mb-2">من ملف JSON:</h3>
                  <div className="flex items-center justify-center w-full">
-                   {/* *** إضافة تأثير نبض عند التحميل للمنطقة *** */}
-                   <label htmlFor="file-upload" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg ${isLoading ? 'bg-gray-100 cursor-wait animate-pulse' : 'cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300 hover:border-gray-400 transition-colors'}`}>
+                   <label htmlFor="file-upload" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg ${isLoading || isGeneratingQuestions ? 'bg-gray-100 cursor-wait animate-pulse' : 'cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300 hover:border-gray-400 transition-colors'}`}>
                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
                        <svg className="w-8 h-8 mb-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                        <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">اضغط للتحميل</span> أو اسحب ملفك هنا</p>
                        <p className="text-xs text-gray-500">JSON فقط</p>
                      </div>
-                     <input id="file-upload" type="file" className="hidden" accept=".json,application/json" onChange={handleFileUpload} disabled={isLoading} aria-label="JSON File Upload"/>
+                     <input id="file-upload" type="file" className="hidden" accept=".json,application/json" onChange={handleFileUpload} disabled={isLoading || isGeneratingQuestions} aria-label="JSON File Upload"/>
                    </label>
                  </div>
               </div>
+
               {/* Default Questions Button */}
               <div className="text-center mb-6">
-                 {/* *** إضافة تأثيرات للزر *** */}
-                 <button onClick={useDefaultQuestions} disabled={isLoading} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out ${isLoading ? 'bg-gray-400 cursor-not-allowed animate-pulse' : 'bg-gray-500 hover:bg-gray-600 text-white hover:shadow-md transform hover:-translate-y-0.5'}`}>استخدام الأسئلة الافتراضية</button>
+                 <button onClick={useDefaultQuestions} disabled={isLoading || isGeneratingQuestions} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out ${isLoading || isGeneratingQuestions ? 'bg-gray-400 cursor-not-allowed animate-pulse' : 'bg-gray-500 hover:bg-gray-600 text-white hover:shadow-md transform hover:-translate-y-0.5'}`}>استخدام الأسئلة الافتراضية</button>
               </div>
+
               {/* Error Display (Fade in) */}
               {error && (<div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-center break-words animate-fadeIn" role="alert">{error}</div>)}
               {/* Notification Display (Fade in) */}
               {notification.message && (<div className={`mt-4 p-3 rounded-lg text-center animate-fadeIn ${notification.type === 'success' ? 'bg-green-100 text-green-700' : notification.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`} role="status">{notification.message}</div>)}
+
               {/* JSON Format Info */}
               <div className="mt-6">
                  <button onClick={() => setShowFormatInfo(!showFormatInfo)} className="text-blue-600 hover:text-blue-800 underline text-sm transition-colors">{showFormatInfo ? "إخفاء" : "عرض"} معلومات تنسيق JSON المطلوب</button>
@@ -309,6 +393,7 @@
                    </div>
                  )}
               </div>
+
               {/* Recently Uploaded Questions Section */}
               {uploadedFileHistory.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-gray-200 animate-fadeIn">
@@ -317,11 +402,10 @@
                           {uploadedFileHistory.map((item, index) => (
                               <li key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg shadow-sm hover:bg-gray-100 transition-colors">
                                   <span className="text-gray-800 truncate pr-2" title={item.name}>{item.name}</span>
-                                  {/* *** إضافة تأثيرات للزر *** */}
                                   <button
                                       onClick={() => loadFromHistory(item.name)}
-                                      className={`text-sm bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-1 px-3 rounded-md transition-all duration-200 ease-in-out whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${isLoading ? '' : 'hover:shadow-md transform hover:-translate-y-0.5'}`}
-                                      disabled={isLoading}
+                                      className={`text-sm bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-1 px-3 rounded-md transition-all duration-200 ease-in-out whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${isLoading || isGeneratingQuestions ? '' : 'hover:shadow-md transform hover:-translate-y-0.5'}`}
+                                      disabled={isLoading || isGeneratingQuestions}
                                   >
                                       استخدام
                                   </button>
@@ -337,12 +421,13 @@
 
           // 1. Setup Screen
           if (!quizStarted) {
-            const getSourceName = () => { /* ... get source name logic ... */
+            const getSourceName = () => {
                  switch (sourceType) {
                     case 'default': return 'الأسئلة الافتراضية';
                     case 'api': return 'API خارجي';
                     case 'file': return 'ملف محلي';
                     case 'history': return 'ملف محمل مؤخراً';
+                    case 'llm': return 'الذكاء الاصطناعي ✨';
                     default: return 'غير محدد';
                 }
             };
@@ -350,7 +435,6 @@
               <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-green-200 via-blue-200 to-purple-300 p-4 font-sans">
                 <div className="w-full max-w-xl">
                   <ImportQuestionsForm />
-                  {/* *** إضافة تأثير ظهور للبطاقة *** */}
                   <div className="bg-white p-6 rounded-lg shadow-md text-center animate-fadeIn" style={{animationDelay: '0.1s'}}>
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">بدء الاختبار</h2>
                     <div className="flex flex-col items-center">
@@ -362,8 +446,7 @@
                              <input id="num-questions" type="number" className="border-2 border-gray-300 rounded-lg p-2 bg-white text-gray-700 w-32 text-center focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-colors" value={numQuestions || ''} onChange={(e) => setNumQuestions(e.target.value)} onBlur={(e) => { const val = parseInt(e.target.value); if (isNaN(val) || val < 1) setNumQuestions(1); else if (val > questions.length) setNumQuestions(questions.length); else setNumQuestions(val); }} max={questions.length} min={1} aria-label="Number of questions to start" />
                            </div>
                       )}
-                      {/* *** إضافة تأثيرات لزر البدء *** */}
-                      <button className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${isLoading ? 'animate-pulse' : ''}`} onClick={startQuiz} disabled={isLoading || questions.length === 0 || !parseInt(numQuestions) || parseInt(numQuestions) <= 0 || parseInt(numQuestions) > questions.length}> بدء الاختبار </button>
+                      <button className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${isLoading || isGeneratingQuestions ? 'animate-pulse' : ''}`} onClick={startQuiz} disabled={isLoading || isGeneratingQuestions || questions.length === 0 || !parseInt(numQuestions) || parseInt(numQuestions) <= 0 || parseInt(numQuestions) > questions.length}> بدء الاختبار </button>
                     </div>
                   </div>
                 </div>
@@ -380,8 +463,7 @@
 
             return (
                 <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 font-sans">
-                    {/* *** إضافة تأثير ظهور لبطاقة النتائج *** */}
-                    <div className={`p-6 rounded-lg shadow-xl ${bgColor} max-w-2xl mx-auto w-full ${textColor} transition-all duration-500 ease-out transform scale-95 opacity-0 animate-fadeIn`} style={{ animationFillMode: 'forwards', animationDelay: '0.1s', '--tw-scale-x': '1', '--tw-scale-y': '1', opacity: '1' }}> {/* Force final state */}
+                    <div className={`p-6 rounded-lg shadow-xl ${bgColor} max-w-2xl mx-auto w-full ${textColor} transition-all duration-500 ease-out transform scale-95 opacity-0 animate-fadeIn`} style={{ animationFillMode: 'forwards', animationDelay: '0.1s', '--tw-scale-x': '1', '--tw-scale-y': '1', opacity: '1' }}>
                         <h2 className="text-3xl font-bold text-gray-800 mb-4 text-center">انتهى الاختبار!</h2>
                         <div className="text-center mb-6">
                             <p className="text-xl font-semibold mb-2">درجتك: {score} من {selectedQuestions.length}</p>
@@ -405,7 +487,6 @@
                         </div>
                         {/* Action Buttons */}
                         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-                             {/* *** إضافة تأثيرات للأزرار *** */}
                             <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={resetQuiz}> اختبار جديد </button>
                             <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={() => { setUserAnswers({}); setCurrentIndex(0); setScore(0); setShowResult(false); setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false); }}> إعادة نفس الاختبار </button>
                         </div>
@@ -422,7 +503,6 @@
 
           return (
             <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 font-sans">
-                {/* *** إضافة تأثير ظهور لبطاقة السؤال *** */}
                 <div className="p-6 bg-white shadow-xl rounded-lg max-w-md mx-auto w-full animate-fadeIn">
                     {/* Progress/Score */}
                     <div className="flex justify-between items-center mb-5 text-sm"><span className="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full"> السؤال {currentIndex + 1} من {selectedQuestions.length} </span><span className="bg-green-100 text-green-800 font-medium px-3 py-1 rounded-full"> النتيجة: {score} </span></div>
@@ -432,22 +512,19 @@
                     <div className="grid grid-cols-1 gap-3 mb-4 text-right" dir="rtl">
                         {currentOptions.map((option, idx) => {
                             let buttonClass = 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white';
-                            let animationClass = ''; // لتأثيرات الإجابة
+                            let animationClass = '';
 
                             if (feedback) {
                                 if (option === currentQuestion.correctAnswer) {
                                      buttonClass = 'bg-green-500 text-white ring-2 ring-green-700 ring-offset-2';
-                                     // *** تطبيق تأثير النبض للإجابة الصحيحة ***
                                      if (option === feedback.userAnswer) animationClass = 'animate-pulse-correct';
                                 } else if (option === feedback.userAnswer) {
                                      buttonClass = 'bg-red-500 text-white ring-2 ring-red-700 ring-offset-2';
-                                     // *** تطبيق تأثير الاهتزاز للإجابة الخاطئة ***
                                      animationClass = 'animate-shake';
                                 } else {
                                      buttonClass = 'bg-gray-300 text-gray-600 opacity-60 cursor-not-allowed';
                                 }
                             }
-                            // *** إضافة تأثيرات انتقال وتحويل للزر + تطبيق animationClass ***
                             return ( <button key={idx} className={`w-full py-3 px-4 rounded-lg font-medium shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed ${buttonClass} ${animationClass}`} onClick={() => !feedback && handleAnswer(option)} disabled={!!feedback} aria-pressed={!!feedback && option === feedback.userAnswer}> {option} </button> );
                         })}
                     </div>
@@ -455,9 +532,7 @@
                     {feedback && ( <div className={`mt-4 p-3 rounded-lg text-center font-semibold text-lg animate-fadeIn ${feedback.correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}> {feedback.correct ? "✔️ إجابة صحيحة!" : `❌ إجابة خاطئة! الإجابة الصحيحة هي: ${feedback.correctAnswer}`} </div> )}
                     {/* Navigation */}
                     <div className="mt-6 flex justify-between items-center">
-                         {/* *** إضافة تأثيرات لزر الإلغاء *** */}
                         {!showCancelConfirm ? ( <button className="text-gray-500 hover:text-red-600 text-sm underline disabled:text-gray-300 disabled:no-underline disabled:cursor-not-allowed transition-colors" onClick={handleCancelRequest} disabled={showResult || !!feedback}> إلغاء الاختبار </button> ) : ( <div className="flex gap-2 items-center animate-fadeIn"><p className="text-sm text-red-600 font-medium">هل أنت متأكد؟</p><button onClick={confirmCancel} className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors">نعم</button><button onClick={abortCancel} className="text-xs bg-gray-300 px-2 py-1 rounded hover:bg-gray-400 transition-colors">لا</button></div> )}
-                         {/* *** إضافة تأثيرات لزر التالي/النتيجة *** */}
                         {isNextVisible ? ( <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={goToNextQuestion}> {currentIndex === selectedQuestions.length - 1 ? "إظهار النتيجة" : "السؤال التالي"} </button> ) : ( <div className="h-10 w-24"></div> )}
                     </div>
                 </div>
@@ -465,7 +540,8 @@
         };
 
         // Render the QuizApp component
-        ReactDOM.render(<QuizApp />, document.getElementById('root'));
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<QuizApp />);
 
     </script>
     </body>
