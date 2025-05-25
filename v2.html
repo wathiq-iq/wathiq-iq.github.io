@@ -6,20 +6,18 @@
     <title>تطبيق اختبار React</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
 
     <style>
         body { font-family: sans-serif; }
-        input[type="url"], input[type="text"] { direction: ltr; text-align: left; } /* Ensure text input for topic is LTR */
         pre.dir-ltr { direction: ltr; text-align: left; }
         .results-list li { border-bottom: 1px solid #eee; padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
         .results-list li:last-child { border-bottom: none; margin-bottom: 0; }
         .correct-answer-indicator { color: #16a34a; font-weight: bold; }
         .incorrect-answer-indicator { color: #dc2626; font-weight: bold; }
         .correct-answer-text { color: #15803d; }
-
-        /* --- جديد: مؤثرات بصرية إضافية --- */
 
         /* تأثير اهتزاز للإجابة الخاطئة */
         @keyframes shake {
@@ -30,40 +28,6 @@
         .animate-shake {
           animation: shake 0.5s ease-in-out;
         }
-
-        /* تأثير نبض للإجابة الصحيحة */
-        @keyframes pulse-correct {
-          0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); } /* green-600 */
-          50% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
-        }
-        .animate-pulse-correct {
-          animation: pulse-correct 0.6s ease-out;
-        }
-
-        /* تأثير ظهور العناصر (مثال للأسئلة أو البطاقات) */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-            animation: fadeIn 0.4s ease-out forwards;
-        }
-
-        /* تأثير تحميل بسيط (يمكن استخدامه بدل النص) */
-        .loader {
-            border: 4px solid #f3f3f3; /* Light grey */
-            border-top: 4px solid #3498db; /* Blue */
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: inline-block; /* To center with text if needed */
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
     </style>
 </head>
 <body>
@@ -90,7 +54,7 @@
           const [showResult, setShowResult] = useState(false);
           const [feedback, setFeedback] = useState(null);
           const [isNextVisible, setIsNextVisible] = useState(false);
-          const [numQuestions, setNumQuestions] = useState(10);
+          const [numQuestions, setNumQuestions] = useState(15);
           const [selectedQuestions, setSelectedQuestions] = useState([]);
           const [quizStarted, setQuizStarted] = useState(false);
           const [apiUrl, setApiUrl] = useState('');
@@ -106,6 +70,26 @@
           // New state for LLM integration
           const [llmTopic, setLlmTopic] = useState('');
           const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+          const [explanation, setExplanation] = useState(''); // State for explanation
+          const [isExplaining, setIsExplaining] = useState(false); // State for explanation loading
+          const [quizAnalysis, setQuizAnalysis] = useState(''); // New state for quiz analysis
+          const [isAnalyzingQuiz, setIsAnalyzingQuiz] = useState(false); // New state for analysis loading
+          const [studyMaterial, setStudyMaterial] = useState(''); // New state for study material
+          const [isGeneratingStudyMaterial, setIsGeneratingStudyMaterial] = useState(false); // New state for study material loading
+          const [quizChallenge, setQuizChallenge] = useState(''); // New state for quiz challenge
+          const [isGeneratingChallenge, setIsGeneratingChallenge] = useState(false); // New state for challenge loading
+          const [relatedTopics, setRelatedTopics] = useState([]); // New state for related topics
+          const [isGeneratingRelatedTopics, setIsGeneratingRelatedTopics] = useState(false); // New state for related topics loading
+          const [reviewQuestions, setReviewQuestions] = useState([]); // New state for review questions
+          const [isGeneratingReviewQuestions, setIsGeneratingReviewQuestions] = useState(false); // New state for review questions loading
+          const [keyConcepts, setKeyConcepts] = useState(''); // New state for key concepts
+          const [isExtractingConcepts, setIsExtractingConcepts] = useState(false); // New state for key concepts loading
+          const [openEndedQuestions, setOpenEndedQuestions] = useState(''); // New state for open-ended questions
+          const [isGeneratingOpenEndedQuestions, setIsGeneratingOpenEndedQuestions] = useState(false); // New state for open-ended questions loading
+          const [followUpQuestion, setFollowUpQuestion] = useState(''); // New state for follow-up question
+          const [isGeneratingFollowUpQuestion, setIsGeneratingFollowUpQuestion] = useState(false); // New state for follow-up question loading
+          const [personalizedStudyTips, setPersonalizedStudyTips] = useState(''); // New state for personalized study tips
+          const [isGeneratingStudyTips, setIsGeneratingStudyTips] = useState(false); // New state for personalized study tips loading
 
 
           // --- Functions ---
@@ -144,6 +128,15 @@
             try { new URL(apiUrl); } catch (_) { setError("الرابط الذي أدخلته غير صالح"); return; }
             setIsLoading(true);
             setError(''); setNotification({ message: '', type: '' });
+            setLlmTopic(''); // Clear LLM topic when fetching from API
+            setStudyMaterial(''); // Clear study material
+            setQuizChallenge(''); // Clear quiz challenge
+            setRelatedTopics([]); // Clear related topics
+            setReviewQuestions([]); // Clear review questions
+            setKeyConcepts(''); // Clear key concepts
+            setOpenEndedQuestions(''); // Clear open-ended questions
+            setFollowUpQuestion(''); // Clear follow-up question
+            setPersonalizedStudyTips(''); // Clear personalized study tips
             try {
               const response = await fetch(apiUrl);
               if (!response.ok) throw new Error(`فشل تحميل الرابط، الحالة: ${response.status}`);
@@ -165,6 +158,15 @@
             }
             setIsLoading(true);
             setError(''); setNotification({ message: '', type: '' });
+            setLlmTopic(''); // Clear LLM topic when uploading file
+            setStudyMaterial(''); // Clear study material
+            setQuizChallenge(''); // Clear quiz challenge
+            setRelatedTopics([]); // Clear related topics
+            setReviewQuestions([]); // Clear review questions
+            setKeyConcepts(''); // Clear key concepts
+            setOpenEndedQuestions(''); // Clear open-ended questions
+            setFollowUpQuestion(''); // Clear follow-up question
+            setPersonalizedStudyTips(''); // Clear personalized study tips
             const reader = new FileReader();
             reader.onload = (e) => {
               try {
@@ -196,6 +198,14 @@
                   showNotification(`تم تحميل الأسئلة من "${fileName}"`, 'info');
                   setApiUrl('');
                   setLlmTopic(''); // Clear LLM topic when loading from history
+                  setStudyMaterial(''); // Clear study material
+                  setQuizChallenge(''); // Clear quiz challenge
+                  setRelatedTopics([]); // Clear related topics
+                  setReviewQuestions([]); // Clear review questions
+                  setKeyConcepts(''); // Clear key concepts
+                  setOpenEndedQuestions(''); // Clear open-ended questions
+                  setFollowUpQuestion(''); // Clear follow-up question
+                  setPersonalizedStudyTips(''); // Clear personalized study tips
               }
           };
 
@@ -206,6 +216,14 @@
             showNotification("تم العودة إلى الأسئلة الافتراضية", 'info');
             setApiUrl('');
             setLlmTopic(''); // Clear LLM topic when using default
+            setStudyMaterial(''); // Clear study material
+            setQuizChallenge(''); // Clear quiz challenge
+            setRelatedTopics([]); // Clear related topics
+            setReviewQuestions([]); // Clear review questions
+            setKeyConcepts(''); // Clear key concepts
+            setOpenEndedQuestions(''); // Clear open-ended questions
+            setFollowUpQuestion(''); // Clear follow-up question
+            setPersonalizedStudyTips(''); // Clear personalized study tips
           };
 
           // ✨ New LLM feature: Generate questions
@@ -217,10 +235,370 @@
             setIsGeneratingQuestions(true);
             setError('');
             setNotification({ message: '', type: '' });
+            setStudyMaterial(''); // Clear study material when generating new questions
+            setQuizChallenge(''); // Clear quiz challenge when generating new questions
+            setRelatedTopics([]); // Clear related topics when generating new questions
+            setReviewQuestions([]); // Clear review questions when generating new questions
+            setKeyConcepts(''); // Clear key concepts when generating new questions
+            setOpenEndedQuestions(''); // Clear open-ended questions when generating new questions
+            setFollowUpQuestion(''); // Clear follow-up question when generating new questions
+            setPersonalizedStudyTips(''); // Clear personalized study tips when generating new questions
+
+            const maxRetries = 3;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const prompt = `Generate 15 multiple-choice quiz questions about "${llmTopic}". Each question should have 4 options, and one of them MUST be the correct answer, which must be EXPLICITLY present in the options array. Provide the output as a JSON array of objects, where each object has "question" (string), "options" (array of strings), and "correctAnswer" (string). Ensure the questions are in Arabic.`;
+
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = {
+                        contents: chatHistory,
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "question": { "type": "STRING" },
+                                        "options": {
+                                            "type": "ARRAY",
+                                            "items": { "type": "STRING" }
+                                        },
+                                        "correctAnswer": { "type": "STRING" }
+                                    },
+                                    "required": ["question", "options", "correctAnswer"]
+                                }
+                            }
+                        }
+                    };
+                    const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const jsonString = result.candidates[0].content.parts[0].text;
+                        const generatedQuestions = JSON.parse(jsonString);
+
+                        validateQuestions(generatedQuestions); // Use existing validation
+
+                        setQuestions(generatedQuestions);
+                        setSourceType('llm');
+                        showNotification("تم توليد الأسئلة بنجاح باستخدام Gemini API! ✨", 'success');
+                        setIsGeneratingQuestions(false);
+                        return; // Exit function on success
+                    } else {
+                        throw new Error("لم يتمكن Gemini من توليد أسئلة صالحة. المحاولة " + (i + 1));
+                    }
+                } catch (err) {
+                    console.error(`Error generating questions (retry ${i + 1}):`, err);
+                    setError(`حدث خطأ أثناء توليد الأسئلة: ${err.message}. جاري إعادة المحاولة...`);
+                    // If it's the last retry and still an error, set the final error message
+                    if (i === maxRetries - 1) {
+                        setError(`حدث خطأ أثناء توليد الأسئلة: ${err.message}. يرجى التأكد من أن الموضوع واضح والمحاولة لاحقاً.`);
+                    }
+                }
+            }
+            setIsGeneratingQuestions(false); // Ensure loading state is reset after all retries
+          };
+
+          // ✨ New LLM feature: Get explanation for an answer
+          const getExplanationFromLLM = async () => {
+            setIsExplaining(true);
+            setExplanation('');
+            setError('');
+            setFollowUpQuestion(''); // Clear follow-up question when getting new explanation
+
+            const currentQ = selectedQuestions[currentIndex];
+            const userAnswer = userAnswers[currentIndex];
+            const isCorrect = userAnswer === currentQ.correctAnswer;
+
+            let prompt = `Provide a concise explanation for the following quiz question and its correct answer. `;
+            prompt += `Question: "${currentQ.question}"\n`;
+            prompt += `Options: ${currentQ.options.join(', ')}\n`;
+            prompt += `Correct Answer: "${currentQ.correctAnswer}"\n`;
+            if (!isCorrect) {
+                prompt += `User's Answer: "${userAnswer}". Explain why the user's answer is incorrect and why the correct answer is right.`;
+            } else {
+                prompt += `Explain why this is the correct answer.`;
+            }
+            prompt += `Ensure the explanation is in Arabic.`;
 
             try {
-                const prompt = `Generate 10 multiple-choice quiz questions about "${llmTopic}". Each question should have 4 options, and one of them must be the correct answer. Provide the output as a JSON array of objects, where each object has "question" (string), "options" (array of strings), and "correctAnswer" (string, which must be one of the options). Ensure the questions are in Arabic.`;
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "text/plain" // We expect plain text explanation
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    setExplanation(result.candidates[0].content.parts[0].text);
+                } else {
+                    throw new Error("لم يتمكن Gemini من توليد شرح. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error getting explanation from LLM:", err);
+                setError(`حدث خطأ أثناء الحصول على الشرح: ${err.message}.`);
+            } finally {
+                setIsExplaining(false);
+            }
+          };
+
+          // ✨ New LLM feature: Generate quiz analysis
+          const generateQuizAnalysis = async () => {
+            setIsAnalyzingQuiz(true);
+            setQuizAnalysis('');
+            setError('');
+
+            let prompt = `Analyze the user's performance in the following quiz. Provide insights into their strengths and weaknesses. Also, suggest areas for further study.`;
+            prompt += `\n\nQuiz Results:\n`;
+            prompt += `Total Questions: ${selectedQuestions.length}\n`;
+            prompt += `Correct Answers: ${score}\n`;
+            prompt += `Incorrect Answers: ${selectedQuestions.length - score}\n\n`;
+            prompt += `Details for each question:\n`;
+
+            selectedQuestions.forEach((q, index) => {
+                const userAnswer = userAnswers[index];
+                const isCorrect = userAnswer === q.correctAnswer;
+                prompt += `\nQuestion ${index + 1}: ${q.question}\n`;
+                prompt += `Your Answer: ${userAnswer !== undefined ? userAnswer : '(لم تتم الإجابة)'}\n`;
+                prompt += `Correct Answer: ${q.correctAnswer}\n`;
+                prompt += `Status: ${isCorrect ? 'Correct' : 'Incorrect'}\n`;
+            });
+
+            prompt += `\n\nPlease provide the analysis in Arabic.`;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "text/plain"
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    setQuizAnalysis(result.candidates[0].content.parts[0].text);
+                } else {
+                    throw new Error("لم يتمكن Gemini من توليد تحليل للأداء. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error getting quiz analysis from LLM:", err);
+                setError(`حدث خطأ أثناء الحصول على تحليل الأداء: ${err.message}.`);
+            } finally {
+                setIsAnalyzingQuiz(false);
+            }
+          };
+
+          // ✨ New LLM feature: Generate study material
+          const generateStudyMaterial = async () => {
+            if (!llmTopic.trim()) {
+                setError("الرجاء إدخال موضوع لتوليد مواد دراسية.");
+                return;
+            }
+            setIsGeneratingStudyMaterial(true);
+            setStudyMaterial('');
+            setError('');
+
+            const prompt = `Generate a concise study summary (around 150-200 words) about the topic: "${llmTopic}". Focus on key facts and important concepts. Ensure the summary is in Arabic.`;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "text/plain"
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    setStudyMaterial(result.candidates[0].content.parts[0].text);
+                } else {
+                    throw new Error("لم يتمكن Gemini من توليد مواد دراسية. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error generating study material with LLM:", err);
+                setError(`حدث خطأ أثناء توليد مواد دراسية: ${err.message}.`);
+            } finally {
+                setIsGeneratingStudyMaterial(false);
+            }
+          };
+
+          // ✨ New LLM feature: Generate quiz challenge
+          const generateQuizChallenge = async () => {
+            if (!llmTopic.trim()) {
+                setError("الرجاء إدخال موضوع لتوليد تحدي الاختبار.");
+                return;
+            }
+            setIsGeneratingChallenge(true);
+            setQuizChallenge('');
+            setError('');
+
+            const prompt = `Generate a creative quiz challenge or problem-solving scenario related to the topic: "${llmTopic}". This should encourage critical thinking or application of knowledge, not just recall. Keep it concise, around 100-150 words. Ensure the challenge is in Arabic.`;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "text/plain"
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    setQuizChallenge(result.candidates[0].content.parts[0].text);
+                } else {
+                    throw new Error("لم يتمكن Gemini من توليد تحدي الاختبار. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error generating quiz challenge with LLM:", err);
+                setError(`حدث خطأ أثناء توليد تحدي الاختبار: ${err.message}.`);
+            } finally {
+                setIsGeneratingChallenge(false);
+            }
+          };
+
+          // ✨ New LLM feature: Generate related topics
+          const generateRelatedTopicsFromLLM = async () => {
+            if (!llmTopic.trim()) {
+                setError("الرجاء إدخال موضوع لتوليد مواضيع ذات صلة.");
+                return;
+            }
+            setIsGeneratingRelatedTopics(true);
+            setRelatedTopics([]);
+            setError('');
+
+            const prompt = `Generate a list of 5-7 related topics or keywords for the topic: "${llmTopic}". Provide the output as a JSON array of strings. Ensure the topics are in Arabic.`;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            items: { "type": "STRING" }
+                        }
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    const parsedTopics = JSON.parse(jsonString);
+                    if (Array.isArray(parsedTopics) && parsedTopics.every(item => typeof item === 'string')) {
+                        setRelatedTopics(parsedTopics);
+                    } else {
+                        throw new Error("لم يتمكن Gemini من توليد مواضيع صالحة.");
+                    }
+                } else {
+                    throw new Error("لم يتمكن Gemini من توليد مواضيع ذات صلة. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error generating related topics with LLM:", err);
+                setError(`حدث خطأ أثناء توليد المواضيع ذات الصلة: ${err.message}.`);
+            } finally {
+                setIsGeneratingRelatedTopics(false);
+            }
+          };
+
+          // ✨ New LLM feature: Generate review questions based on incorrect answers
+          const generateReviewQuestionsFromLLM = async () => {
+            const incorrectQuestions = selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer);
+
+            if (incorrectQuestions.length === 0) {
+              showNotification("لم تجب على أي سؤال بشكل خاطئ. لا توجد أسئلة مراجعة لتوليدها.", 'info');
+              return;
+            }
+
+            setIsGeneratingReviewQuestions(true);
+            setReviewQuestions([]);
+            setError('');
+
+            let prompt = `Generate 3-5 multiple-choice quiz questions for review based on the following incorrectly answered questions. Each new question should have 4 options and a correct answer. Focus on the concepts from the original incorrect questions. Provide the output as a JSON array of objects, where each object has "question" (string), "options" (array of strings), and "correctAnswer" (string, which must be one of the options). Ensure the questions are in Arabic.`;
+            prompt += `\n\nIncorrectly Answered Questions:\n`;
+            incorrectQuestions.forEach((q, index) => {
+                prompt += `\nQuestion ${index + 1}: ${q.question}\n`;
+                prompt += `Correct Answer: ${q.correctAnswer}\n`;
+            });
+
+            try {
                 let chatHistory = [];
                 chatHistory.push({ role: "user", parts: [{ text: prompt }] });
                 const payload = {
@@ -244,7 +622,7 @@
                         }
                     }
                 };
-                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; 
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                 const response = await fetch(apiUrl, {
@@ -259,23 +637,236 @@
                     result.candidates[0].content && result.candidates[0].content.parts &&
                     result.candidates[0].content.parts.length > 0) {
                     const jsonString = result.candidates[0].content.parts[0].text;
-                    const generatedQuestions = JSON.parse(jsonString);
+                    const generatedReviewQuestions = JSON.parse(jsonString);
 
-                    validateQuestions(generatedQuestions); // Use existing validation
+                    validateQuestions(generatedReviewQuestions); // Use existing validation
 
-                    setQuestions(generatedQuestions);
-                    setSourceType('llm');
-                    showNotification("تم توليد الأسئلة بنجاح باستخدام Gemini API! ✨", 'success');
+                    setReviewQuestions(generatedReviewQuestions);
+                    showNotification("تم توليد أسئلة المراجعة بنجاح! ✨", 'success');
                 } else {
-                    throw new Error("لم يتمكن Gemini من توليد أسئلة صالحة. يرجى المحاولة مرة أخرى.");
+                    throw new Error("لم يتمكن Gemini من توليد أسئلة مراجعة صالحة. يرجى المحاولة مرة أخرى.");
                 }
             } catch (err) {
-                console.error("Error generating questions with LLM:", err);
-                setError(`حدث خطأ أثناء توليد الأسئلة: ${err.message}. يرجى التأكد من أن الموضوع واضح.`);
+                console.error("Error generating review questions with LLM:", err);
+                setError(`حدث خطأ أثناء توليد أسئلة المراجعة: ${err.message}.`);
             } finally {
-                setIsGeneratingQuestions(false);
+                setIsGeneratingReviewQuestions(false);
             }
           };
+
+          // ✨ New LLM feature: Extract key concepts from the quiz questions
+          const extractKeyConceptsFromLLM = async () => {
+            if (selectedQuestions.length === 0) {
+                showNotification("لا توجد أسئلة في الاختبار لاستخلاص المفاهيم منها.", 'info');
+                return;
+            }
+            setIsExtractingConcepts(true);
+            setKeyConcepts('');
+            setError('');
+
+            let prompt = `Extract the key concepts and main themes from the following quiz questions. Provide a concise summary of these concepts.`;
+            prompt += `\n\nQuiz Questions:\n`;
+            selectedQuestions.forEach((q, index) => {
+                prompt += `\nQuestion ${index + 1}: ${q.question}\n`;
+            });
+            prompt += `\n\nPlease provide the key concepts in Arabic.`;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "text/plain"
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    setKeyConcepts(result.candidates[0].content.parts[0].text);
+                } else {
+                    throw new Error("لم يتمكن Gemini من استخلاص المفاهيم الرئيسية. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error extracting key concepts with LLM:", err);
+                setError(`حدث خطأ أثناء استخلاص المفاهيم الرئيسية: ${err.message}.`);
+            } finally {
+                setIsExtractingConcepts(false);
+            }
+          };
+
+          // ✨ New LLM feature: Generate open-ended questions
+          const generateOpenEndedQuestionsFromLLM = async () => {
+            if (!llmTopic.trim()) {
+                setError("الرجاء إدخال موضوع لتوليد أسئلة مفتوحة.");
+                return;
+            }
+            setIsGeneratingOpenEndedQuestions(true);
+            setOpenEndedQuestions('');
+            setError('');
+
+            const prompt = `Generate 3-5 open-ended questions about the topic: "${llmTopic}". These questions should encourage critical thinking and detailed answers. Ensure the questions are in Arabic.`;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "text/plain"
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    setOpenEndedQuestions(result.candidates[0].content.parts[0].text);
+                } else {
+                    throw new Error("لم يتمكن Gemini من توليد أسئلة مفتوحة. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error generating open-ended questions with LLM:", err);
+                setError(`حدث خطأ أثناء توليد الأسئلة المفتوحة: ${err.message}.`);
+            } finally {
+                setIsGeneratingOpenEndedQuestions(false);
+            }
+          };
+
+          // ✨ New LLM feature: Generate a follow-up question
+          const generateFollowUpQuestionFromLLM = async () => {
+            setIsGeneratingFollowUpQuestion(true);
+            setFollowUpQuestion('');
+            setError('');
+
+            const currentQ = selectedQuestions[currentIndex];
+            let prompt = `Based on the following quiz question and its correct answer, generate a single, concise follow-up question that encourages deeper thinking or explores a related aspect.`;
+            prompt += `\n\nOriginal Question: "${currentQ.question}"\n`;
+            prompt += `Correct Answer: "${currentQ.correctAnswer}"\n`;
+            if (explanation) {
+                prompt += `Explanation provided: "${explanation}"\n`;
+            }
+            prompt += `Ensure the follow-up question is in Arabic.`;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "text/plain"
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    setFollowUpQuestion(result.candidates[0].content.parts[0].text);
+                } else {
+                    throw new Error("لم يتمكن Gemini من توليد سؤال متابعة. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error generating follow-up question with LLM:", err);
+                setError(`حدث خطأ أثناء توليد سؤال المتابعة: ${err.message}.`);
+            } finally {
+                setIsGeneratingFollowUpQuestion(false);
+            }
+          };
+
+          // ✨ New LLM feature: Generate personalized study tips
+          const generatePersonalizedStudyTipsFromLLM = async () => {
+            setIsGeneratingStudyTips(true);
+            setPersonalizedStudyTips('');
+            setError('');
+
+            let prompt = `Based on the following quiz performance, provide personalized study tips to help the user improve. Focus on areas where they made mistakes and suggest effective learning strategies.`;
+            prompt += `\n\nQuiz Performance Summary:\n`;
+            prompt += `Total Questions: ${selectedQuestions.length}\n`;
+            prompt += `Correct Answers: ${score}\n`;
+            prompt += `Incorrect Answers: ${selectedQuestions.length - score}\n`;
+
+            if (selectedQuestions.length - score > 0) {
+                prompt += `\nIncorrectly Answered Questions:\n`;
+                selectedQuestions.forEach((q, index) => {
+                    if (userAnswers[index] !== q.correctAnswer) {
+                        prompt += `- Question: "${q.question}" (Correct: "${q.correctAnswer}", Your Answer: "${userAnswers[index]}")\n`;
+                    }
+                });
+            } else {
+                prompt += `\nAll questions answered correctly! Suggest advanced study techniques.`;
+            }
+
+            if (llmTopic.trim()) {
+                prompt += `\nThe quiz topic was: "${llmTopic}".`;
+            }
+
+            prompt += `\n\nPlease provide the personalized study tips in Arabic.`;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "text/plain"
+                    }
+                };
+                const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; // Canvas will automatically provide it in runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    setPersonalizedStudyTips(result.candidates[0].content.parts[0].text);
+                } else {
+                    throw new Error("لم يتمكن Gemini من توليد نصائح دراسية مخصصة. يرجى المحاولة مرة أخرى.");
+                }
+            } catch (err) {
+                console.error("Error generating personalized study tips with LLM:", err);
+                setError(`حدث خطأ أثناء توليد النصائح الدراسية: ${err.message}.`);
+            } finally {
+                setIsGeneratingStudyTips(false);
+            }
+          };
+
 
           const startQuiz = () => {
             if (!questions || questions.length === 0) { setError("لا توجد أسئلة متاحة، يرجى استيراد الأسئلة أولاً أو استخدام الافتراضية"); return; }
@@ -288,6 +879,15 @@
             setUserAnswers({});
             setCurrentIndex(0); setScore(0); setShowResult(false);
             setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false);
+            setExplanation(''); // Clear explanation on quiz start
+            setQuizAnalysis(''); // Clear analysis on quiz start
+            setStudyMaterial(''); // Clear study material on quiz start
+            setQuizChallenge(''); // Clear quiz challenge on quiz start
+            setReviewQuestions([]); // Clear review questions on quiz start
+            setKeyConcepts(''); // Clear key concepts on quiz start
+            setOpenEndedQuestions(''); // Clear open-ended questions on quiz start
+            setFollowUpQuestion(''); // Clear follow-up question on quiz start
+            setPersonalizedStudyTips(''); // Clear personalized study tips on quiz start
             setQuizStarted(true);
           };
 
@@ -298,11 +898,13 @@
             setUserAnswers(prev => ({ ...prev, [currentIndex]: answer }));
             setFeedback({ correct: isCorrect, correctAnswer: selectedQuestions[currentIndex].correctAnswer, userAnswer: answer });
             setIsNextVisible(true);
+            setExplanation(''); // Clear explanation when a new answer is made
+            setFollowUpQuestion(''); // Clear follow-up question when a new answer is made
           };
 
           const goToNextQuestion = () => {
             const nextIndex = currentIndex + 1;
-            if (nextIndex < selectedQuestions.length) { setCurrentIndex(nextIndex); setFeedback(null); setIsNextVisible(false); }
+            if (nextIndex < selectedQuestions.length) { setCurrentIndex(nextIndex); setFeedback(null); setIsNextVisible(false); setExplanation(''); setFollowUpQuestion(''); }
             else { setShowResult(true); }
           };
 
@@ -311,6 +913,16 @@
             setShowResult(false); setFeedback(null); setIsNextVisible(false); setQuizStarted(false);
             setError(''); setNotification({ message: '', type: '' }); setShowCancelConfirm(false);
             setLlmTopic(''); // Clear LLM topic on full reset
+            setExplanation(''); // Clear explanation on full reset
+            setQuizAnalysis(''); // Clear analysis on full reset
+            setStudyMaterial(''); // Clear study material on full reset
+            setQuizChallenge(''); // Clear quiz challenge on full reset
+            setRelatedTopics([]); // Clear related topics on full reset
+            setReviewQuestions([]); // Clear review questions on full reset
+            setKeyConcepts(''); // Clear key concepts on full reset
+            setOpenEndedQuestions(''); // Clear open-ended questions on full reset
+            setFollowUpQuestion(''); // Clear follow-up question on full reset
+            setPersonalizedStudyTips(''); // Clear personalized study tips on full reset
           };
 
           const handleCancelRequest = () => { setShowCancelConfirm(true); };
@@ -333,27 +945,97 @@
 
           // Import Questions Form component (with loading indicators)
           const ImportQuestionsForm = () => (
-            <div className="bg-white p-4 rounded-lg shadow-md mb-6 animate-fadeIn">
+            <div className="bg-white p-4 rounded-lg shadow-md mb-6">
               <h2 className="text-xl font-bold mb-4 text-center text-indigo-600">استيراد الأسئلة</h2>
 
               {/* LLM Question Generation */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-2">✨ توليد أسئلة باستخدام الذكاء الاصطناعي:</h3>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <input type="text" value={llmTopic} onChange={(e) => setLlmTopic(e.target.value)} placeholder="أدخل موضوعاً (مثال: تاريخ الأندلس)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 ${isGeneratingQuestions ? 'bg-gray-100' : ''}`} aria-label="LLM Topic Input" disabled={isGeneratingQuestions} />
-                  <button onClick={generateQuestionsFromLLM} disabled={isGeneratingQuestions || !llmTopic.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isGeneratingQuestions || !llmTopic.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
-                    {isGeneratingQuestions ? <><span></span> <span>جاري التوليد...</span></> : "توليد الأسئلة ✨"}
+                  <input type="text" value={llmTopic} onChange={(e) => setLlmTopic(e.target.value)} placeholder="أدخل موضوعاً (مثال: تاريخ الأندلس)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips ? 'bg-gray-100' : ''}`} aria-label="LLM Topic Input" disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips} />
+                  <button onClick={generateQuestionsFromLLM} disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                    {isGeneratingQuestions ? <span>جاري التوليد...</span> : "توليد الأسئلة ✨"}
                   </button>
                 </div>
+                {llmTopic.trim() && ( // Only show study material and challenge buttons if a topic is entered
+                    <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                        <button
+                            onClick={generateStudyMaterial}
+                            disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim()}
+                            className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-pink-500 hover:bg-pink-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                        >
+                            {isGeneratingStudyMaterial ? <span>جاري توليد مواد دراسية...</span> : "توليد مواد دراسية ✨"}
+                        </button>
+                        <button
+                            onClick={generateQuizChallenge}
+                            disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim()}
+                            className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                        >
+                            {isGeneratingChallenge ? <span>جاري توليد تحدي...</span> : "تحدي الاختبار ✨"}
+                        </button>
+                    </div>
+                )}
+                {llmTopic.trim() && ( // Button for related topics and open-ended questions
+                    <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                        <button
+                            onClick={generateRelatedTopicsFromLLM}
+                            disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim()}
+                            className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                        >
+                            {isGeneratingRelatedTopics ? <span>جاري توليد المواضيع...</span> : "توليد مواضيع ذات صلة ✨"}
+                        </button>
+                        <button
+                            onClick={generateOpenEndedQuestionsFromLLM}
+                            disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim()}
+                            className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !llmTopic.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-fuchsia-500 hover:bg-fuchsia-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                        >
+                            {isGeneratingOpenEndedQuestions ? <span>جاري توليد أسئلة...</span> : "توليد أسئلة مفتوحة ✨"}
+                        </button>
+                    </div>
+                )}
+                {studyMaterial && (
+                    <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-sm">
+                        <h4 className="font-semibold mb-2">مادة دراسية:</h4>
+                        <p className="whitespace-pre-wrap">{studyMaterial}</p>
+                    </div>
+                )}
+                {quizChallenge && (
+                    <div className="mt-4 p-3 bg-indigo-50 text-indigo-800 rounded-lg text-sm">
+                        <h4 className="font-semibold mb-2">تحدي الاختبار:</h4>
+                        <p className="whitespace-pre-wrap">{quizChallenge}</p>
+                    </div>
+                )}
+                 {relatedTopics.length > 0 && (
+                    <div className="mt-4 p-3 bg-gray-100 text-gray-800 rounded-lg text-sm">
+                        <h4 className="font-semibold mb-2">مواضيع مقترحة:</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {relatedTopics.map((topic, index) => (
+                                <span
+                                    key={index}
+                                    onClick={() => { setLlmTopic(topic); setRelatedTopics([]); }}
+                                    className="cursor-pointer bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-full text-xs transition-colors"
+                                >
+                                    {topic}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {openEndedQuestions && (
+                    <div className="mt-4 p-3 bg-purple-50 text-purple-800 rounded-lg text-sm">
+                        <h4 className="font-semibold mb-2">أسئلة مفتوحة:</h4>
+                        <p className="whitespace-pre-wrap">{openEndedQuestions}</p>
+                    </div>
+                )}
               </div>
 
               {/* API Import */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-2">من رابط API:</h3>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <input type="url" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="أدخل رابط API (JSON)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLoading || isGeneratingQuestions ? 'bg-gray-100' : ''}`} aria-label="API URL Input" disabled={isLoading || isGeneratingQuestions} />
-                  <button onClick={fetchQuestionsFromApi} disabled={isLoading || isGeneratingQuestions || !apiUrl.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isLoading || isGeneratingQuestions || !apiUrl.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
-                    {isLoading ? <><span></span> <span>جاري التحميل...</span></> : "استيراد"}
+                  <input type="url" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="أدخل رابط API (JSON)" className={`flex-grow border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips ? 'bg-gray-100' : ''}`} aria-label="API URL Input" disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips} />
+                  <button onClick={fetchQuestionsFromApi} disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !apiUrl.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || !apiUrl.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                    {isLoading ? <span>جاري التحميل...</span> : "استيراد"}
                   </button>
                 </div>
               </div>
@@ -362,32 +1044,32 @@
               <div className="mb-6">
                  <h3 className="text-lg font-medium mb-2">من ملف JSON:</h3>
                  <div className="flex items-center justify-center w-full">
-                   <label htmlFor="file-upload" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg ${isLoading || isGeneratingQuestions ? 'bg-gray-100 cursor-wait animate-pulse' : 'cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300 hover:border-gray-400 transition-colors'}`}>
+                   <label htmlFor="file-upload" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips ? 'bg-gray-100 cursor-wait' : 'cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300 hover:border-gray-400 transition-colors'}`}>
                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
                        <svg className="w-8 h-8 mb-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                        <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">اضغط للتحميل</span> أو اسحب ملفك هنا</p>
                        <p className="text-xs text-gray-500">JSON فقط</p>
                      </div>
-                     <input id="file-upload" type="file" className="hidden" accept=".json,application/json" onChange={handleFileUpload} disabled={isLoading || isGeneratingQuestions} aria-label="JSON File Upload"/>
+                     <input id="file-upload" type="file" className="hidden" accept=".json,application/json" onChange={handleFileUpload} disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips} aria-label="JSON File Upload"/>
                    </label>
                  </div>
               </div>
 
               {/* Default Questions Button */}
               <div className="text-center mb-6">
-                 <button onClick={useDefaultQuestions} disabled={isLoading || isGeneratingQuestions} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out ${isLoading || isGeneratingQuestions ? 'bg-gray-400 cursor-not-allowed animate-pulse' : 'bg-gray-500 hover:bg-gray-600 text-white hover:shadow-md transform hover:-translate-y-0.5'}`}>استخدام الأسئلة الافتراضية</button>
+                 <button onClick={useDefaultQuestions} disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-500 hover:bg-gray-600 text-white hover:shadow-md transform hover:-translate-y-0.5'}`}>استخدام الأسئلة الافتراضية</button>
               </div>
 
-              {/* Error Display (Fade in) */}
-              {error && (<div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-center break-words animate-fadeIn" role="alert">{error}</div>)}
-              {/* Notification Display (Fade in) */}
-              {notification.message && (<div className={`mt-4 p-3 rounded-lg text-center animate-fadeIn ${notification.type === 'success' ? 'bg-green-100 text-green-700' : notification.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`} role="status">{notification.message}</div>)}
+              {/* Error Display */}
+              {error && (<div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-center break-words" role="alert">{error}</div>)}
+              {/* Notification Display */}
+              {notification.message && (<div className={`mt-4 p-3 rounded-lg text-center ${notification.type === 'success' ? 'bg-green-100 text-green-700' : notification.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`} role="status">{notification.message}</div>)}
 
               {/* JSON Format Info */}
               <div className="mt-6">
                  <button onClick={() => setShowFormatInfo(!showFormatInfo)} className="text-blue-600 hover:text-blue-800 underline text-sm transition-colors">{showFormatInfo ? "إخفاء" : "عرض"} معلومات تنسيق JSON المطلوب</button>
                  {showFormatInfo && (
-                   <div className="mt-2 p-3 bg-blue-50 rounded-lg animate-fadeIn">
+                   <div className="mt-2 p-3 bg-blue-50 rounded-lg">
                      <h4 className="font-medium text-blue-800 mb-2">تنسيق JSON المطلوب:</h4>
                      <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto dir-ltr">{`[ { "question": "...", "options": ["...", "..."], "correctAnswer": "..." }, ... ]`}</pre>
                    </div>
@@ -396,7 +1078,7 @@
 
               {/* Recently Uploaded Questions Section */}
               {uploadedFileHistory.length > 0 && (
-                  <div className="mt-6 pt-6 border-t border-gray-200 animate-fadeIn">
+                  <div className="mt-6 pt-6 border-t border-gray-200">
                       <h3 className="text-lg font-medium mb-3 text-center text-gray-700">الأسئلة المحملة مؤخراً:</h3>
                       <ul className="space-y-2">
                           {uploadedFileHistory.map((item, index) => (
@@ -404,8 +1086,8 @@
                                   <span className="text-gray-800 truncate pr-2" title={item.name}>{item.name}</span>
                                   <button
                                       onClick={() => loadFromHistory(item.name)}
-                                      className={`text-sm bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-1 px-3 rounded-md transition-all duration-200 ease-in-out whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${isLoading || isGeneratingQuestions ? '' : 'hover:shadow-md transform hover:-translate-y-0.5'}`}
-                                      disabled={isLoading || isGeneratingQuestions}
+                                      className={`text-sm bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-1 px-3 rounded-md transition-all duration-200 ease-in-out whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips ? '' : 'hover:shadow-md transform hover:-translate-y-0.5'}`}
+                                      disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips}
                                   >
                                       استخدام
                                   </button>
@@ -435,7 +1117,7 @@
               <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-green-200 via-blue-200 to-purple-300 p-4 font-sans">
                 <div className="w-full max-w-xl">
                   <ImportQuestionsForm />
-                  <div className="bg-white p-6 rounded-lg shadow-md text-center animate-fadeIn" style={{animationDelay: '0.1s'}}>
+                  <div className="bg-white p-6 rounded-lg shadow-md text-center">
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">بدء الاختبار</h2>
                     <div className="flex flex-col items-center">
                       <p className="text-lg mb-2">مصدر الأسئلة: <span className="font-semibold">{getSourceName()}</span></p>
@@ -446,7 +1128,7 @@
                              <input id="num-questions" type="number" className="border-2 border-gray-300 rounded-lg p-2 bg-white text-gray-700 w-32 text-center focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-colors" value={numQuestions || ''} onChange={(e) => setNumQuestions(e.target.value)} onBlur={(e) => { const val = parseInt(e.target.value); if (isNaN(val) || val < 1) setNumQuestions(1); else if (val > questions.length) setNumQuestions(questions.length); else setNumQuestions(val); }} max={questions.length} min={1} aria-label="Number of questions to start" />
                            </div>
                       )}
-                      <button className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${isLoading || isGeneratingQuestions ? 'animate-pulse' : ''}`} onClick={startQuiz} disabled={isLoading || isGeneratingQuestions || questions.length === 0 || !parseInt(numQuestions) || parseInt(numQuestions) <= 0 || parseInt(numQuestions) > questions.length}> بدء الاختبار </button>
+                      <button className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips ? 'animate-pulse' : ''}`} onClick={startQuiz} disabled={isLoading || isGeneratingQuestions || isGeneratingStudyMaterial || isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions || isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion || isGeneratingStudyTips || questions.length === 0 || !parseInt(numQuestions) || parseInt(numQuestions) <= 0 || parseInt(numQuestions) > questions.length}> بدء الاختبار </button>
                     </div>
                   </div>
                 </div>
@@ -463,7 +1145,7 @@
 
             return (
                 <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 font-sans">
-                    <div className={`p-6 rounded-lg shadow-xl ${bgColor} max-w-2xl mx-auto w-full ${textColor} transition-all duration-500 ease-out transform scale-95 opacity-0 animate-fadeIn`} style={{ animationFillMode: 'forwards', animationDelay: '0.1s', '--tw-scale-x': '1', '--tw-scale-y': '1', opacity: '1' }}>
+                    <div className={`p-6 rounded-lg shadow-xl ${bgColor} max-w-2xl mx-auto w-full ${textColor} transition-all duration-500 ease-out transform scale-95 opacity-0`} style={{ animationFillMode: 'forwards', '--tw-scale-x': '1', '--tw-scale-y': '1', opacity: '1' }}>
                         <h2 className="text-3xl font-bold text-gray-800 mb-4 text-center">انتهى الاختبار!</h2>
                         <div className="text-center mb-6">
                             <p className="text-xl font-semibold mb-2">درجتك: {score} من {selectedQuestions.length}</p>
@@ -485,10 +1167,109 @@
                                 })}
                             </ul>
                         </div>
+                        {/* LLM Buttons: Quiz Analysis, Challenge, Review, Key Concepts, Personalized Tips */}
+                        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                            <button
+                                onClick={generateQuizAnalysis}
+                                disabled={isAnalyzingQuiz}
+                                className={`px-6 py-3 rounded-full text-lg font-bold transition-all duration-200 ease-in-out ${isAnalyzingQuiz ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                            >
+                                {isAnalyzingQuiz ? <span>جاري تحليل الأداء...</span> : "تحليل أداء الاختبار ✨"}
+                            </button>
+                            <button
+                                onClick={generateQuizChallenge}
+                                disabled={isGeneratingChallenge || !llmTopic.trim()}
+                                className={`px-6 py-3 rounded-full text-lg font-bold transition-all duration-200 ease-in-out ${isGeneratingChallenge || !llmTopic.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                            >
+                                {isGeneratingChallenge ? <span>جاري توليد تحدي...</span> : "تحدي الاختبار ✨"}
+                            </button>
+                            <button
+                                onClick={generateReviewQuestionsFromLLM}
+                                disabled={isGeneratingReviewQuestions || selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer).length === 0}
+                                className={`px-6 py-3 rounded-full text-lg font-bold transition-all duration-200 ease-in-out ${isGeneratingReviewQuestions || selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer).length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                            >
+                                {isGeneratingReviewQuestions ? <span>جاري توليد المراجعة...</span> : "توليد أسئلة مراجعة ✨"}
+                            </button>
+                            <button
+                                onClick={extractKeyConceptsFromLLM}
+                                disabled={isExtractingConcepts || selectedQuestions.length === 0}
+                                className={`px-6 py-3 rounded-full text-lg font-bold transition-all duration-200 ease-in-out ${isExtractingConcepts || selectedQuestions.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-700 hover:bg-gray-800 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                            >
+                                {isExtractingConcepts ? <span>جاري الاستخلاص...</span> : "استخلاص المفاهيم الرئيسية ✨"}
+                            </button>
+                            <button
+                                onClick={generatePersonalizedStudyTipsFromLLM}
+                                disabled={isGeneratingStudyTips || selectedQuestions.length === 0}
+                                className={`px-6 py-3 rounded-full text-lg font-bold transition-all duration-200 ease-in-out ${isGeneratingStudyTips || selectedQuestions.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-900 hover:bg-blue-950 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                            >
+                                {isGeneratingStudyTips ? <span>جاري توليد النصائح...</span> : "نصائح دراسية مخصصة ✨"}
+                            </button>
+                        </div>
+                        {/* Quiz Analysis Display */}
+                        {quizAnalysis && (
+                            <div className="mt-6 p-4 bg-gray-50 text-gray-800 rounded-lg text-base text-right">
+                                <h4 className="font-semibold mb-3">تحليل الأداء:</h4>
+                                <p className="whitespace-pre-wrap">{quizAnalysis}</p>
+                            </div>
+                        )}
+                        {/* Quiz Challenge Display */}
+                        {quizChallenge && (
+                            <div className="mt-6 p-4 bg-indigo-50 text-indigo-800 rounded-lg text-base text-right">
+                                <h4 className="font-semibold mb-3">تحدي الاختبار:</h4>
+                                <p className="whitespace-pre-wrap">{quizChallenge}</p>
+                            </div>
+                        )}
+                        {/* Review Questions Display */}
+                        {reviewQuestions.length > 0 && (
+                            <div className="mt-6 p-4 bg-yellow-50 text-yellow-800 rounded-lg text-base text-right">
+                                <h4 className="font-semibold mb-3">أسئلة المراجعة:</h4>
+                                <ul className="list-none p-0">
+                                    {reviewQuestions.map((q, index) => (
+                                        <li key={index} className="mb-3 pb-3 border-b border-yellow-200 last:border-b-0 last:pb-0">
+                                            <p className="font-semibold mb-1">{index + 1}. {q.question}</p>
+                                            <ul className="list-disc list-inside text-sm">
+                                                {q.options.map((opt, optIdx) => (
+                                                    <li key={optIdx} className={`${opt === q.correctAnswer ? 'font-medium text-green-700' : ''}`}>
+                                                        {opt} {opt === q.correctAnswer && '✔️'}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <div className="mt-4 text-center">
+                                    <button
+                                        onClick={() => {
+                                            setQuestions(reviewQuestions);
+                                            setSourceType('llm_review');
+                                            setNumQuestions(reviewQuestions.length);
+                                            startQuiz();
+                                        }}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg"
+                                    >
+                                        بدء اختبار المراجعة
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {/* Key Concepts Display */}
+                        {keyConcepts && (
+                            <div className="mt-6 p-4 bg-lime-50 text-lime-800 rounded-lg text-base text-right">
+                                <h4 className="font-semibold mb-3">المفاهيم الرئيسية:</h4>
+                                <p className="whitespace-pre-wrap">{keyConcepts}</p>
+                            </div>
+                        )}
+                        {/* Personalized Study Tips Display */}
+                        {personalizedStudyTips && (
+                            <div className="mt-6 p-4 bg-blue-100 text-blue-800 rounded-lg text-base text-right">
+                                <h4 className="font-semibold mb-3">نصائح دراسية مخصصة:</h4>
+                                <p className="whitespace-pre-wrap">{personalizedStudyTips}</p>
+                            </div>
+                        )}
                         {/* Action Buttons */}
                         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                             <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={resetQuiz}> اختبار جديد </button>
-                            <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={() => { setUserAnswers({}); setCurrentIndex(0); setScore(0); setShowResult(false); setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false); }}> إعادة نفس الاختبار </button>
+                            <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={() => { setUserAnswers({}); setCurrentIndex(0); setScore(0); setShowResult(false); setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false); setQuizAnalysis(''); setQuizChallenge(''); setReviewQuestions([]); setKeyConcepts(''); setPersonalizedStudyTips(''); }}> إعادة نفس الاختبار </button>
                         </div>
                     </div>
                 </div> );
@@ -503,7 +1284,7 @@
 
           return (
             <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 font-sans">
-                <div className="p-6 bg-white shadow-xl rounded-lg max-w-md mx-auto w-full animate-fadeIn">
+                <div className="p-6 bg-white shadow-xl rounded-lg max-w-md mx-auto w-full">
                     {/* Progress/Score */}
                     <div className="flex justify-between items-center mb-5 text-sm"><span className="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full"> السؤال {currentIndex + 1} من {selectedQuestions.length} </span><span className="bg-green-100 text-green-800 font-medium px-3 py-1 rounded-full"> النتيجة: {score} </span></div>
                     {/* Question */}
@@ -517,7 +1298,6 @@
                             if (feedback) {
                                 if (option === currentQuestion.correctAnswer) {
                                      buttonClass = 'bg-green-500 text-white ring-2 ring-green-700 ring-offset-2';
-                                     if (option === feedback.userAnswer) animationClass = 'animate-pulse-correct';
                                 } else if (option === feedback.userAnswer) {
                                      buttonClass = 'bg-red-500 text-white ring-2 ring-red-700 ring-offset-2';
                                      animationClass = 'animate-shake';
@@ -528,11 +1308,43 @@
                             return ( <button key={idx} className={`w-full py-3 px-4 rounded-lg font-medium shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed ${buttonClass} ${animationClass}`} onClick={() => !feedback && handleAnswer(option)} disabled={!!feedback} aria-pressed={!!feedback && option === feedback.userAnswer}> {option} </button> );
                         })}
                     </div>
-                    {/* Feedback Area (Fade in) */}
-                    {feedback && ( <div className={`mt-4 p-3 rounded-lg text-center font-semibold text-lg animate-fadeIn ${feedback.correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}> {feedback.correct ? "✔️ إجابة صحيحة!" : `❌ إجابة خاطئة! الإجابة الصحيحة هي: ${feedback.correctAnswer}`} </div> )}
+                    {/* Feedback Area */}
+                    {feedback && (
+                        <div className={`mt-4 p-3 rounded-lg text-center font-semibold text-lg ${feedback.correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {feedback.correct ? "✔️ إجابة صحيحة!" : `❌ إجابة خاطئة! الإجابة الصحيحة هي: ${feedback.correctAnswer}`}
+                            <button
+                                onClick={getExplanationFromLLM}
+                                disabled={isExplaining}
+                                className={`ml-3 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${isExplaining ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
+                            >
+                                {isExplaining ? <span>جاري الشرح...</span> : "شرح الإجابة ✨"}
+                            </button>
+                        </div>
+                    )}
+                    {/* Explanation Display */}
+                    {explanation && (
+                        <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm">
+                            <h4 className="font-semibold mb-2">الشرح:</h4>
+                            <p>{explanation}</p>
+                            <button
+                                onClick={generateFollowUpQuestionFromLLM}
+                                disabled={isGeneratingFollowUpQuestion}
+                                className={`mt-3 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${isGeneratingFollowUpQuestion ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-700 hover:bg-gray-800 text-white'}`}
+                            >
+                                {isGeneratingFollowUpQuestion ? <span>جاري توليد سؤال...</span> : "توليد سؤال متابعة ✨"}
+                            </button>
+                        </div>
+                    )}
+                    {/* Follow-up Question Display */}
+                    {followUpQuestion && (
+                        <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg text-sm">
+                            <h4 className="font-semibold mb-2">سؤال المتابعة:</h4>
+                            <p className="whitespace-pre-wrap">{followUpQuestion}</p>
+                        </div>
+                    )}
                     {/* Navigation */}
                     <div className="mt-6 flex justify-between items-center">
-                        {!showCancelConfirm ? ( <button className="text-gray-500 hover:text-red-600 text-sm underline disabled:text-gray-300 disabled:no-underline disabled:cursor-not-allowed transition-colors" onClick={handleCancelRequest} disabled={showResult || !!feedback}> إلغاء الاختبار </button> ) : ( <div className="flex gap-2 items-center animate-fadeIn"><p className="text-sm text-red-600 font-medium">هل أنت متأكد؟</p><button onClick={confirmCancel} className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors">نعم</button><button onClick={abortCancel} className="text-xs bg-gray-300 px-2 py-1 rounded hover:bg-gray-400 transition-colors">لا</button></div> )}
+                        {!showCancelConfirm ? ( <button className="text-gray-500 hover:text-red-600 text-sm underline disabled:text-gray-300 disabled:no-underline disabled:cursor-not-allowed transition-colors" onClick={handleCancelRequest} disabled={showResult || !!feedback}> إلغاء الاختبار </button> ) : ( <div className="flex gap-2 items-center"><p className="text-sm text-red-600 font-medium">هل أنت متأكد؟</p><button onClick={confirmCancel} className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors">نعم</button><button onClick={abortCancel} className="text-xs bg-gray-300 px-2 py-1 rounded hover:bg-gray-400 transition-colors">لا</button></div> )}
                         {isNextVisible ? ( <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg" onClick={goToNextQuestion}> {currentIndex === selectedQuestions.length - 1 ? "إظهار النتيجة" : "السؤال التالي"} </button> ) : ( <div className="h-10 w-24"></div> )}
                     </div>
                 </div>
