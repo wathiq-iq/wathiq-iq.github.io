@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق اختبار React</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        /* Ensure LTR for specific inputs regardless of page direction */
+        input[type="url"].force-ltr, 
+        input[type="text"].force-ltr, 
+        input[type="number"].force-ltr { 
+            direction: ltr; 
+            text-align: left; 
+        }
+        pre.dir-ltr { direction: ltr; text-align: left; }
+
+        .results-list li { 
+            border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
+            padding-bottom: 0.75rem; 
+            margin-bottom: 0.75rem; 
+        }
+        .dark .results-list li { border-bottom-color: #4b5563; } /* Tailwind gray-600 */
+        .results-list li:last-child { border-bottom: none; margin-bottom: 0; }
+
+        .correct-answer-indicator { color: #10b981; font-weight: bold; } /* Tailwind emerald-500 */
+        .incorrect-answer-indicator { color: #ef4444; font-weight: bold; } /* Tailwind red-500 */
+        .correct-answer-text { color: #059669; } /* Tailwind green-600 */
+        .dark .correct-answer-text { color: #34d399; } /* Tailwind green-400 */
+
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f3f4f6; /* Tailwind gray-100 */
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1f2937; /* Tailwind gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #9ca3af; /* Tailwind gray-400 */
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* Tailwind gray-600 */
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* Tailwind gray-500 */
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #374151; /* Tailwind gray-700 */
+        }
+
+        /* Base styles for interactive elements */
+        button, input[type="button"], input[type="submit"], input[type="reset"], select, .btn {
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+         input[type="text"], input[type="url"], input[type="number"], textarea, select {
+             border-radius: 0.5rem; /* rounded-lg */
+             transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        
+        /* Consistent shadow scale */
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+        .dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2); }
+        .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+        .dark .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.15); }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
+        .dark .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -2px rgba(0,0,0,0.2); }
+        .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); }
+        .dark .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.25); }
+
+
+        .quiz-container {
+            max-width: 700px; 
+            margin: 2rem auto; 
+            padding: 0 1rem; /* Add horizontal padding for smaller screens */
+        }
+        .option-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -2px rgba(0,0,0,0.1), 0 3px 7px -3px rgba(0,0,0,0.07);
+        }
+        .dark .option-button:hover:not(:disabled) {
+             box-shadow: 0 6px 12px -2px rgba(0,0,0,0.3), 0 3px 7px -3px rgba(0,0,0,0.18);
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: #fff; 
+            animation: spin 1s ease infinite;
+        }
+        .loading-spinner-dark { 
+             border: 3px solid rgba(96, 165, 250, 0.3); /* Tailwind blue-400 with opacity */
+             border-left-color: #60a5fa; /* Tailwind blue-400 */
+             width: 18px; 
+             height: 18px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Styling for the settings icon based on theme */
+        .settings-icon-light { color: #4f46e5; } /* indigo-600 */
+        .settings-icon-dark { color: #a78bfa; } /* violet-400 */
+
+        /* Card style for LLM outputs */
+        .llm-output-card {
+            background-color: #f9fafb; /* gray-50 */
+            padding: 0.75rem; /* p-3 */
+            border-radius: 0.5rem; /* rounded-lg */
+            margin-top: 1rem; /* mt-4 */
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); /* shadow */
+        }
+        .dark .llm-output-card {
+            background-color: #1f2937; /* gray-800 */
+            border: 1px solid #374151; /* gray-700 */
+        }
+        .llm-output-card h4 {
+            font-weight: 600; /* semibold */
+            margin-bottom: 0.5rem; /* mb-2 */
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <div id="root" class="quiz-container"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Default questions data (in Arabic) - These would need translation for full English support
+        const defaultQuestions = [
+           { question: "ما هي عاصمة العراق؟", options: ["بغداد", "دمشق", "عمان", "بيروت"], correctAnswer: "بغداد" },
+           { question: "من هو مؤلف كتاب كليلة ودمنة؟", options: ["الجاحظ", "ابن المقفع", "المتنبي", "ابن خلدون"], correctAnswer: "ابن المقفع" },
+           { question: "في أي قارة تقع مصر؟", options: ["آسيا", "أفريقيا", "أوروبا", "أمريكا الشمالية"], correctAnswer: "أفريقيا" },
+           { question: "ما هو أطول نهر في العالم؟", options: ["النيل", "الأمازون", "المسيسيبي", "دجلة"], correctAnswer: "النيل" },
+           { question: "كم عدد أضلاع المسدس؟", options: ["5", "6", "7", "8"], correctAnswer: "6" }
+        ];
+        
+        // Translations object
+        const translations = {
+            ar: {
+                appTitle: "تطبيق اختبار React",
+                settings: "الإعدادات",
+                darkMode: "المظهر الداكن",
+                defaultAIGeneratedQuestions: "عدد أسئلة الذكاء الاصطناعي الافتراضي:",
+                defaultQuizLength: "طول الاختبار الافتراضي:",
+                soundEffects: "المؤثرات الصوتية",
+                appLanguage: "لغة التطبيق:",
+                arabic: "العربية",
+                english: "English", 
+                resetAllSettings: "إعادة ضبط الكل",
+                close: "إغلاق",
+                importOrGenerateQuestions: "استيراد أو توليد الأسئلة",
+                generateWithAI: "✨ توليد أسئلة باستخدام الذكاء الاصطناعي:",
+                enterTopicPlaceholder: "أدخل موضوعاً (مثال: تاريخ العراق الحديث)",
+                generateQuestionsButton: "توليد الأسئلة ✨",
+                generatingButton: "جاري التوليد...",
+                difficultyLevel: "مستوى الصعوبة:",
+                easy: "سهل",
+                medium: "متوسط",
+                hard: "صعب",
+                generateStudyMaterialButton: "مواد دراسية ✨",
+                generatingStudyMaterialButton: "مواد دراسية...",
+                generateQuizChallengeButton: "تحدي الاختبار ✨",
+                generatingQuizChallengeButton: "تحدي...",
+                generateRelatedTopicsButton: "مواضيع ذات صلة ✨",
+                generatingRelatedTopicsButton: "مواضيع...",
+                generateOpenEndedQuestionsButton: "أسئلة مفتوحة ✨",
+                generatingOpenEndedQuestionsButton: "أسئلة مفتوحة...",
+                revealCommonMisconceptionsButton: "كشف المفاهيم الخاطئة ✨",
+                generatingMisconceptionsButton: "مفاهيم خاطئة...",
+                studyMaterialTitle: "مادة دراسية:",
+                quizChallengeTitle: "تحدي الاختبار:",
+                relatedTopicsTitle: "مواضيع مقترحة:",
+                openEndedQuestionsTitle: "أسئلة مفتوحة:",
+                commonMisconceptionsTitle: "مفاهيم خاطئة شائعة:",
+                importFromAPI: "من رابط API:",
+                apiURLExample: "أدخل رابط API (JSON)",
+                importButton: "استيراد",
+                loadingButton: "جاري التحميل...",
+                importFromFile: "من ملف JSON:",
+                clickToUpload: "اضغط للتحميل",
+                dragDropHere: "أو اسحب ملفك هنا",
+                jsonOnly: "JSON فقط",
+                useDefaultQuestionsButton: "استخدام الأسئلة الافتراضية",
+                showJSONFormatInfo: "عرض معلومات تنسيق JSON المطلوب",
+                hideJSONFormatInfo: "إخفاء معلومات تنسيق JSON المطلوب",
+                requiredJSONFormat: "تنسيق JSON المطلوب:",
+                recentlyUploaded: "الأسئلة المحملة مؤخراً:",
+                useButton: "استخدام",
+                startQuizTitle: "بدء الاختبار",
+                questionSource: "مصدر الأسئلة:",
+                defaultSource: "الأسئلة الافتراضية",
+                apiSource: "API خارجي",
+                fileSource: "ملف محلي",
+                historySource: "ملف محمل مؤخراً",
+                llmSource: "الذكاء الاصطناعي ✨",
+                llmReviewSource: "مراجعة الذكاء الاصطناعي ✨",
+                undefinedSource: "غير محدد",
+                totalAvailableQuestions: "إجمالي الأسئلة المتاحة:",
+                chooseNumberOfQuestions: "اختر عدد الأسئلة:",
+                startQuizButton: "بدء الاختبار",
+                quizEndedTitle: "انتهى الاختبار!",
+                yourScore: "درجتك:",
+                percentage: "النسبة المئوية:",
+                from: "من",
+                answerDetails: "تفاصيل الإجابات:",
+                yourAnswer: "إجابتك:",
+                notAnswered: "(لم تتم الإجابة)",
+                correctAnswerLabel: "الإجابة الصحيحة:",
+                analyzePerformanceButton: "تحليل أداء الاختبار ✨",
+                analyzingPerformanceButton: "تحليل الأداء...",
+                generateReviewQuestionsResultsButton: "أسئلة مراجعة ✨",
+                generatingReviewQuestionsResultsButton: "أسئلة مراجعة...",
+                extractKeyConceptsButton: "استخلاص المفاهيم ✨",
+                extractingKeyConceptsButton: "مفاهيم رئيسية...",
+                personalizedStudyTipsButton: "نصائح دراسية ✨",
+                generatingStudyTipsButton: "نصائح دراسية...",
+                showCommonMisconceptionsResultsButton: "عرض المفاهيم الخاطئة ✨",
+                generatingMisconceptionsResultsButton: "مفاهيم خاطئة...",
+                createStudyPlanButton: "إنشاء خطة دراسية ✨",
+                creatingStudyPlanButton: "إنشاء خطة...",
+                summarizeWeaknessesButton: "لخص نقاط ضعفي ✨",
+                summarizingWeaknessesButton: "تلخيص الضعف...",
+                quizAnalysisTitle: "تحليل الأداء:",
+                reviewQuestionsTitle: "أسئلة المراجعة:",
+                startReviewQuizButton: "بدء اختبار المراجعة",
+                keyConceptsTitle: "المفاهيم الرئيسية:",
+                personalizedStudyTipsTitle: "نصائح دراسية مخصصة:",
+                suggestedStudyPlanTitle: "خطة دراسية مقترحة:",
+                weaknessSummaryTitle: "ملخص نقاط الضعف:",
+                newQuizButton: "اختبار جديد",
+                retrySameQuizButton: "إعادة نفس الاختبار",
+                errorLoadingQuestion: "حدث خطأ غير متوقع في تحميل السؤال.",
+                backToStartButton: "العودة إلى البداية",
+                questionLabel: "السؤال",
+                scoreLabel: "النتيجة:",
+                requestHintButton: "طلب تلميح ✨",
+                requestingHintButton: "جاري طلب تلميح...",
+                hintTitle: "تلميح:",
+                correctAnswerFeedback: "✔️ إجابة صحيحة!",
+                incorrectAnswerFeedback: "❌ إجابة خاطئة! الإجابة الصحيحة هي:",
+                explainAnswerButton: "شرح الإجابة ✨",
+                explainingAnswerButton: "جاري الشرح...",
+                createFlashcardButton: "إنشاء بطاقة مراجعة ✨",
+                creatingFlashcardButton: "إنشاء بطاقة...",
+                flashcardTitle: "بطاقة المراجعة:",
+                explanationTitle: "الشرح:",
+                explainSimplyButton: "اشرح ببساطة ✨",
+                simplifyingButton: "تبسيط...",
+                realWorldExamplesButton: "أمثلة واقعية ✨",
+                generatingExamplesButton: "أمثلة...",
+                followUpQuestionButton: "سؤال متابعة ✨",
+                generatingFollowUpButton: "سؤال متابعة...",
+                giveAnalogyButton: "أعطني تشبيهًا ✨",
+                generatingAnalogyButton: "تشبيه...",
+                analogyTitle: "تشبيه:",
+                simplifiedExplanationTitle: "شرح مبسط:",
+                realWorldExamplesTitle: "أمثلة من الواقع:",
+                followUpQuestionTitle: "سؤال المتابعة:",
+                cancelQuizButton: "إلغاء الاختبار",
+                areYouSure: "هل أنت متأكد؟",
+                yes: "نعم",
+                no: "لا",
+                showResultButton: "إظهار النتيجة",
+                nextQuestionButton: "السؤال التالي",
+                errorInvalidURL: "الرابط الذي أدخلته غير صالح",
+                errorEnterURL: "الرجاء إدخال رابط صحيح",
+                errorLoadingAPI: "فشل تحميل الرابط، الحالة:",
+                errorImportingAPI: "حدث خطأ أثناء استيراد الأسئلة من الرابط:",
+                errorJSONOnly: "يرجى تحميل ملف بصيغة JSON فقط",
+                errorReadingFile: "خطأ في قراءة أو تحليل الملف:",
+                errorReadingFileGeneric: "حدث خطأ أثناء قراءة الملف",
+                errorEnterTopicForQuestions: "الرجاء إدخال موضوع لتوليد الأسئلة.",
+                errorGeneratingQuestions: "خطأ في توليد الأسئلة:",
+                errorGeneratingQuestionsRetry: "جاري المحاولة...",
+                errorGeneratingQuestionsFinal: "يرجى التأكد من وضوح الموضوع.",
+                errorNoActiveQuestionForExplanation: "لا يوجد سؤال حالي للشرح.",
+                errorGettingExplanation: "خطأ في الحصول على الشرح:",
+                errorNoActiveQuestionForHint: "لا يوجد سؤال حالي للتلميح.",
+                errorGettingHint: "خطأ في الحصول على تلميح:",
+                errorNeedBaseExplanation: "يجب عرض الشرح الأساسي أولاً.",
+                errorGettingEli5: "خطأ في الحصول على الشرح المبسّط:",
+                errorNoActiveQuestionForExamples: "لا يوجد سؤال حالي لعرض أمثلة له.",
+                errorGettingExamples: "خطأ في الحصول على أمثلة واقعية:",
+                errorEnterTopicOrLLMQuizForMisconceptions: "الرجاء إدخال موضوع أولاً، أو يجب أن يكون الاختبار الحالي مولداً بواسطة الذكاء الاصطناعي.",
+                errorNoTopicForMisconceptions: "لم يتم تحديد موضوع للمفاهيم الخاطئة.",
+                errorGeneratingMisconceptions: "خطأ في توليد المفاهيم الخاطئة:",
+                errorNeedBaseExplanationForAnalogy: "يجب عرض الشرح الأساسي أولاً لإنشاء تشبيه.",
+                errorGettingAnalogy: "خطأ في الحصول على التشبيه:",
+                errorNoActiveQuestionForFlashcard: "لا يوجد سؤال حالي لإنشاء بطاقة مراجعة.",
+                errorCreatingFlashcard: "خطأ في إنشاء بطاقة المراجعة:",
+                errorCreatingStudyPlan: "خطأ في إنشاء خطة دراسية:",
+                greatPerformanceNoWeaknesses: "أداء رائع! لا توجد نقاط ضعف لتلخيصها.",
+                errorSummarizingWeaknesses: "خطأ في تلخيص نقاط الضعف:",
+                errorAnalyzingPerformance: "خطأ في تحليل الأداء:",
+                errorGeneratingStudyMaterial: "خطأ في توليد مواد دراسية:",
+                errorGeneratingQuizChallenge: "خطأ في توليد تحدي الاختبار:",
+                errorGeneratingRelatedTopics: "خطأ في توليد المواضيع ذات الصلة:",
+                errorInvalidTopicsGenerated: "لم يتمكن Gemini من توليد مواضيع صالحة.",
+                errorNoIncorrectToReview: "لم تجب على أي سؤال بشكل خاطئ.",
+                errorGeneratingReviewQuestions: "خطأ في توليد أسئلة المراجعة:",
+                errorNoQuestionsToExtractConcepts: "لا توجد أسئلة لاستخلاص المفاهيم.",
+                errorExtractingConcepts: "خطأ في استخلاص المفاهيم:",
+                errorEnterTopicForOpenEnded: "الرجاء إدخال موضوع لتوليد أسئلة مفتوحة.",
+                errorGeneratingOpenEnded: "خطأ في توليد أسئلة مفتوحة:",
+                errorNoActiveQuestionForFollowUp: "لا يوجد سؤال حالي لسؤال متابعة.",
+                errorGeneratingFollowUp: "خطأ في توليد سؤال متابعة:",
+                errorGeneratingPersonalizedStudyTips: "خطأ في توليد نصائح دراسية:",
+                errorNoQuestionsAvailable: "لا توجد أسئلة متاحة.",
+                errorInvalidNumberOfQuestions: "عدد أسئلة غير صالح.",
+                errorNumberTooLarge: "العدد المطلوب ({val1}) أكبر من المتاح ({val2}).",
+                settingsResetNotification: "تمت إعادة ضبط الإعدادات إلى الافتراضيات.",
+                quizResultPerfect: "🎉 أداء رائع! لقد أجبت على جميع الأسئلة بشكل صحيح 👏",
+                quizResultGreat: "💪 عمل جيد! واصل التعلم والمثابرة",
+                quizResultGood: "👍 نتيجة جيدة، لكن يمكنك التحسن أكثر",
+                quizResultKeepTrying: "✨ لا تيأس، كل محاولة تقربك من النجاح",
+                questionsGeneratedSuccessLLM: "تم توليد {count} أسئلة بمستوى {difficulty} بنجاح! ✨",
+                fileImportedSuccess: "تم استيراد \"{fileName}\" بنجاح!",
+                questionsImportedSuccessAPI: "تم استيراد الأسئلة من الرابط بنجاح!",
+                loadedFromHistory: "تم تحميل الأسئلة من \"{fileName}\"",
+                usingDefaultQuestions: "تم العودة إلى الأسئلة الافتراضية",
+                reviewQuestionsGeneratedSuccess: "تم توليد أسئلة المراجعة بنجاح! ✨",
+                reason: "السبب",
+                requestBlocked: "تم حظر الطلب بسبب",
+                errorGeminiProcessing: "لم يتمكن Gemini من معالجة الطلب.",
+                errorEnterTopicForStudyMaterial: "الرجاء إدخال موضوع لتوليد مواد دراسية.",
+                errorEnterTopicForChallenge: "الرجاء إدخال موضوع لتوليد تحدي الاختبار.",
+                errorEnterTopicForRelated: "الرجاء إدخال موضوع لتوليد مواضيع ذات صلة."
+
+            },
+            en: {
+                appTitle: "React Quiz App",
+                settings: "Settings",
+                darkMode: "Dark Mode",
+                defaultAIGeneratedQuestions: "Default AI Questions Count:",
+                defaultQuizLength: "Default Quiz Length:",
+                soundEffects: "Sound Effects",
+                appLanguage: "App Language:",
+                arabic: "العربية",
+                english: "English",
+                resetAllSettings: "Reset All Settings",
+                close: "Close",
+                importOrGenerateQuestions: "Import or Generate Questions",
+                generateWithAI: "✨ Generate Questions with AI:",
+                enterTopicPlaceholder: "Enter a topic (e.g., Modern History of Iraq)",
+                generateQuestionsButton: "Generate Questions ✨",
+                generatingButton: "Generating...",
+                difficultyLevel: "Difficulty Level:",
+                easy: "Easy",
+                medium: "Medium",
+                hard: "Hard",
+                generateStudyMaterialButton: "Study Material ✨",
+                generatingStudyMaterialButton: "Study Material...",
+                generateQuizChallengeButton: "Quiz Challenge ✨",
+                generatingQuizChallengeButton: "Challenge...",
+                generateRelatedTopicsButton: "Related Topics ✨",
+                generatingRelatedTopicsButton: "Topics...",
+                generateOpenEndedQuestionsButton: "Open-ended Questions ✨",
+                generatingOpenEndedQuestionsButton: "Open-ended...",
+                revealCommonMisconceptionsButton: "Reveal Common Misconceptions ✨",
+                generatingMisconceptionsButton: "Misconceptions...",
+                studyMaterialTitle: "Study Material:",
+                quizChallengeTitle: "Quiz Challenge:",
+                relatedTopicsTitle: "Suggested Topics:",
+                openEndedQuestionsTitle: "Open-ended Questions:",
+                commonMisconceptionsTitle: "Common Misconceptions:",
+                importFromAPI: "From API URL:",
+                apiURLExample: "Enter API URL (JSON)",
+                importButton: "Import",
+                loadingButton: "Loading...",
+                importFromFile: "From JSON File:",
+                clickToUpload: "Click to Upload",
+                dragDropHere: "or drag and drop",
+                jsonOnly: "JSON only",
+                useDefaultQuestionsButton: "Use Default Questions",
+                showJSONFormatInfo: "Show Required JSON Format",
+                hideJSONFormatInfo: "Hide Required JSON Format",
+                requiredJSONFormat: "Required JSON Format:",
+                recentlyUploaded: "Recently Uploaded:",
+                useButton: "Use",
+                startQuizTitle: "Start Quiz",
+                questionSource: "Question Source:",
+                defaultSource: "Default Questions",
+                apiSource: "External API",
+                fileSource: "Local File",
+                historySource: "Recently Uploaded File",
+                llmSource: "Artificial Intelligence ✨",
+                llmReviewSource: "AI Review ✨",
+                undefinedSource: "Undefined",
+                totalAvailableQuestions: "Total Available Questions:",
+                chooseNumberOfQuestions: "Choose number of questions:",
+                startQuizButton: "Start Quiz",
+                quizEndedTitle: "Quiz Ended!",
+                yourScore: "Your Score:",
+                percentage: "Percentage:",
+                from: "of",
+                answerDetails: "Answer Details:",
+                yourAnswer: "Your Answer:",
+                notAnswered: "(Not answered)",
+                correctAnswerLabel: "Correct Answer:",
+                analyzePerformanceButton: "Analyze Quiz Performance ✨",
+                analyzingPerformanceButton: "Analyzing Performance...",
+                generateReviewQuestionsResultsButton: "Review Questions ✨",
+                generatingReviewQuestionsResultsButton: "Review Questions...",
+                extractKeyConceptsButton: "Extract Key Concepts ✨",
+                extractingKeyConceptsButton: "Key Concepts...",
+                personalizedStudyTipsButton: "Personalized Study Tips ✨",
+                generatingStudyTipsButton: "Study Tips...",
+                showCommonMisconceptionsResultsButton: "Show Common Misconceptions ✨",
+                generatingMisconceptionsResultsButton: "Misconceptions...",
+                createStudyPlanButton: "Create Study Plan ✨",
+                creatingStudyPlanButton: "Creating Plan...",
+                summarizeWeaknessesButton: "Summarize My Weaknesses ✨",
+                summarizingWeaknessesButton: "Summarizing...",
+                quizAnalysisTitle: "Performance Analysis:",
+                reviewQuestionsTitle: "Review Questions:",
+                startReviewQuizButton: "Start Review Quiz",
+                keyConceptsTitle: "Key Concepts:",
+                personalizedStudyTipsTitle: "Personalized Study Tips:",
+                suggestedStudyPlanTitle: "Suggested Study Plan:",
+                weaknessSummaryTitle: "Weakness Summary:",
+                newQuizButton: "New Quiz",
+                retrySameQuizButton: "Retry Same Quiz",
+                errorLoadingQuestion: "Unexpected error loading question.",
+                backToStartButton: "Back to Start",
+                questionLabel: "Question",
+                scoreLabel: "Score:",
+                requestHintButton: "Request Hint ✨",
+                requestingHintButton: "Requesting Hint...",
+                hintTitle: "Hint:",
+                correctAnswerFeedback: "✔️ Correct Answer!",
+                incorrectAnswerFeedback: "❌ Incorrect! The correct answer is:",
+                explainAnswerButton: "Explain Answer ✨",
+                explainingAnswerButton: "Explaining...",
+                createFlashcardButton: "Create Flashcard ✨",
+                creatingFlashcardButton: "Creating Card...",
+                flashcardTitle: "Flashcard:",
+                explanationTitle: "Explanation:",
+                explainSimplyButton: "Explain Simply ✨",
+                simplifyingButton: "Simplifying...",
+                realWorldExamplesButton: "Real-world Examples ✨",
+                generatingExamplesButton: "Examples...",
+                followUpQuestionButton: "Follow-up Question ✨",
+                generatingFollowUpButton: "Follow-up...",
+                giveAnalogyButton: "Give me an Analogy ✨",
+                generatingAnalogyButton: "Analogy...",
+                analogyTitle: "Analogy:",
+                simplifiedExplanationTitle: "Simplified Explanation:",
+                realWorldExamplesTitle: "Real-world Examples:",
+                followUpQuestionTitle: "Follow-up Question:",
+                cancelQuizButton: "Cancel Quiz",
+                areYouSure: "Are you sure?",
+                yes: "Yes",
+                no: "No",
+                showResultButton: "Show Result",
+                nextQuestionButton: "Next Question",
+                errorInvalidURL: "The URL you entered is invalid.",
+                errorEnterURL: "Please enter a valid URL.",
+                errorLoadingAPI: "Failed to load from URL, status:",
+                errorImportingAPI: "Error importing questions from URL:",
+                errorJSONOnly: "Please upload a JSON file only.",
+                errorReadingFile: "Error reading or parsing the file:",
+                errorReadingFileGeneric: "Error reading the file.",
+                errorEnterTopicForQuestions: "Please enter a topic to generate questions.",
+                errorGeneratingQuestions: "Error generating questions:",
+                errorGeneratingQuestionsRetry: "Retrying...",
+                errorGeneratingQuestionsFinal: "Please ensure the topic is clear.",
+                errorNoActiveQuestionForExplanation: "No current question to get an explanation for.",
+                errorGettingExplanation: "Error getting explanation:",
+                errorNoActiveQuestionForHint: "No current question for a hint.",
+                errorGettingHint: "Error getting hint:",
+                errorNeedBaseExplanation: "Base explanation must be shown first.",
+                errorGettingEli5: "Error getting simplified explanation:",
+                errorNoActiveQuestionForExamples: "No current question to show examples for.",
+                errorGettingExamples: "Error getting real-world examples:",
+                errorEnterTopicOrLLMQuizForMisconceptions: "Please enter a topic first, or the current quiz must be AI-generated.",
+                errorNoTopicForMisconceptions: "No topic identified for misconceptions.",
+                errorGeneratingMisconceptions: "Error generating common misconceptions:",
+                errorNeedBaseExplanationForAnalogy: "Base explanation must be shown first to generate an analogy.",
+                errorGettingAnalogy: "Error getting analogy:",
+                errorNoActiveQuestionForFlashcard: "No current question to create a flashcard for.",
+                errorCreatingFlashcard: "Error creating flashcard:",
+                errorCreatingStudyPlan: "Error creating study plan:",
+                greatPerformanceNoWeaknesses: "Great performance! No weaknesses to summarize.",
+                errorSummarizingWeaknesses: "Error summarizing weaknesses:",
+                errorAnalyzingPerformance: "Error analyzing performance:",
+                errorGeneratingStudyMaterial: "Error generating study material:",
+                errorGeneratingQuizChallenge: "Error generating quiz challenge:",
+                errorGeneratingRelatedTopics: "Error generating related topics:",
+                errorInvalidTopicsGenerated: "Gemini could not generate valid topics.",
+                errorNoIncorrectToReview: "You answered all questions correctly.",
+                errorGeneratingReviewQuestions: "Error generating review questions:",
+                errorNoQuestionsToExtractConcepts: "No questions to extract concepts from.",
+                errorExtractingConcepts: "Error extracting key concepts:",
+                errorEnterTopicForOpenEnded: "Please enter a topic to generate open-ended questions.",
+                errorGeneratingOpenEnded: "Error generating open-ended questions:",
+                errorNoActiveQuestionForFollowUp: "No current question for a follow-up.",
+                errorGeneratingFollowUp: "Error generating follow-up question:",
+                errorGeneratingPersonalizedStudyTips: "Error generating personalized study tips:",
+                errorNoQuestionsAvailable: "No questions available.",
+                errorInvalidNumberOfQuestions: "Invalid number of questions.",
+                errorNumberTooLarge: "Requested number ({val1}) is larger than available ({val2}).",
+                settingsResetNotification: "Settings have been reset to defaults.",
+                quizResultPerfect: "🎉 Awesome performance! You answered all questions correctly 👏",
+                quizResultGreat: "💪 Good job! Keep learning and persevering",
+                quizResultGood: "👍 Good result, but you can improve further",
+                quizResultKeepTrying: "✨ Don't give up, every attempt brings you closer to success",
+                questionsGeneratedSuccessLLM: "{count} {difficulty} questions generated successfully! ✨",
+                fileImportedSuccess: "\"{fileName}\" imported successfully!",
+                questionsImportedSuccessAPI: "Questions imported from URL successfully!",
+                loadedFromHistory: "Loaded questions from \"{fileName}\"",
+                usingDefaultQuestions: "Switched to default questions",
+                reviewQuestionsGeneratedSuccess: "Review questions generated successfully! ✨",
+                reason: "Reason",
+                requestBlocked: "Request blocked due to",
+                errorGeminiProcessing: "Gemini could not process the request.",
+                errorEnterTopicForStudyMaterial: "Please enter a topic to generate study material.",
+                errorEnterTopicForChallenge: "Please enter a topic to generate a quiz challenge.",
+                errorEnterTopicForRelated: "Please enter a topic to generate related topics."
+            }
+        };
+
+
+        // Main Quiz App Component
+        const QuizApp = () => {
+          // State variables
+          const [questions, setQuestions] = useState(defaultQuestions);
+          const [currentIndex, setCurrentIndex] = useState(0);
+          const [score, setScore] = useState(0);
+          const [showResult, setShowResult] = useState(false);
+          const [feedback, setFeedback] = useState(null);
+          const [isNextVisible, setIsNextVisible] = useState(false);
+          
+          const [selectedQuestions, setSelectedQuestions] = useState([]);
+          const [quizStarted, setQuizStarted] = useState(false);
+          const [apiUrl, setApiUrl] = useState('');
+          const [isLoading, setIsLoading] = useState(false); 
+          const [error, setError] = useState('');
+          const [sourceType, setSourceType] = useState('default');
+          const [showFormatInfo, setShowFormatInfo] = useState(false);
+          const [notification, setNotification] = useState({ message: '', type: '' });
+          const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+          const [userAnswers, setUserAnswers] = useState({});
+          const [uploadedFileHistory, setUploadedFileHistory] = useState([]);
+
+          // LLM integration states
+          const [llmTopic, setLlmTopic] = useState('');
+          const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+          const [explanation, setExplanation] = useState('');
+          const [isExplaining, setIsExplaining] = useState(false);
+          const [quizAnalysis, setQuizAnalysis] = useState('');
+          const [isAnalyzingQuiz, setIsAnalyzingQuiz] = useState(false);
+          const [studyMaterial, setStudyMaterial] = useState('');
+          const [isGeneratingStudyMaterial, setIsGeneratingStudyMaterial] = useState(false);
+          const [quizChallenge, setQuizChallenge] = useState('');
+          const [isGeneratingChallenge, setIsGeneratingChallenge] = useState(false);
+          const [relatedTopics, setRelatedTopics] = useState([]);
+          const [isGeneratingRelatedTopics, setIsGeneratingRelatedTopics] = useState(false);
+          const [reviewQuestions, setReviewQuestions] = useState([]);
+          const [isGeneratingReviewQuestions, setIsGeneratingReviewQuestions] = useState(false);
+          const [keyConcepts, setKeyConcepts] = useState('');
+          const [isExtractingConcepts, setIsExtractingConcepts] = useState(false);
+          const [openEndedQuestions, setOpenEndedQuestions] = useState('');
+          const [isGeneratingOpenEndedQuestions, setIsGeneratingOpenEndedQuestions] = useState(false);
+          const [followUpQuestion, setFollowUpQuestion] = useState('');
+          const [isGeneratingFollowUpQuestion, setIsGeneratingFollowUpQuestion] = useState(false);
+          const [personalizedStudyTips, setPersonalizedStudyTips] = useState('');
+          const [isGeneratingStudyTips, setIsGeneratingStudyTips] = useState(false);
+          const [hint, setHint] = useState('');
+          const [isGeneratingHint, setIsGeneratingHint] = useState(false);
+          const [eli5Explanation, setEli5Explanation] = useState('');
+          const [isGeneratingEli5, setIsGeneratingEli5] = useState(false);
+          const [realWorldApplications, setRealWorldApplications] = useState('');
+          const [isGeneratingApplications, setIsGeneratingApplications] = useState(false);
+          const [difficulty, setDifficulty] = useState('medium'); 
+          const [commonMisconceptions, setCommonMisconceptions] = useState('');
+          const [isGeneratingMisconceptions, setIsGeneratingMisconceptions] = useState(false);
+          const [analogy, setAnalogy] = useState('');
+          const [isGeneratingAnalogy, setIsGeneratingAnalogy] = useState(false);
+          const [flashcard, setFlashcard] = useState(''); 
+          const [isGeneratingFlashcard, setIsGeneratingFlashcard] = useState(false);
+          const [studyPlan, setStudyPlan] = useState('');
+          const [isGeneratingStudyPlan, setIsGeneratingStudyPlan] = useState(false);
+          const [weaknessSummary, setWeaknessSummary] = useState('');
+          const [isGeneratingWeaknessSummary, setIsGeneratingWeaknessSummary] = useState(false);
+
+          // Settings State
+          const [theme, setTheme] = useState('light'); 
+          const [showSettings, setShowSettings] = useState(false);
+          const [defaultAiQuestions, setDefaultAiQuestions] = useState(5); 
+          const [defaultQuizLength, setDefaultQuizLength] = useState(5); 
+          const [soundEffects, setSoundEffects] = useState(true); 
+          const [appLanguage, setAppLanguage] = useState('ar'); 
+
+          const [numQuestions, setNumQuestions] = useState(defaultQuizLength);
+
+
+          // Translation function
+          const t = (key, params = {}) => {
+            let string = translations[appLanguage]?.[key] || translations.en[key] || key; // Fallback to English then key
+            if (typeof string === 'string') { // Ensure it's a string before replacing
+                Object.keys(params).forEach(paramKey => {
+                    string = string.replace(`{${paramKey}}`, params[paramKey]);
+                });
+            }
+            return string;
+          };
+
+
+          // Update numQuestions if defaultQuizLength changes and no quiz is active
+          useEffect(() => {
+            if (!quizStarted) {
+                setNumQuestions(defaultQuizLength > 0 ? defaultQuizLength : 1); // Ensure at least 1
+            }
+          }, [defaultQuizLength, quizStarted]);
+
+
+          // Function to shuffle an array
+          const shuffleArray = (array) => {
+             if (!array || array.length === 0) return [];
+             let currentIndex = array.length, randomIndex;
+             const shuffledArray = [...array];
+             while (currentIndex !== 0) {
+               randomIndex = Math.floor(Math.random() * currentIndex);
+               currentIndex--;
+               [shuffledArray[currentIndex], shuffledArray[randomIndex]] = [shuffledArray[randomIndex], shuffledArray[currentIndex]];
+             }
+             return shuffledArray;
+          };
+
+          // Effect for theme and language direction
+          useEffect(() => {
+            const htmlEl = document.documentElement;
+            if (theme === 'dark') {
+                htmlEl.classList.add('dark');
+            } else {
+                htmlEl.classList.remove('dark');
+            }
+            htmlEl.lang = appLanguage;
+            htmlEl.dir = appLanguage === 'ar' ? 'rtl' : 'ltr';
+            document.title = t('appTitle');
+          }, [theme, appLanguage, t]); // Added t to dependency array
+
+          useEffect(() => {
+             if (questions && questions.length > 0 && !quizStarted) { 
+               const maxQuestions = questions.length;
+               const targetNum = Number.isInteger(defaultQuizLength) && defaultQuizLength > 0 
+                                 ? Math.min(defaultQuizLength, maxQuestions) 
+                                 : Math.min(5, maxQuestions);
+
+               setNumQuestions(prevNum => {
+                   const currentNum = parseInt(prevNum);
+                   if (isNaN(currentNum) || currentNum <= 0) return targetNum;
+                   else if (currentNum > maxQuestions) return maxQuestions; 
+                   else return currentNum; 
+               });
+             } else if (!quizStarted) { 
+                setNumQuestions(defaultQuizLength > 0 ? defaultQuizLength : 1); // Ensure at least 1
+             }
+          }, [questions, defaultQuizLength, quizStarted]);
+
+          const activeCurrentQuestion = useMemo(() => {
+            if (quizStarted && !showResult && selectedQuestions.length > currentIndex && currentIndex >= 0) {
+                return selectedQuestions[currentIndex];
+            }
+            return null;
+          }, [quizStarted, showResult, selectedQuestions, currentIndex]);
+
+          const currentOptions = useMemo(() => {
+            if (activeCurrentQuestion && activeCurrentQuestion.options) {
+                return shuffleArray(activeCurrentQuestion.options);
+            }
+            return [];
+          }, [activeCurrentQuestion]);
+
+
+          // --- Utility and Core Functions ---
+          const showNotification = (message, type = 'info', duration = 3000) => {
+            setNotification({ message, type });
+            setTimeout(() => { setNotification({ message: '', type: '' }); }, duration);
+          };
+
+          const validateQuestions = (data) => {
+             if (!Array.isArray(data)) throw new Error(t('errorInvalidDataArray'));
+             if (data.length === 0) throw new Error(t('errorNoQuestionsReceived'));
+             const invalidQuestions = data.filter(q => !q.question || !Array.isArray(q.options) || q.options.length < 2 || !q.correctAnswer || !q.options.includes(q.correctAnswer));
+             if (invalidQuestions.length > 0) {
+               const firstInvalid = invalidQuestions[0];
+               let detail = t('errorInvalidQuestionDetail', { question: firstInvalid.question ? String(firstInvalid.question).substring(0, 30)+'...' : t('undefined') });
+               throw new Error(t('errorFoundInvalidQuestions', {count: invalidQuestions.length, detail}));
+             }
+             return true;
+          };
+
+          const clearAllLLMOutputs = () => {
+            setExplanation(''); setQuizAnalysis(''); setStudyMaterial('');
+            setQuizChallenge(''); setRelatedTopics([]); setReviewQuestions([]);
+            setKeyConcepts(''); setOpenEndedQuestions(''); setFollowUpQuestion('');
+            setPersonalizedStudyTips(''); setHint(''); setEli5Explanation('');
+            setRealWorldApplications(''); setCommonMisconceptions('');
+            setAnalogy(''); setFlashcard(''); 
+            setStudyPlan(''); setWeaknessSummary(''); 
+          };
+
+          const fetchQuestionsFromApi = async () => {
+             if (!apiUrl.trim()) { setError(t('errorEnterURL')); return; }
+             try { new URL(apiUrl); } catch (_) { setError(t('errorInvalidURL')); return; }
+             setIsLoading(true); 
+             setError(''); setNotification({ message: '', type: '' });
+             setLlmTopic(''); clearAllLLMOutputs();
+             try {
+               const response = await fetch(apiUrl);
+               if (!response.ok) throw new Error(t('errorLoadingAPI') + ` ${response.status}`);
+               const data = await response.json();
+               validateQuestions(data);
+               setQuestions(data);
+               setSourceType('api');
+               showNotification(t('questionsImportedSuccessAPI'), 'success');
+             } catch (err) { console.error("Error fetching data:", err); setError(t('errorImportingAPI') + ` ${err.message}`); }
+             finally { setIsLoading(false); }
+          };
+
+          const handleFileUpload = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.type !== "application/json" && !file.name.endsWith('.json')) {
+              setError(t('errorJSONOnly'));
+              if (event.target) event.target.value = null; return;
+            }
+            setIsLoading(true); 
+            setError(''); setNotification({ message: '', type: '' });
+            setLlmTopic(''); clearAllLLMOutputs();
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              try {
+                const content = e.target.result;
+                const data = JSON.parse(content);
+                validateQuestions(data);
+                const newHistoryEntry = { name: file.name, questions: data };
+                setUploadedFileHistory(prevHistory => {
+                    const updatedHistory = [newHistoryEntry, ...prevHistory.filter(item => item.name !== file.name)];
+                    return updatedHistory.slice(0, 5);
+                });
+                setQuestions(data);
+                setSourceType('file');
+                showNotification(t('fileImportedSuccess', { fileName: file.name }), 'success');
+              } catch (err) { console.error("Error reading file:", err); setError(t('errorReadingFile') + ` ${err.message}`); }
+              finally { setIsLoading(false); if (event.target) event.target.value = null; }
+            };
+            reader.onerror = () => { setError(t('errorReadingFileGeneric')); setIsLoading(false); if (event.target) event.target.value = null; };
+            reader.readAsText(file);
+          };
+
+          const loadFromHistory = (fileName) => {
+            const historyItem = uploadedFileHistory.find(item => item.name === fileName);
+            if (historyItem) {
+                setQuestions(historyItem.questions);
+                setSourceType('history');
+                setError(''); setNotification({ message: '', type: '' });
+                showNotification(t('loadedFromHistory', { fileName }), 'info');
+                setApiUrl(''); setLlmTopic(''); clearAllLLMOutputs();
+            }
+          };
+
+          const useDefaultQuestions = () => {
+            setQuestions(defaultQuestions);
+            setSourceType('default');
+            setError(''); setNotification({ message: '', type: '' });
+            showNotification(t('usingDefaultQuestions'), 'info');
+            setApiUrl(''); setLlmTopic(''); clearAllLLMOutputs();
+          };
+
+          // --- Gemini API Call Helper ---
+          const callGeminiAPI = async (prompt, config = { responseMimeType: "text/plain" }) => {
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = {
+                contents: chatHistory,
+                generationConfig: config
+            };
+            const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                console.error("Gemini API Error Response:", result);
+                let errorMessage = t('errorGeminiProcessing');
+                if (result.error && result.error.message) {
+                    errorMessage += ` ${t('reason')}: ${result.error.message}`;
+                } else if (result.promptFeedback && result.promptFeedback.blockReason) {
+                    errorMessage += ` ${t('requestBlocked')}: ${result.promptFeedback.blockReason}`;
+                     if (result.promptFeedback.blockReasonMessage) {
+                        errorMessage += ` - ${result.promptFeedback.blockReasonMessage}`;
+                     }
+                }
+                throw new Error(errorMessage);
+            }
+          };
+
+
+          // --- LLM Feature Functions ---
+          // Note: LLM Prompts are still in Arabic. For full i18n, these would need to be translated.
+          const generateQuestionsFromLLM = async () => {
+            if (!llmTopic.trim()) { setError(t('errorEnterTopicForQuestions')); return; }
+            setIsGeneratingQuestions(true); setError(''); clearAllLLMOutputs();
+            const maxRetries = 3;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const numAiQs = defaultAiQuestions > 0 ? defaultAiQuestions : 5; 
+                    const prompt = `Generate ${numAiQs} multiple-choice quiz questions in Arabic about "${llmTopic}" at a "${difficulty}" difficulty level. Each question should have 4 options, and one of them MUST be the correct answer, which must be EXPLICITLY present in the options array. Provide the output as a JSON array of objects, where each object has "question" (string), "options" (array of strings), and "correctAnswer" (string).`;
+                    const schema = {
+                        type: "ARRAY", items: {
+                            type: "OBJECT", properties: {
+                                "question": { "type": "STRING" },
+                                "options": { "type": "ARRAY", "items": { "type": "STRING" } },
+                                "correctAnswer": { "type": "STRING" }
+                            }, required: ["question", "options", "correctAnswer"]
+                        }
+                    };
+                    const jsonString = await callGeminiAPI(prompt, { responseMimeType: "application/json", responseSchema: schema });
+                    const generatedQuestions = JSON.parse(jsonString);
+                    validateQuestions(generatedQuestions);
+                    setQuestions(generatedQuestions); setSourceType('llm');
+                    showNotification(t('questionsGeneratedSuccessLLM', {count: generatedQuestions.length, difficulty: t(difficulty)}), 'success');
+                    setIsGeneratingQuestions(false); return;
+                } catch (err) {
+                    console.error(`Error generating questions (retry ${i + 1}):`, err);
+                    setError(t('errorGeneratingQuestions') + ` ${err.message}. ${i < maxRetries -1 ? t('errorGeneratingQuestionsRetry') : t('errorGeneratingQuestionsFinal')}`);
+                }
+            }
+            setIsGeneratingQuestions(false);
+          };
+
+          const getExplanationFromLLM = async () => {
+            if (!activeCurrentQuestion) { setError(t('errorNoActiveQuestionForExplanation')); return; }
+            setIsExplaining(true); setExplanation(''); setEli5Explanation(''); setRealWorldApplications(''); setAnalogy(''); setFlashcard(''); setError('');
+            const { question, options, correctAnswer } = activeCurrentQuestion;
+            const userAnswer = userAnswers[currentIndex];
+            const isCorrect = userAnswer === correctAnswer;
+            // LLM Prompt in Arabic
+            let prompt = `اشرح السؤال التالي وإجابته الصحيحة باللغة العربية. السؤال: "${question}" الخيارات: ${options.join(', ')}. الإجابة الصحيحة: "${correctAnswer}".`;
+            if (!isCorrect) prompt += ` إجابة المستخدم كانت: "${userAnswer}". وضح لماذا إجابة المستخدم خاطئة ولماذا الإجابة الصحيحة هي الصواب.`;
+            else prompt += ` وضح لماذا هذه هي الإجابة الصحيحة.`;
+            try {
+                const explanationText = await callGeminiAPI(prompt);
+                setExplanation(explanationText);
+            } catch (err) { setError(t('errorGettingExplanation') + ` ${err.message}`); }
+            finally { setIsExplaining(false); }
+          };
+
+          const getHintFromLLM = async () => {
+            if (!activeCurrentQuestion || feedback) return; 
+            setIsGeneratingHint(true); setHint(''); setError('');
+            const { question, options } = activeCurrentQuestion;
+            // LLM Prompt in Arabic
+            const prompt = `للسؤال التالي باللغة العربية: "${question}" مع الخيارات: "${options.join(', ')}", قدم تلميحًا واحدًا دقيقًا وموجزًا باللغة العربية يساعد المستخدم على استنتاج الإجابة الصحيحة دون كشفها مباشرةً.`;
+            try {
+                const hintText = await callGeminiAPI(prompt);
+                setHint(hintText);
+            } catch (err) { setError(t('errorGettingHint') + ` ${err.message}`); }
+            finally { setIsGeneratingHint(false); }
+          };
+
+          const getEli5ExplanationFromLLM = async () => {
+            if (!activeCurrentQuestion || !explanation) { setError(t('errorNeedBaseExplanation')); return; }
+            setIsGeneratingEli5(true); setEli5Explanation(''); setError('');
+            const { question, correctAnswer } = activeCurrentQuestion;
+             // LLM Prompt in Arabic
+            const prompt = `اشرح المفهوم الأساسي للسؤال التالي: "${question}" (الإجابة الصحيحة: "${correctAnswer}") بكلمات بسيطة جداً، كما لو كنت تشرح لطفل عمره 5 سنوات. الشرح الأصلي كان: "${explanation}". قدم الشرح المبسّط باللغة العربية.`;
+            try {
+                const eli5Text = await callGeminiAPI(prompt);
+                setEli5Explanation(eli5Text);
+            } catch (err) { setError(t('errorGettingEli5') + ` ${err.message}`); }
+            finally { setIsGeneratingEli5(false); }
+          };
+
+          const getRealWorldApplicationsFromLLM = async () => {
+            if (!activeCurrentQuestion) { setError(t('errorNoActiveQuestionForExamples')); return; }
+            setIsGeneratingApplications(true); setRealWorldApplications(''); setError('');
+            const { question } = activeCurrentQuestion;
+            // LLM Prompt in Arabic
+            const prompt = `بالنسبة لسؤال الاختبار التالي باللغة العربية: "${question}"، ما هي 2-3 تطبيقات أو أمثلة واقعية موجزة للمفهوم الرئيسي الذي يختبره؟ قدم الإجابة باللغة العربية.`;
+            try {
+                const appText = await callGeminiAPI(prompt);
+                setRealWorldApplications(appText);
+            } catch (err) { setError(t('errorGettingExamples') + ` ${err.message}`); }
+            finally { setIsGeneratingApplications(false); }
+          };
+          
+          const generateCommonMisconceptionsFromLLM = async () => {
+            if (!llmTopic.trim() && !(sourceType === 'llm' && selectedQuestions.length > 0)) { 
+                setError(t('errorEnterTopicOrLLMQuizForMisconceptions')); 
+                return; 
+            }
+            setIsGeneratingMisconceptions(true); setCommonMisconceptions(''); setError('');
+            
+            let topicToUse = llmTopic.trim();
+            if (!topicToUse && sourceType === 'llm' && selectedQuestions.length > 0) {
+                topicToUse = selectedQuestions[0].question.substring(0,30) + "... (مستنتج)"; 
+            }
+            if (!topicToUse) { 
+                 setError(t('errorNoTopicForMisconceptions'));
+                 setIsGeneratingMisconceptions(false);
+                 return;
+            }
+            // LLM Prompt in Arabic
+            const prompt = `اذكر 2-3 مفاهيم خاطئة شائعة حول موضوع "${topicToUse}". لكل مفهوم خاطئ، قدم شرحًا موجزًا باللغة العربية يوضح لماذا هو خاطئ وما هو الصحيح.`;
+            try {
+                const misconceptionsText = await callGeminiAPI(prompt);
+                setCommonMisconceptions(misconceptionsText);
+            } catch (err) { setError(t('errorGeneratingMisconceptions') + ` ${err.message}`); }
+            finally { setIsGeneratingMisconceptions(false); }
+          };
+
+          const getAnalogyFromLLM = async () => {
+            if (!activeCurrentQuestion || !explanation) { setError(t('errorNeedBaseExplanationForAnalogy')); return; }
+            setIsGeneratingAnalogy(true); setAnalogy(''); setError('');
+            const { question, correctAnswer } = activeCurrentQuestion;
+            // LLM Prompt in Arabic
+            const prompt = `للمفهوم الذي تم اختباره في سؤال الاختبار التالي باللغة العربية: "${question}" (الإجابة الصحيحة: "${correctAnswer}")، والذي تم شرحه كـ: "${explanation}", قدم تشبيهًا بسيطًا واحدًا باللغة العربية للمساعدة في فهمه بشكل أفضل.`;
+            try {
+                const analogyText = await callGeminiAPI(prompt);
+                setAnalogy(analogyText);
+            } catch (err) { setError(t('errorGettingAnalogy') + ` ${err.message}`); }
+            finally { setIsGeneratingAnalogy(false); }
+          };
+
+          const generateFlashcardFromLLM = async () => {
+            if (!activeCurrentQuestion) { setError(t('errorNoActiveQuestionForFlashcard')); return; }
+            setIsGeneratingFlashcard(true); setFlashcard(''); setError('');
+            const { question, correctAnswer } = activeCurrentQuestion;
+            // LLM Prompt in Arabic
+            const prompt = `أنشئ بطاقة مراجعة موجزة باللغة العربية لسؤال الاختبار التالي. نسّقها مع "الوجه الأمامي:" و "الوجه الخلفي:".\nالسؤال: "${question}"\nالإجابة الصحيحة: "${correctAnswer}"`;
+            try {
+                const flashcardText = await callGeminiAPI(prompt);
+                setFlashcard(flashcardText); 
+            } catch (err) { setError(t('errorCreatingFlashcard') + ` ${err.message}`); }
+            finally { setIsGeneratingFlashcard(false); }
+          };
+
+          const generateStudyPlanFromLLM = async () => {
+            setIsGeneratingStudyPlan(true); setStudyPlan(''); setError('');
+            // LLM Prompt in Arabic
+            let prompt = `بناءً على أداء المستخدم في الاختبار التالي، قم بإنشاء خطة دراسية موجزة وقابلة للتنفيذ باللغة العربية.`;
+            prompt += `\n\nنتائج الاختبار:\n`;
+            prompt += `إجمالي الأسئلة: ${selectedQuestions.length}\n`;
+            prompt += `الإجابات الصحيحة: ${score}\n`;
+            prompt += `الإجابات الخاطئة: ${selectedQuestions.length - score}\n`;
+            if (llmTopic.trim()) {
+                prompt += `موضوع الاختبار: "${llmTopic}"\n`;
+            } else if (sourceType === 'llm' && selectedQuestions.length > 0) {
+                prompt += `موضوع الاختبار (مستنتج): "${selectedQuestions[0].question.substring(0,30)}..."\n`;
+            }
+            const incorrectQs = selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer);
+            if (incorrectQs.length > 0) {
+                prompt += `\nالأسئلة التي تمت الإجابة عليها بشكل غير صحيح (لتركيز الخطة عليها):\n`;
+                incorrectQs.forEach((q, i) => { prompt += `- ${q.question}\n`; });
+            }
+            prompt += `\nالخطة يجب أن تتضمن 2-3 خطوات أو اقتراحات محددة.`;
+            try {
+                const planText = await callGeminiAPI(prompt);
+                setStudyPlan(planText);
+            } catch (err) { setError(t('errorCreatingStudyPlan') + ` ${err.message}`); }
+            finally { setIsGeneratingStudyPlan(false); }
+          };
+
+          const summarizeWeaknessesFromLLM = async () => {
+            setIsGeneratingWeaknessSummary(true); setWeaknessSummary(''); setError('');
+            const incorrectQs = selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer);
+            if (incorrectQs.length === 0) {
+                showNotification(t('greatPerformanceNoWeaknesses'), 'success');
+                setIsGeneratingWeaknessSummary(false);
+                return;
+            }
+            // LLM Prompt in Arabic
+            let prompt = `قم بتحليل الأسئلة التالية التي أجاب عليها المستخدم بشكل غير صحيح. لخص باللغة العربية أهم 2-3 نقاط ضعف أو أنواع أخطاء متكررة يظهرها المستخدم.`;
+            prompt += `\n\nالأسئلة الخاطئة:\n`;
+            incorrectQs.forEach((q, i) => { prompt += `السؤال ${i + 1}: ${q.question} (الإجابة الصحيحة: ${q.correctAnswer}, إجابة المستخدم: ${userAnswers[selectedQuestions.indexOf(q)]})\n`; });
+            try {
+                const summaryText = await callGeminiAPI(prompt);
+                setWeaknessSummary(summaryText);
+            } catch (err) { setError(t('errorSummarizingWeaknesses') + ` ${err.message}`); }
+            finally { setIsGeneratingWeaknessSummary(false); }
+          };
+
+
+          const generateQuizAnalysis = async () => {
+            setIsAnalyzingQuiz(true); setQuizAnalysis(''); setError('');
+            // LLM Prompt in Arabic
+            let prompt = `حلل أداء المستخدم في الاختبار التالي. قدم رؤى حول نقاط القوة والضعف لديهم. اقترح أيضًا مجالات لمزيد من الدراسة.`;
+            prompt += `\n\nنتائج الاختبار:\n`;
+            prompt += `إجمالي الأسئلة: ${selectedQuestions.length}\n`;
+            prompt += `الإجابات الصحيحة: ${score}\n`;
+            prompt += `الإجابات الخاطئة: ${selectedQuestions.length - score}\n\n`;
+            prompt += `تفاصيل كل سؤال:\n`;
+            selectedQuestions.forEach((q, index) => {
+                prompt += `\nالسؤال ${index + 1}: ${q.question}\nإجابتك: ${userAnswers[index] !== undefined ? userAnswers[index] : '(لم تتم الإجابة)'}\nالإجابة الصحيحة: ${q.correctAnswer}\nالحالة: ${userAnswers[index] === q.correctAnswer ? 'صحيحة' : 'خاطئة'}\n`;
+            });
+            prompt += `\n\nيرجى تقديم التحليل باللغة العربية.`;
+            try {
+                const analysisText = await callGeminiAPI(prompt);
+                setQuizAnalysis(analysisText);
+            } catch (err) { setError(t('errorAnalyzingPerformance') + ` ${err.message}`); }
+            finally { setIsAnalyzingQuiz(false); }
+          };
+
+          const generateStudyMaterial = async () => {
+            if (!llmTopic.trim()) { setError(t('errorEnterTopicForStudyMaterial')); return; }
+            setIsGeneratingStudyMaterial(true); setStudyMaterial(''); setError('');
+             // LLM Prompt in Arabic
+            const prompt = `أنشئ ملخصًا دراسيًا موجزًا (حوالي 150-200 كلمة) حول الموضوع: "${llmTopic}". ركز على الحقائق الأساسية والمفاهيم الهامة. تأكد من أن الملخص باللغة العربية.`;
+            try {
+                const materialText = await callGeminiAPI(prompt);
+                setStudyMaterial(materialText);
+            } catch (err) { setError(t('errorGeneratingStudyMaterial') + ` ${err.message}`); }
+            finally { setIsGeneratingStudyMaterial(false); }
+          };
+          
+          const generateQuizChallenge = async () => {
+            if (!llmTopic.trim()) { setError(t('errorEnterTopicForChallenge')); return; }
+            setIsGeneratingChallenge(true); setQuizChallenge(''); setError('');
+            // LLM Prompt in Arabic
+            const prompt = `أنشئ تحديًا إبداعيًا للاختبار أو سيناريو لحل المشكلات يتعلق بالموضوع: "${llmTopic}". يجب أن يشجع هذا على التفكير النقدي أو تطبيق المعرفة، وليس مجرد التذكر. اجعله موجزًا، حوالي 100-150 كلمة. تأكد من أن التحدي باللغة العربية.`;
+            try {
+                const challengeText = await callGeminiAPI(prompt);
+                setQuizChallenge(challengeText);
+            } catch (err) { setError(t('errorGeneratingQuizChallenge') + ` ${err.message}`); }
+            finally { setIsGeneratingChallenge(false); }
+          };
+
+          const generateRelatedTopicsFromLLM = async () => {
+            if (!llmTopic.trim()) { setError(t('errorEnterTopicForRelated')); return; }
+            setIsGeneratingRelatedTopics(true); setRelatedTopics([]); setError('');
+            // LLM Prompt in Arabic
+            const prompt = `أنشئ قائمة من 5-7 مواضيع أو كلمات رئيسية ذات صلة بالموضوع: "${llmTopic}". قدم الناتج كـ JSON array of strings. تأكد من أن المواضيع باللغة العربية.`;
+            const schema = { type: "ARRAY", items: { "type": "STRING" } };
+            try {
+                const jsonString = await callGeminiAPI(prompt, { responseMimeType: "application/json", responseSchema: schema });
+                const parsedTopics = JSON.parse(jsonString);
+                if (Array.isArray(parsedTopics) && parsedTopics.every(item => typeof item === 'string')) {
+                    setRelatedTopics(parsedTopics);
+                } else { throw new Error(t('errorInvalidTopicsGenerated')); }
+            } catch (err) { setError(t('errorGeneratingRelatedTopics') + ` ${err.message}`); }
+            finally { setIsGeneratingRelatedTopics(false); }
+          };
+          
+          const generateReviewQuestionsFromLLM = async () => {
+            const incorrectQs = selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer);
+            if (incorrectQs.length === 0) { showNotification(t('errorNoIncorrectToReview'), 'info'); return; }
+            setIsGeneratingReviewQuestions(true); setReviewQuestions([]); setError('');
+            // LLM Prompt in Arabic
+            let prompt = `أنشئ 3-5 أسئلة اختبار متعددة الخيارات للمراجعة بناءً على الأسئلة التالية التي تمت الإجابة عليها بشكل غير صحيح. يجب أن يحتوي كل سؤال جديد على 4 خيارات وإجابة صحيحة. ركز على المفاهيم من الأسئلة الأصلية غير الصحيحة. قدم الناتج كـ JSON array of objects، حيث يحتوي كل كائن على "question" (string)، "options" (array of strings)، و "correctAnswer" (string، والذي يجب أن يكون أحد الخيارات). تأكد من أن الأسئلة باللغة العربية.\n\nالأسئلة التي تمت الإجابة عليها بشكل غير صحيح:\n`;
+            incorrectQs.forEach((q, i) => { prompt += `\nالسؤال ${i + 1}: ${q.question}\nالإجابة الصحيحة: ${q.correctAnswer}\n`; });
+            const schema = { type: "ARRAY", items: { type: "OBJECT", properties: { "question": { "type": "STRING" }, "options": { "type": "ARRAY", "items": { "type": "STRING" } }, "correctAnswer": { "type": "STRING" } }, required: ["question", "options", "correctAnswer"] } };
+            try {
+                const jsonString = await callGeminiAPI(prompt, { responseMimeType: "application/json", responseSchema: schema });
+                const genReviewQs = JSON.parse(jsonString);
+                validateQuestions(genReviewQs);
+                setReviewQuestions(genReviewQs);
+                showNotification(t('reviewQuestionsGeneratedSuccess'), 'success');
+            } catch (err) { setError(t('errorGeneratingReviewQuestions') + ` ${err.message}`); }
+            finally { setIsGeneratingReviewQuestions(false); }
+          };
+
+          const extractKeyConceptsFromLLM = async () => {
+            if (selectedQuestions.length === 0) { showNotification(t('errorNoQuestionsToExtractConcepts'), 'info'); return; }
+            setIsExtractingConcepts(true); setKeyConcepts(''); setError('');
+            // LLM Prompt in Arabic
+            let prompt = `استخلص المفاهيم الأساسية والمواضيع الرئيسية من أسئلة الاختبار التالية. قدم ملخصًا موجزًا لهذه المفاهيم.\n\nأسئلة الاختبار:\n`;
+            selectedQuestions.forEach((q, i) => { prompt += `\nالسؤال ${i + 1}: ${q.question}\n`; });
+            prompt += `\n\nيرجى تقديم المفاهيم الأساسية باللغة العربية.`;
+            try {
+                const conceptsText = await callGeminiAPI(prompt);
+                setKeyConcepts(conceptsText);
+            } catch (err) { setError(t('errorExtractingConcepts') + ` ${err.message}`); }
+            finally { setIsExtractingConcepts(false); }
+          };
+
+          const generateOpenEndedQuestionsFromLLM = async () => {
+            if (!llmTopic.trim()) { setError(t('errorEnterTopicForOpenEnded')); return; }
+            setIsGeneratingOpenEndedQuestions(true); setOpenEndedQuestions(''); setError('');
+            // LLM Prompt in Arabic
+            const prompt = `أنشئ 3-5 أسئلة مفتوحة حول الموضوع: "${llmTopic}". يجب أن تشجع هذه الأسئلة على التفكير النقدي والإجابات التفصيلية. تأكد من أن الأسئلة باللغة العربية.`;
+            try {
+                const openQsText = await callGeminiAPI(prompt);
+                setOpenEndedQuestions(openQsText);
+            } catch (err) { setError(t('errorGeneratingOpenEnded') + ` ${err.message}`); }
+            finally { setIsGeneratingOpenEndedQuestions(false); }
+          };
+          
+          const generateFollowUpQuestionFromLLM = async () => {
+            if (!activeCurrentQuestion) { setError(t('errorNoActiveQuestionForFollowUp')); return; }
+            setIsGeneratingFollowUpQuestion(true); setFollowUpQuestion(''); setError('');
+            const { question, correctAnswer } = activeCurrentQuestion;
+            // LLM Prompt in Arabic
+            let prompt = `بناءً على سؤال الاختبار التالي وإجابته الصحيحة، أنشئ سؤال متابعة واحدًا وموجزًا يشجع على التفكير الأعمق أو يستكشف جانبًا ذا صلة.\n\nالسؤال الأصلي: "${question}"\nالإجابة الصحيحة: "${correctAnswer}"\n`;
+            if (explanation) prompt += `الشرح المقدم: "${explanation}"\n`;
+            prompt += `تأكد من أن سؤال المتابعة باللغة العربية.`;
+            try {
+                const followupText = await callGeminiAPI(prompt);
+                setFollowUpQuestion(followupText);
+            } catch (err) { setError(t('errorGeneratingFollowUp') + ` ${err.message}`); }
+            finally { setIsGeneratingFollowUpQuestion(false); }
+          };
+
+          const generatePersonalizedStudyTipsFromLLM = async () => {
+            setIsGeneratingStudyTips(true); setPersonalizedStudyTips(''); setError('');
+             // LLM Prompt in Arabic
+            let prompt = `بناءً على أداء الاختبار التالي، قدم نصائح دراسية مخصصة لمساعدة المستخدم على التحسن. ركز على المجالات التي ارتكب فيها أخطاء واقترح استراتيجيات تعلم فعالة.\n\nملخص أداء الاختبار:\nإجمالي الأسئلة: ${selectedQuestions.length}\nالإجابات الصحيحة: ${score}\nالإجابات الخاطئة: ${selectedQuestions.length - score}\n`;
+            if (selectedQuestions.length - score > 0) {
+                prompt += `\nالأسئلة التي تمت الإجابة عليها بشكل غير صحيح:\n`;
+                selectedQuestions.forEach((q, index) => { if (userAnswers[index] !== q.correctAnswer) prompt += `- السؤال: "${q.question}" (الصحيحة: "${q.correctAnswer}", إجابتك: "${userAnswers[index]}")\n`; });
+            } else { prompt += `\nتمت الإجابة على جميع الأسئلة بشكل صحيح! اقترح تقنيات دراسة متقدمة.`; }
+            if (llmTopic.trim()) prompt += `\nموضوع الاختبار كان: "${llmTopic}".`;
+            prompt += `\n\nيرجى تقديم النصائح الدراسية المخصصة باللغة العربية.`;
+            try {
+                const tipsText = await callGeminiAPI(prompt);
+                setPersonalizedStudyTips(tipsText);
+            } catch (err) { setError(t('errorGeneratingPersonalizedStudyTips') + ` ${err.message}`); }
+            finally { setIsGeneratingStudyTips(false); }
+          };
+
+          // --- Quiz Flow Functions ---
+          const startQuiz = () => {
+             if (!questions || questions.length === 0) { setError(t('errorNoQuestionsAvailable')); return; }
+             const numToStart = Number.isInteger(numQuestions) && numQuestions > 0 ? numQuestions : defaultQuizLength; 
+             if (numToStart > questions.length) { setError(t('errorNumberTooLarge', {val1: numToStart, val2: questions.length})); setNumQuestions(questions.length); return; }
+             setError(''); clearAllLLMOutputs();
+             const shuffled = shuffleArray(questions).slice(0, numToStart);
+             setSelectedQuestions(shuffled);
+             setUserAnswers({}); setCurrentIndex(0); setScore(0); setShowResult(false);
+             setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false);
+             setQuizStarted(true);
+          };
+
+          const handleAnswer = (answer) => {
+             if (!activeCurrentQuestion || feedback) return;
+             const isCorrect = answer === activeCurrentQuestion.correctAnswer;
+             if (isCorrect) setScore(score + 1);
+             setUserAnswers(prev => ({ ...prev, [currentIndex]: answer }));
+             setFeedback({ correct: isCorrect, correctAnswer: activeCurrentQuestion.correctAnswer, userAnswer: answer });
+             setIsNextVisible(true);
+             setHint(''); 
+             setEli5Explanation(''); setRealWorldApplications(''); setAnalogy(''); setFlashcard('');
+          };
+
+          const goToNextQuestion = () => {
+            const nextIndex = currentIndex + 1;
+            if (nextIndex < selectedQuestions.length) {
+                setCurrentIndex(nextIndex); setFeedback(null); setIsNextVisible(false);
+                clearAllLLMOutputs(); 
+            } else { setShowResult(true); }
+          };
+
+          const resetQuiz = () => {
+             setQuizStarted(false); setSelectedQuestions([]); setUserAnswers({}); setCurrentIndex(0); setScore(0);
+             setShowResult(false); setFeedback(null); setIsNextVisible(false);
+             setError(''); setNotification({ message: '', type: '' }); setShowCancelConfirm(false);
+             setLlmTopic(''); clearAllLLMOutputs(); setDifficulty('medium'); 
+             setNumQuestions(defaultQuizLength); 
+          };
+
+          const handleCancelRequest = () => setShowCancelConfirm(true);
+          const confirmCancel = () => resetQuiz();
+          const abortCancel = () => setShowCancelConfirm(false);
+
+          // Combined loading state for any LLM operation
+          const anyLLMLoading = isGeneratingQuestions || isExplaining || isAnalyzingQuiz || isGeneratingStudyMaterial ||
+                                isGeneratingChallenge || isGeneratingRelatedTopics || isGeneratingReviewQuestions ||
+                                isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion ||
+                                isGeneratingStudyTips || isGeneratingHint || isGeneratingEli5 || isGeneratingApplications ||
+                                isGeneratingMisconceptions || isGeneratingAnalogy || isGeneratingFlashcard || 
+                                isGeneratingStudyPlan || isGeneratingWeaknessSummary;
+
+          const toggleTheme = () => setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+          
+          const handleResetSettings = () => {
+            setTheme('light');
+            setDefaultAiQuestions(5);
+            setDefaultQuizLength(5);
+            setSoundEffects(true);
+            setAppLanguage('ar');
+            showNotification(t('settingsResetNotification'), "info");
+          };
+
+
+          // --- Render Components ---
+          const SettingsPanel = ({ 
+                currentTheme, onToggleTheme, onClose, 
+                currentDefaultAiQuestions, onSetDefaultAiQuestions,
+                currentDefaultQuizLength, onSetDefaultQuizLength,
+                currentSoundEffects, onToggleSoundEffects,
+                currentAppLanguage, onSetAppLanguage,
+                onResetAllSettings,
+                t // Pass translation function
+            }) => {
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-opacity-75 flex items-center justify-center p-4 z-50 transition-opacity duration-300 ease-in-out" onClick={onClose}>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0 animate-fadeInUp" onClick={(e) => e.stopPropagation()} style={{animationName: 'fadeInUpSlight', animationDuration: '0.3s', animationFillMode: 'forwards'}}>
+                        <div className="flex justify-between items-center mb-6 pb-3 border-b border-gray-200 dark:border-gray-700">
+                            <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">{t('settings')}</h2>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center py-2">
+                                <span className="text-gray-700 dark:text-gray-300 text-lg">{t('darkMode')}</span>
+                                <button 
+                                    onClick={onToggleTheme} 
+                                    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:focus:ring-offset-gray-800 ${currentTheme === 'dark' ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                >
+                                    <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${currentTheme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`}/>
+                                </button>
+                            </div>
+
+                            <div className="py-2">
+                                <label htmlFor="default-ai-questions" className="block text-lg text-gray-700 dark:text-gray-300 mb-1">{t('defaultAIGeneratedQuestions')}</label>
+                                <input 
+                                    type="number" 
+                                    id="default-ai-questions"
+                                    value={currentDefaultAiQuestions}
+                                    onChange={(e) => onSetDefaultAiQuestions(parseInt(e.target.value) || 1)}
+                                    min="1"
+                                    max="20"
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-gray-200 focus:ring-purple-500 focus:border-purple-500 force-ltr"
+                                />
+                            </div>
+
+                            <div className="py-2">
+                                <label htmlFor="default-quiz-length" className="block text-lg text-gray-700 dark:text-gray-300 mb-1">{t('defaultQuizLength')}</label>
+                                <input 
+                                    type="number" 
+                                    id="default-quiz-length"
+                                    value={currentDefaultQuizLength}
+                                    onChange={(e) => onSetDefaultQuizLength(parseInt(e.target.value) || 1)}
+                                    min="1"
+                                    max="50" 
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-gray-200 focus:ring-purple-500 focus:border-purple-500 force-ltr"
+                                />
+                            </div>
+
+                            <div className="flex justify-between items-center py-2">
+                                <span className="text-gray-700 dark:text-gray-300 text-lg">{t('soundEffects')}</span>
+                                <button 
+                                    onClick={onToggleSoundEffects} 
+                                    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:focus:ring-offset-gray-800 ${currentSoundEffects ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                >
+                                    <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${currentSoundEffects ? 'translate-x-6' : 'translate-x-1'}`}/>
+                                </button>
+                            </div>
+
+                             <div className="py-2">
+                                <label htmlFor="app-language" className="block text-lg text-gray-700 dark:text-gray-300 mb-1">{t('appLanguage')}</label>
+                                <select 
+                                    id="app-language" 
+                                    value={currentAppLanguage} 
+                                    onChange={(e) => onSetAppLanguage(e.target.value)}
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-gray-200 focus:ring-purple-500 focus:border-purple-500"
+                                >
+                                    <option value="ar">{t('arabic')}</option>
+                                    <option value="en">{t('english')}</option> 
+                                </select>
+                            </div>
+                        </div>
+                         <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-3">
+                            <button onClick={onResetAllSettings} className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm hover:shadow-md text-sm">
+                                {t('resetAllSettings')}
+                            </button>
+                            <button onClick={onClose} className="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-sm hover:shadow-md">
+                                {t('close')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+          };
+
+
+          const ImportQuestionsForm = () => (
+            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center text-indigo-700 dark:text-indigo-400">{t('importOrGenerateQuestions')}</h2>
+              <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg shadow-inner">
+                <h3 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">{t('generateWithAI')}</h3>
+                <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                  <input type="text" value={llmTopic} onChange={(e) => setLlmTopic(e.target.value)} placeholder={t('enterTopicPlaceholder')} className={`flex-grow border-2 border-purple-300 dark:border-purple-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors force-ltr ${anyLLMLoading ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'}`} aria-label="LLM Topic Input" disabled={anyLLMLoading} />
+                  <button onClick={generateQuestionsFromLLM} disabled={anyLLMLoading || !llmTopic.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${anyLLMLoading || !llmTopic.trim() ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                    {isGeneratingQuestions ? <><span className="loading-spinner mr-2"></span><span>{t('generatingButton')}</span></> : t('generateQuestionsButton')}
+                  </button>
+                </div>
+                <div className="mb-3">
+                    <label htmlFor="difficulty-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('difficultyLevel')}</label>
+                    <select id="difficulty-select" value={difficulty} onChange={(e) => setDifficulty(e.target.value)} disabled={anyLLMLoading || !llmTopic.trim()} className={`w-full p-2 border-2 border-purple-300 dark:border-purple-600 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 transition-colors ${anyLLMLoading || !llmTopic.trim() ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'}`}>
+                        <option value="easy">{t('easy')}</option>
+                        <option value="medium">{t('medium')}</option>
+                        <option value="hard">{t('hard')}</option>
+                    </select>
+                </div>
+
+                {llmTopic.trim() && (
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <button onClick={generateStudyMaterial} disabled={anyLLMLoading || !llmTopic.trim()} className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${anyLLMLoading || !llmTopic.trim() ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-pink-500 hover:bg-pink-600 text-white shadow hover:shadow-md transform hover:-translate-y-px'}`}>
+                            {isGeneratingStudyMaterial ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('generatingStudyMaterialButton')}</span></> : t('generateStudyMaterialButton')}
+                        </button>
+                        <button onClick={generateQuizChallenge} disabled={anyLLMLoading || !llmTopic.trim()} className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${anyLLMLoading || !llmTopic.trim() ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white shadow hover:shadow-md transform hover:-translate-y-px'}`}>
+                           {isGeneratingChallenge ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('generatingQuizChallengeButton')}</span></> : t('generateQuizChallengeButton')}
+                        </button>
+                        <button onClick={generateRelatedTopicsFromLLM} disabled={anyLLMLoading || !llmTopic.trim()} className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${anyLLMLoading || !llmTopic.trim() ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800 text-white shadow hover:shadow-md transform hover:-translate-y-px'}`}>
+                            {isGeneratingRelatedTopics ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('generatingRelatedTopicsButton')}</span></> : t('generateRelatedTopicsButton')}
+                        </button>
+                        <button onClick={generateOpenEndedQuestionsFromLLM} disabled={anyLLMLoading || !llmTopic.trim()} className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${anyLLMLoading || !llmTopic.trim() ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-fuchsia-500 hover:bg-fuchsia-600 text-white shadow hover:shadow-md transform hover:-translate-y-px'}`}>
+                            {isGeneratingOpenEndedQuestions ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('generatingOpenEndedQuestionsButton')}</span></> : t('generateOpenEndedQuestionsButton')}
+                        </button>
+                        <button onClick={generateCommonMisconceptionsFromLLM} disabled={anyLLMLoading || !llmTopic.trim()} className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 lg:col-span-1 ${anyLLMLoading || !llmTopic.trim() ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 text-white shadow hover:shadow-md transform hover:-translate-y-px'}`}>
+                            {isGeneratingMisconceptions ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('generatingMisconceptionsButton')}</span></> : t('revealCommonMisconceptionsButton')}
+                        </button>
+                    </div>
+                )}
+                {studyMaterial && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('studyMaterialTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{studyMaterial}</p></div>)}
+                {quizChallenge && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('quizChallengeTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{quizChallenge}</p></div>)}
+                {relatedTopics.length > 0 && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('relatedTopicsTitle')}</h4><div className="flex flex-wrap gap-2">{relatedTopics.map((topic, index) => (<span key={index} onClick={() => { setLlmTopic(topic); setRelatedTopics([]); setCommonMisconceptions(''); }} className="cursor-pointer bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 px-3 py-1 rounded-full text-xs transition-colors shadow-sm text-gray-700 dark:text-gray-200">{topic}</span>))}</div></div>)}
+                {openEndedQuestions && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('openEndedQuestionsTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{openEndedQuestions}</p></div>)}
+                {commonMisconceptions && (<div className="llm-output-card"><h4 className="text-orange-700 dark:text-orange-300">{t('commonMisconceptionsTitle')}</h4><p className="text-orange-600 dark:text-orange-200 whitespace-pre-wrap">{commonMisconceptions}</p></div>)}
+              </div>
+
+              <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-inner">
+                <h3 className="text-lg font-semibold mb-3 text-blue-700 dark:text-blue-300">{t('importFromAPI')}</h3>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input type="url" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder={t('apiURLExample')} className={`flex-grow border-2 border-blue-300 dark:border-blue-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors force-ltr ${anyLLMLoading || isLoading ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'}`} aria-label="API URL Input" disabled={anyLLMLoading || isLoading} />
+                  <button onClick={fetchQuestionsFromApi} disabled={anyLLMLoading || isLoading || !apiUrl.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${anyLLMLoading || isLoading || !apiUrl.trim() ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                    {isLoading && sourceType === 'api' ? <><span className="loading-spinner mr-2"></span><span>{t('loadingButton')}</span></> : t('importButton')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg shadow-inner">
+                   <h3 className="text-lg font-semibold mb-3 text-green-700 dark:text-green-300">{t('importFromFile')}</h3>
+                   <div className="flex items-center justify-center w-full">
+                   <label htmlFor="file-upload" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg ${anyLLMLoading || isLoading ? 'bg-gray-100 dark:bg-gray-700 cursor-wait' : 'cursor-pointer bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors'}`}>
+                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                       <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                       <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">{t('clickToUpload')}</span> {t('dragDropHere')}</p>
+                       <p className="text-xs text-gray-500 dark:text-gray-400">{t('jsonOnly')}</p>
+                       </div>
+                       <input id="file-upload" type="file" className="hidden" accept=".json,application/json" onChange={handleFileUpload} disabled={anyLLMLoading || isLoading} aria-label="JSON File Upload"/>
+                   </label>
+                   </div>
+              </div>
+
+              <div className="text-center mb-6">
+                   <button onClick={useDefaultQuestions} disabled={anyLLMLoading || isLoading} className={`font-medium py-2 px-6 rounded-lg transition-all duration-200 ease-in-out ${anyLLMLoading || isLoading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-gray-500 hover:bg-gray-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>{t('useDefaultQuestionsButton')}</button>
+              </div>
+
+              {error && (<div className="mt-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 rounded-lg text-center break-words shadow" role="alert">{error}</div>)}
+              {notification.message && (<div className={`mt-4 p-3 rounded-lg text-center shadow ${notification.type === 'success' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-200' : notification.type === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200'}`} role="status">{notification.message}</div>)}
+
+              <div className="mt-6 text-center">
+                   <button onClick={() => setShowFormatInfo(!showFormatInfo)} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 underline text-sm transition-colors">{showFormatInfo ? t('hideJSONFormatInfo') : t('showJSONFormatInfo')}</button>
+                   {showFormatInfo && (<div className="mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg shadow-inner"><h4 className="font-medium text-indigo-800 dark:text-indigo-200 mb-2">{t('requiredJSONFormat')}</h4><pre className="text-xs bg-gray-100 dark:bg-gray-700 dark:text-gray-300 p-2 rounded overflow-x-auto dir-ltr">{`[ { "question": "...", "options": ["...", "..."], "correctAnswer": "..." }, ... ]`}</pre></div>)}
+              </div>
+
+              {uploadedFileHistory.length > 0 && (
+                   <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                     <h3 className="text-lg font-medium mb-3 text-center text-gray-700 dark:text-gray-300">{t('recentlyUploaded')}</h3>
+                     <ul className="space-y-2">
+                       {uploadedFileHistory.map((item, index) => (
+                         <li key={index} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                           <span className="text-gray-800 dark:text-gray-200 truncate pr-2" title={item.name}>{item.name}</span>
+                           <button onClick={() => loadFromHistory(item.name)} className={`text-sm bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-1 px-3 rounded-md transition-all duration-200 ease-in-out whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${anyLLMLoading || isLoading ? '' : 'hover:shadow-md transform hover:-translate-y-0.5'}`} disabled={anyLLMLoading || isLoading}>{t('useButton')}</button>
+                         </li>
+                       ))}
+                     </ul>
+                   </div>
+              )}
+            </div>
+          );
+          
+          const MainContent = () => {
+            if (!quizStarted) {
+                const getSourceName = () => {
+                     switch (sourceType) {
+                       case 'default': return t('defaultSource'); case 'api': return t('apiSource');
+                       case 'file': return t('fileSource'); case 'history': return t('historySource');
+                       case 'llm': return t('llmSource'); case 'llm_review': return t('llmReviewSource');
+                       default: return t('undefinedSource');
+                     }
+                };
+                return (
+                  <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-green-100 via-blue-100 to-purple-200 dark:from-green-900/30 dark:via-blue-900/30 dark:to-purple-900/30 p-4">
+                    <div className="w-full" style={{maxWidth: '700px'}}>
+                      <ImportQuestionsForm />
+                      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl text-center">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6">{t('startQuizTitle')}</h2>
+                        <div className="flex flex-col items-center">
+                          <p className="text-lg mb-2 text-gray-700 dark:text-gray-300">{t('questionSource')} <span className="font-semibold text-indigo-600 dark:text-indigo-400">{getSourceName()}</span></p>
+                          <p className="text-lg mb-4 text-gray-700 dark:text-gray-300">{t('totalAvailableQuestions')} <span className="font-bold text-gray-800 dark:text-gray-100">{questions.length}</span></p>
+                          {questions.length > 0 && (
+                               <div className="mb-6">
+                                 <label htmlFor="num-questions" className="block text-gray-700 dark:text-gray-300 mb-2 text-md">{t('chooseNumberOfQuestions')}</label>
+                                 <input id="num-questions" type="number" className="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 w-32 text-center focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400 transition-colors shadow-sm force-ltr" value={numQuestions || ''} onChange={(e) => setNumQuestions(parseInt(e.target.value) || 0)} onBlur={(e) => { const val = parseInt(e.target.value); if (isNaN(val) || val < 1) setNumQuestions(defaultQuizLength > 0 ? Math.min(defaultQuizLength, questions.length) : 1); else if (val > questions.length) setNumQuestions(questions.length); else setNumQuestions(val); }} max={questions.length} min={1} aria-label="Number of questions to start" />
+                               </div>
+                          )}
+                          <button className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${anyLLMLoading || isLoading ? 'animate-pulse' : ''}`} onClick={startQuiz} disabled={anyLLMLoading || isLoading || questions.length === 0 || !parseInt(numQuestions) || parseInt(numQuestions) <= 0 || parseInt(numQuestions) > questions.length}> {t('startQuizButton')} </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+    
+              if (showResult) {
+                const percentage = selectedQuestions.length > 0 ? (score / selectedQuestions.length) * 100 : 0;
+                const resultMessageKey = percentage === 100 ? 'quizResultPerfect' : percentage >= 70 ? 'quizResultGreat' : percentage >= 50 ? 'quizResultGood' : 'quizResultKeepTrying';
+                const message = t(resultMessageKey);
+                const bgColor = percentage === 100 ? 'bg-green-100 dark:bg-green-800/30' : percentage >= 70 ? 'bg-teal-100 dark:bg-teal-800/30' : percentage >= 50 ? 'bg-blue-100 dark:bg-blue-800/30' : 'bg-yellow-100 dark:bg-yellow-800/30';
+                const textColor = percentage === 100 ? 'text-green-800 dark:text-green-200' : percentage >= 70 ? 'text-teal-800 dark:text-teal-200' : percentage >= 50 ? 'text-blue-800 dark:text-blue-200' : 'text-yellow-800 dark:text-yellow-200';
+                return (
+                    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-800 p-4">
+                        <div className={`p-6 sm:p-8 rounded-xl shadow-2xl ${bgColor} max-w-2xl mx-auto w-full ${textColor} transition-all duration-500 ease-out`} style={{ animation: 'fadeInUp 0.5s ease-out forwards' }}>
+                            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-6 text-center">{t('quizEndedTitle')}</h2>
+                            <div className="text-center mb-8 p-4 bg-white/50 dark:bg-gray-700/50 rounded-lg shadow">
+                                <p className="text-xl sm:text-2xl font-semibold mb-2">{t('yourScore')} <span className="text-2xl sm:text-3xl font-bold">{score}</span> {t('from')} {selectedQuestions.length}</p>
+                                <p className="text-xl sm:text-2xl font-semibold mb-4">{t('percentage')} <span className="text-2xl sm:text-3xl font-bold">{percentage.toFixed(1)}%</span></p>
+                                <p className="text-md sm:text-lg mt-2 font-medium">{message}</p>
+                            </div>
+                            <div className="mt-8 pt-6 border-t border-gray-300/70 dark:border-gray-600">
+                                <h3 className="text-xl sm:text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4 text-center">{t('answerDetails')}</h3>
+                                <ul className="results-list list-none p-0 text-sm md:text-base space-y-3">
+                                    {selectedQuestions.map((question, index) => {
+                                        const userAnswer = userAnswers[index]; const isCorrect = userAnswer === question.correctAnswer;
+                                        return (
+                                            <li key={index} className={`p-4 rounded-lg shadow-md ${isCorrect ? 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'} transition-colors duration-300`}>
+                                                <p className="font-semibold text-gray-800 dark:text-gray-100 mb-2">{index + 1}. {question.question}</p>
+                                                <p className="text-gray-700 dark:text-gray-300 mb-1"><span className="font-medium">{t('yourAnswer')} </span><span className={`user-answer-text ${isCorrect ? 'text-green-700 dark:text-green-300 font-semibold' : 'text-red-700 dark:text-red-300 font-semibold'}`}>{userAnswer !== undefined ? userAnswer : <span className="text-gray-500 dark:text-gray-400 italic">{t('notAnswered')}</span>}</span>{isCorrect ? <span className="correct-answer-indicator ms-2">✔️</span> : <span className="incorrect-answer-indicator ms-2">❌</span>}</p>
+                                                {!isCorrect && (<p className="text-gray-700 dark:text-gray-300"><span className="font-medium">{t('correctAnswerLabel')} </span><span className="correct-answer-text font-semibold">{question.correctAnswer}</span></p>)}
+                                            </li> );
+                                    })}
+                                </ul>
+                            </div>
+                            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <button onClick={generateQuizAnalysis} disabled={anyLLMLoading} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${anyLLMLoading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                                    {isAnalyzingQuiz ? <><span className="loading-spinner-dark mr-2"></span><span>{t('analyzingPerformanceButton')}</span></> : t('analyzePerformanceButton')}
+                                </button>
+                                <button onClick={generateQuizChallenge} disabled={anyLLMLoading || !llmTopic.trim()} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${anyLLMLoading || !llmTopic.trim() ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                                    {isGeneratingChallenge ? <><span className="loading-spinner-dark mr-2"></span><span>{t('generatingQuizChallengeButton')}</span></> : t('generateQuizChallengeButton')}
+                                </button>
+                                <button onClick={generateReviewQuestionsFromLLM} disabled={anyLLMLoading || selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer).length === 0} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${anyLLMLoading || selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer).length === 0 ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                                    {isGeneratingReviewQuestions ? <><span className="loading-spinner-dark mr-2"></span><span>{t('generatingReviewQuestionsResultsButton')}</span></> : t('generateReviewQuestionsResultsButton')}
+                                </button>
+                                <button onClick={extractKeyConceptsFromLLM} disabled={anyLLMLoading || selectedQuestions.length === 0} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${anyLLMLoading || selectedQuestions.length === 0 ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-gray-700 hover:bg-gray-800 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                                    {isExtractingConcepts ? <><span className="loading-spinner mr-2"></span><span>{t('extractingKeyConceptsButton')}</span></> : t('extractKeyConceptsButton')}
+                                </button>
+                                <button onClick={generatePersonalizedStudyTipsFromLLM} disabled={anyLLMLoading || selectedQuestions.length === 0} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${anyLLMLoading || selectedQuestions.length === 0 ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-blue-800 hover:bg-blue-900 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                                    {isGeneratingStudyTips ? <><span className="loading-spinner mr-2"></span><span>{t('generatingStudyTipsButton')}</span></> : t('personalizedStudyTipsButton')}
+                                </button>
+                                 {(sourceType === 'llm' || llmTopic.trim()) && ( 
+                                    <button onClick={generateCommonMisconceptionsFromLLM} disabled={anyLLMLoading || (!llmTopic.trim() && sourceType !== 'llm')} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${anyLLMLoading || (!llmTopic.trim() && sourceType !== 'llm') ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                                        {isGeneratingMisconceptions ? <><span className="loading-spinner-dark mr-2"></span><span> {t('generatingMisconceptionsResultsButton')}</span></> : t('showCommonMisconceptionsResultsButton')}
+                                    </button>
+                                )}
+                                 <button onClick={generateStudyPlanFromLLM} disabled={anyLLMLoading || selectedQuestions.length === 0} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${anyLLMLoading || selectedQuestions.length === 0 ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                                    {isGeneratingStudyPlan ? <><span className="loading-spinner-dark mr-2"></span><span>{t('creatingStudyPlanButton')}</span></> : t('createStudyPlanButton')}
+                                </button>
+                                <button onClick={summarizeWeaknessesFromLLM} disabled={anyLLMLoading || selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer).length === 0} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${anyLLMLoading || selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer).length === 0 ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                                    {isGeneratingWeaknessSummary ? <><span className="loading-spinner-dark mr-2"></span><span>{t('summarizingWeaknessesButton')}</span></> : t('summarizeWeaknessesButton')}
+                                </button>
+                            </div>
+    
+                            {quizAnalysis && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('quizAnalysisTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{quizAnalysis}</p></div>)}
+                            {quizChallenge && (<div className="llm-output-card"><h4 className="text-indigo-700 dark:text-indigo-300">{t('quizChallengeTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{quizChallenge}</p></div>)}
+                            {commonMisconceptions && (<div className="llm-output-card"><h4 className="text-orange-700 dark:text-orange-300">{t('commonMisconceptionsTitle')}</h4><p className="text-orange-600 dark:text-orange-200 whitespace-pre-wrap">{commonMisconceptions}</p></div>)}
+                            {studyPlan && (<div className="llm-output-card"><h4 className="text-emerald-700 dark:text-emerald-300">{t('suggestedStudyPlanTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{studyPlan}</p></div>)}
+                            {weaknessSummary && (<div className="llm-output-card"><h4 className="text-rose-700 dark:text-rose-300">{t('weaknessSummaryTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{weaknessSummary}</p></div>)}
+                            {reviewQuestions.length > 0 && (
+                                <div className="llm-output-card">
+                                    <h4 className="text-yellow-700 dark:text-yellow-300">{t('reviewQuestionsTitle')}</h4>
+                                    <ul className="list-none p-0 space-y-3">
+                                        {reviewQuestions.map((q, index) => (
+                                            <li key={index} className="mb-3 pb-3 border-b border-yellow-200 dark:border-yellow-700 last:border-b-0 last:pb-0">
+                                                <p className="font-semibold mb-1 text-gray-700 dark:text-gray-200">{index + 1}. {q.question}</p>
+                                                <ul className="list-disc list-inside text-sm space-y-1 text-gray-600 dark:text-gray-300">
+                                                    {q.options.map((opt, optIdx) => (<li key={optIdx} className={`${opt === q.correctAnswer ? 'font-medium text-green-700 dark:text-green-400' : ''}`}>{opt} {opt === q.correctAnswer && '✔️'}</li>))}
+                                                </ul>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <div className="mt-4 text-center"><button onClick={() => { setQuestions(reviewQuestions); setSourceType('llm_review'); setNumQuestions(reviewQuestions.length); startQuiz(); }} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg">{t('startReviewQuizButton')}</button></div>
+                                </div>
+                            )}
+                            {keyConcepts && (<div className="llm-output-card"><h4 className="text-lime-700 dark:text-lime-300">{t('keyConceptsTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{keyConcepts}</p></div>)}
+                            {personalizedStudyTips && (<div className="llm-output-card"><h4 className="text-sky-700 dark:text-sky-300">{t('personalizedStudyTipsTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{personalizedStudyTips}</p></div>)}
+                            <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+                                <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-xl" onClick={resetQuiz}> {t('newQuizButton')} </button>
+                                <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-xl" onClick={() => { clearAllLLMOutputs(); setUserAnswers({}); setCurrentIndex(0); setScore(0); setShowResult(false); setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false); }}> {t('retrySameQuizButton')} </button>
+                            </div>
+                        </div>
+                    </div> );
+              }
+    
+              if (quizStarted && !showResult) {
+                if (!activeCurrentQuestion) {
+                    return ( <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4 font-sans"><div className="p-6 text-center bg-white dark:bg-gray-800 shadow-lg rounded-lg max-w-md mx-auto w-full"><h2 className="text-xl font-semibold mb-4 text-red-600 dark:text-red-400">{t('errorLoadingQuestion')}</h2><button className="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full" onClick={resetQuiz}>{t('backToStartButton')}</button></div></div> );
+                }
+                return (
+                    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-red-100 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-red-900/30 p-4">
+                        <div className="p-6 sm:p-8 bg-white dark:bg-gray-800 shadow-2xl rounded-xl max-w-lg mx-auto w-full" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+                            <div className="flex justify-between items-center mb-6 text-sm sm:text-base">
+                                <span className="bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 font-medium px-4 py-2 rounded-full shadow-sm"> {t('questionLabel')} {currentIndex + 1} {t('from')} {selectedQuestions.length} </span>
+                                <span className="bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200 font-medium px-4 py-2 rounded-full shadow-sm"> {t('scoreLabel')} {score} </span>
+                            </div>
+                            <h2 className="text-xl md:text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-100 text-right" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}> {activeCurrentQuestion.question} </h2>
+                            
+                            {!feedback && !hint && ( 
+                                 <div className="mb-4 text-center">
+                                    <button onClick={getHintFromLLM} disabled={isGeneratingHint || anyLLMLoading} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 mx-auto ${isGeneratingHint || anyLLMLoading ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-yellow-400 hover:bg-yellow-500 text-yellow-900 shadow hover:shadow-md'}`}>
+                                        {isGeneratingHint ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('requestingHintButton')}</span></> : t('requestHintButton')}
+                                    </button>
+                                </div>
+                            )}
+                            {hint && !feedback && ( 
+                                <div className="llm-output-card bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-200">
+                                    <h4 className="font-semibold mb-1">{t('hintTitle')}</h4>
+                                    <p>{hint}</p>
+                                </div>
+                            )}
+    
+                            <div className="grid grid-cols-1 gap-4 mb-6 text-right" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}>
+                                {currentOptions.map((option, idx) => {
+                                    let buttonClass = 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white option-button';
+                                    if (feedback) {
+                                        if (option === activeCurrentQuestion.correctAnswer) buttonClass = 'bg-green-500 text-white ring-2 ring-green-700 dark:ring-green-500 ring-offset-2 dark:ring-offset-gray-800';
+                                        else if (option === feedback.userAnswer) buttonClass = 'bg-red-500 text-white ring-2 ring-red-700 dark:ring-red-500 ring-offset-2 dark:ring-offset-gray-800 animate-shake';
+                                        else buttonClass = 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 opacity-70 cursor-not-allowed';
+                                    }
+                                    return ( <button key={idx} className={`w-full py-3 px-5 rounded-lg font-medium shadow-md transition-all duration-300 ease-in-out transform hover:scale-102 disabled:opacity-70 disabled:cursor-not-allowed ${buttonClass}`} onClick={() => !feedback && handleAnswer(option)} disabled={!!feedback || anyLLMLoading} aria-pressed={!!feedback && option === feedback.userAnswer}> {option} </button> );
+                                })}
+                            </div>
+    
+                            {feedback && (
+                                <div className={`mt-6 p-4 rounded-lg text-center font-semibold text-lg shadow-inner ${feedback.correct ? 'bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-200' : 'bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-200'}`}>
+                                    {feedback.correct ? t('correctAnswerFeedback') : `${t('incorrectAnswerFeedback')} ${feedback.correctAnswer}`}
+                                    <div className="mt-3 flex flex-col sm:flex-row justify-center items-center gap-2">
+                                        <button onClick={getExplanationFromLLM} disabled={isExplaining || anyLLMLoading} className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${isExplaining || anyLLMLoading ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow hover:shadow-md'}`}>
+                                            {isExplaining ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('explainingAnswerButton')}</span></> : t('explainAnswerButton')}
+                                        </button>
+                                         <button onClick={generateFlashcardFromLLM} disabled={isGeneratingFlashcard || anyLLMLoading} className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${isGeneratingFlashcard || anyLLMLoading ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-lime-500 hover:bg-lime-600 text-white shadow hover:shadow-md'}`}>
+                                            {isGeneratingFlashcard ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('creatingFlashcardButton')}</span></> : t('createFlashcardButton')}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {flashcard && (
+                                <div className="llm-output-card bg-lime-50 dark:bg-lime-900/30 text-lime-800 dark:text-lime-200">
+                                    <h4 className="font-semibold mb-2 text-base">{t('flashcardTitle')}</h4>
+                                    <pre className="whitespace-pre-wrap text-sm">{flashcard}</pre>
+                                </div>
+                            )}
+                            {explanation && (
+                                <div className="llm-output-card bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
+                                    <h4 className="font-semibold mb-2 text-base">{t('explanationTitle')}</h4>
+                                    <p className="whitespace-pre-wrap">{explanation}</p>
+                                    <div className="mt-3 flex flex-col sm:flex-row justify-start items-center gap-2 flex-wrap">
+                                        <button onClick={getEli5ExplanationFromLLM} disabled={isGeneratingEli5 || anyLLMLoading} className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${isGeneratingEli5 || anyLLMLoading ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600 text-white shadow hover:shadow-md'}`}>
+                                            {isGeneratingEli5 ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('simplifyingButton')}</span></> : t('explainSimplyButton')}
+                                        </button>
+                                        <button onClick={getRealWorldApplicationsFromLLM} disabled={isGeneratingApplications || anyLLMLoading} className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${isGeneratingApplications || anyLLMLoading ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-cyan-500 hover:bg-cyan-600 text-white shadow hover:shadow-md'}`}>
+                                            {isGeneratingApplications ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('generatingExamplesButton')}</span></> : t('realWorldExamplesButton')}
+                                        </button>
+                                        <button onClick={generateFollowUpQuestionFromLLM} disabled={isGeneratingFollowUpQuestion || anyLLMLoading} className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${isGeneratingFollowUpQuestion || anyLLMLoading ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-gray-700 hover:bg-gray-800 text-white shadow hover:shadow-md'}`}>
+                                            {isGeneratingFollowUpQuestion ? <><span className="loading-spinner mr-1 text-xs"></span><span>{t('generatingFollowUpButton')}</span></> : t('followUpQuestionButton')}
+                                        </button>
+                                        <button onClick={getAnalogyFromLLM} disabled={isGeneratingAnalogy || anyLLMLoading} className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ease-in-out flex items-center justify-center gap-1 ${isGeneratingAnalogy || anyLLMLoading ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : 'bg-purple-400 hover:bg-purple-500 text-white shadow hover:shadow-md'}`}>
+                                            {isGeneratingAnalogy ? <><span className="loading-spinner-dark mr-1 text-xs"></span><span>{t('generatingAnalogyButton')}</span></> : t('giveAnalogyButton')}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {analogy && (<div className="llm-output-card bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200"><h4 className="font-semibold mb-1">{t('analogyTitle')}</h4><p className="whitespace-pre-wrap">{analogy}</p></div>)}
+                            {eli5Explanation && (<div className="llm-output-card bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-200"><h4 className="font-semibold mb-1">{t('simplifiedExplanationTitle')}</h4><p className="whitespace-pre-wrap">{eli5Explanation}</p></div>)}
+                            {realWorldApplications && (<div className="llm-output-card bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-200"><h4 className="font-semibold mb-1">{t('realWorldExamplesTitle')}</h4><p className="whitespace-pre-wrap">{realWorldApplications}</p></div>)}
+                            {followUpQuestion && (<div className="llm-output-card bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200"><h4 className="font-semibold mb-1">{t('followUpQuestionTitle')}</h4><p className="whitespace-pre-wrap">{followUpQuestion}</p></div>)}
+                            
+                            <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                {!showCancelConfirm ? ( <button className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 text-sm underline disabled:text-gray-300 dark:disabled:text-gray-600 disabled:no-underline disabled:cursor-not-allowed transition-colors" onClick={handleCancelRequest} disabled={showResult || !!feedback || anyLLMLoading}> {t('cancelQuizButton')} </button> ) : ( <div className="flex gap-2 items-center"><p className="text-sm text-red-600 dark:text-red-400 font-medium">{t('areYouSure')}</p><button onClick={confirmCancel} className="text-xs bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition-colors shadow">{t('yes')}</button><button onClick={abortCancel} className="text-xs bg-gray-300 dark:bg-gray-600 px-3 py-1 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors shadow">{t('no')}</button></div> )}
+                                {isNextVisible ? ( <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-xl w-full sm:w-auto" onClick={goToNextQuestion} disabled={anyLLMLoading}> {currentIndex === selectedQuestions.length - 1 ? t('showResultButton') : t('nextQuestionButton')} </button> ) : ( <div className="h-12 w-full sm:w-auto"></div> )}
+                            </div>
+                        </div>
+                    </div>
+                );
+              }
+              return <div className="flex items-center justify-center min-h-screen"><ImportQuestionsForm /></div>;
+          };
+
+          return (
+            <>
+                <button 
+                    onClick={() => setShowSettings(true)} 
+                    disabled={anyLLMLoading}
+                    className={`fixed top-4 ${appLanguage === 'ar' ? 'left-4' : 'right-4'} z-40 p-3 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-110 ${anyLLMLoading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}
+                    aria-label={t('settings')}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+                {showSettings && 
+                    <SettingsPanel 
+                        currentTheme={theme} 
+                        onToggleTheme={toggleTheme} 
+                        onClose={() => setShowSettings(false)}
+                        currentDefaultAiQuestions={defaultAiQuestions}
+                        onSetDefaultAiQuestions={setDefaultAiQuestions}
+                        currentDefaultQuizLength={defaultQuizLength}
+                        onSetDefaultQuizLength={setDefaultQuizLength}
+                        currentSoundEffects={soundEffects}
+                        onToggleSoundEffects={() => setSoundEffects(prev => !prev)}
+                        currentAppLanguage={appLanguage}
+                        onSetAppLanguage={setAppLanguage}
+                        onResetAllSettings={handleResetSettings}
+                        t={t} // Pass translation function
+                    />
+                }
+                <MainContent />
+            </>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<QuizApp />);
+
+    </script>
+    <style>
+        @keyframes fadeInUpSlight { 
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+    </body>
+</html>
