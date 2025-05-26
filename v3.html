@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
 
     <style>
@@ -18,25 +19,12 @@
         /* Ensure LTR for specific inputs regardless of page direction */
         input[type="url"].force-ltr, 
         input[type="text"].force-ltr, 
-        input[type="number"].force-ltr { 
+        input[type="number"].force-ltr,
+        textarea.force-ltr { 
             direction: ltr; 
             text-align: left; 
         }
         pre.dir-ltr { direction: ltr; text-align: left; }
-
-        .results-list li { 
-            border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
-            padding-bottom: 0.75rem; 
-            margin-bottom: 0.75rem; 
-        }
-        .dark .results-list li { border-bottom-color: #4b5563; } /* Tailwind gray-600 */
-        .results-list li:last-child { border-bottom: none; margin-bottom: 0; }
-
-        .correct-answer-indicator { color: #10b981; font-weight: bold; } /* Tailwind emerald-500 */
-        .incorrect-answer-indicator { color: #ef4444; font-weight: bold; } /* Tailwind red-500 */
-        .correct-answer-text { color: #059669; } /* Tailwind green-600 */
-        .dark .correct-answer-text { color: #34d399; } /* Tailwind green-400 */
-
 
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
@@ -70,40 +58,7 @@
         .dark ::-webkit-scrollbar-thumb:hover {
             background: #374151; /* Tailwind gray-700 */
         }
-
-        /* Base styles for interactive elements */
-        button, input[type="button"], input[type="submit"], input[type="reset"], select, .btn {
-            border-radius: 0.5rem; /* rounded-lg */
-            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.1s ease-in-out;
-        }
-         input[type="text"], input[type="url"], input[type="number"], textarea, select {
-             border-radius: 0.5rem; /* rounded-lg */
-             transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
         
-        /* Consistent shadow scale */
-        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
-        .dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2); }
-        .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
-        .dark .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.15); }
-        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
-        .dark .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -2px rgba(0,0,0,0.2); }
-        .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); }
-        .dark .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.25); }
-
-
-        .quiz-container {
-            max-width: 700px; 
-            margin: 2rem auto; 
-            padding: 0 1rem; /* Add horizontal padding for smaller screens */
-        }
-        .option-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px -2px rgba(0,0,0,0.1), 0 3px 7px -3px rgba(0,0,0,0.07);
-        }
-        .dark .option-button:hover:not(:disabled) {
-             box-shadow: 0 6px 12px -2px rgba(0,0,0,0.3), 0 3px 7px -3px rgba(0,0,0,0.18);
-        }
         .loading-spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
             width: 24px;
@@ -122,36 +77,27 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Styling for the settings icon based on theme */
-        .settings-icon-light { color: #4f46e5; } /* indigo-600 */
-        .settings-icon-dark { color: #a78bfa; } /* violet-400 */
-
-        /* Card style for LLM outputs */
-        .llm-output-card {
-            background-color: #f9fafb; /* gray-50 */
-            padding: 0.75rem; /* p-3 */
-            border-radius: 0.5rem; /* rounded-lg */
-            margin-top: 1rem; /* mt-4 */
-            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); /* shadow */
+         @keyframes fadeInUpSlight { 
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
-        .dark .llm-output-card {
-            background-color: #1f2937; /* gray-800 */
-            border: 1px solid #374151; /* gray-700 */
-        }
-        .llm-output-card h4 {
-            font-weight: 600; /* semibold */
-            margin-bottom: 0.5rem; /* mb-2 */
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-    <div id="root" class="quiz-container"></div>
+    <div id="root" class="max-w-2xl mx-auto my-8 px-4"></div> 
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useCallback } = React; // Added useCallback
 
-        // Default questions data (in Arabic) - These would need translation for full English support
+        // Default questions data (in Arabic) 
         const defaultQuestions = [
            { question: "ما هي عاصمة العراق؟", options: ["بغداد", "دمشق", "عمان", "بيروت"], correctAnswer: "بغداد" },
            { question: "من هو مؤلف كتاب كليلة ودمنة؟", options: ["الجاحظ", "ابن المقفع", "المتنبي", "ابن خلدون"], correctAnswer: "ابن المقفع" },
@@ -160,7 +106,7 @@
            { question: "كم عدد أضلاع المسدس؟", options: ["5", "6", "7", "8"], correctAnswer: "6" }
         ];
         
-        // Translations object
+        // Translations object (remains the same)
         const translations = {
             ar: {
                 appTitle: "تطبيق اختبار React",
@@ -350,8 +296,20 @@
                 errorGeminiProcessing: "لم يتمكن Gemini من معالجة الطلب.",
                 errorEnterTopicForStudyMaterial: "الرجاء إدخال موضوع لتوليد مواد دراسية.",
                 errorEnterTopicForChallenge: "الرجاء إدخال موضوع لتوليد تحدي الاختبار.",
-                errorEnterTopicForRelated: "الرجاء إدخال موضوع لتوليد مواضيع ذات صلة."
-
+                errorEnterTopicForRelated: "الرجاء إدخال موضوع لتوليد مواضيع ذات صلة.",
+                errorPlayingSound: "خطأ في تشغيل الصوت:",
+                errorInvalidSoundParams: "معلمات الصوت غير صالحة.",
+                factOfTheDay: "✨ معلومة اليوم ✨",
+                generatingFact: "جاري جلب معلومة اليوم...",
+                challengeMeButton: "✨ تحداني بسؤال أصعب!",
+                generatingChallengeQuestionButton: "جاري توليد سؤال التحدي...",
+                challengeQuestionTitle: "سؤال التحدي الصعب!",
+                submitChallengeAnswer: "إرسال إجابة التحدي",
+                closeChallenge: "إغلاق التحدي",
+                challengeCorrect: "🎉 صحيح! لقد تغلبت على التحدي!",
+                challengeIncorrect: "للأسف، الإجابة خاطئة. الإجابة الصحيحة هي:",
+                noChallengeQuestion: "لم يتم تحميل سؤال التحدي.",
+                errorNoTopicForChallenge: "الرجاء تحديد موضوع أولاً لسؤال التحدي."
             },
             en: {
                 appTitle: "React Quiz App",
@@ -541,7 +499,20 @@
                 errorGeminiProcessing: "Gemini could not process the request.",
                 errorEnterTopicForStudyMaterial: "Please enter a topic to generate study material.",
                 errorEnterTopicForChallenge: "Please enter a topic to generate a quiz challenge.",
-                errorEnterTopicForRelated: "Please enter a topic to generate related topics."
+                errorEnterTopicForRelated: "Please enter a topic to generate related topics.",
+                errorPlayingSound: "Error playing sound:",
+                errorInvalidSoundParams: "Invalid sound parameters.",
+                factOfTheDay: "✨ Fact of the Day ✨",
+                generatingFact: "Fetching fact of the day...",
+                challengeMeButton: "✨ Challenge Me with a Harder Question!",
+                generatingChallengeQuestionButton: "Generating Challenge Question...",
+                challengeQuestionTitle: "Tough Challenge Question!",
+                submitChallengeAnswer: "Submit Challenge Answer",
+                closeChallenge: "Close Challenge",
+                challengeCorrect: "🎉 Correct! You beat the challenge!",
+                challengeIncorrect: "Unfortunately, that's incorrect. The correct answer was:",
+                noChallengeQuestion: "Challenge question not loaded.",
+                errorNoTopicForChallenge: "Please set a topic first for the challenge question."
             }
         };
 
@@ -619,23 +590,32 @@
 
           const [numQuestions, setNumQuestions] = useState(defaultQuizLength);
 
+          // New LLM Feature States
+          const [factOfTheDay, setFactOfTheDay] = useState('');
+          const [isGeneratingFact, setIsGeneratingFact] = useState(false);
+          const [challengeQuestion, setChallengeQuestion] = useState(null); 
+          const [isGeneratingChallengeQuestion, setIsGeneratingChallengeQuestion] = useState(false);
+          const [showChallengeQuestionModal, setShowChallengeQuestionModal] = useState(false);
+          const [challengeQuestionAnswer, setChallengeQuestionAnswer] = useState('');
+          const [challengeQuestionFeedback, setChallengeQuestionFeedback] = useState(null); 
+
 
           // Translation function
-          const t = (key, params = {}) => {
-            let string = translations[appLanguage]?.[key] || translations.en[key] || key; // Fallback to English then key
-            if (typeof string === 'string') { // Ensure it's a string before replacing
+          const t = useCallback((key, params = {}) => {
+            let string = translations[appLanguage]?.[key] || translations.en[key] || key; 
+            if (typeof string === 'string') { 
                 Object.keys(params).forEach(paramKey => {
                     string = string.replace(`{${paramKey}}`, params[paramKey]);
                 });
             }
             return string;
-          };
+          }, [appLanguage]);
 
 
           // Update numQuestions if defaultQuizLength changes and no quiz is active
           useEffect(() => {
             if (!quizStarted) {
-                setNumQuestions(defaultQuizLength > 0 ? defaultQuizLength : 1); // Ensure at least 1
+                setNumQuestions(defaultQuizLength > 0 ? defaultQuizLength : 1); 
             }
           }, [defaultQuizLength, quizStarted]);
 
@@ -664,7 +644,7 @@
             htmlEl.lang = appLanguage;
             htmlEl.dir = appLanguage === 'ar' ? 'rtl' : 'ltr';
             document.title = t('appTitle');
-          }, [theme, appLanguage, t]); // Added t to dependency array
+          }, [theme, appLanguage, t]); 
 
           useEffect(() => {
              if (questions && questions.length > 0 && !quizStarted) { 
@@ -680,7 +660,7 @@
                    else return currentNum; 
                });
              } else if (!quizStarted) { 
-                setNumQuestions(defaultQuizLength > 0 ? defaultQuizLength : 1); // Ensure at least 1
+                setNumQuestions(defaultQuizLength > 0 ? defaultQuizLength : 1); 
              }
           }, [questions, defaultQuizLength, quizStarted]);
 
@@ -700,12 +680,12 @@
 
 
           // --- Utility and Core Functions ---
-          const showNotification = (message, type = 'info', duration = 3000) => {
+          const showNotification = useCallback((message, type = 'info', duration = 3000) => {
             setNotification({ message, type });
             setTimeout(() => { setNotification({ message: '', type: '' }); }, duration);
-          };
+          }, []);
 
-          const validateQuestions = (data) => {
+          const validateQuestions = useCallback((data) => {
              if (!Array.isArray(data)) throw new Error(t('errorInvalidDataArray'));
              if (data.length === 0) throw new Error(t('errorNoQuestionsReceived'));
              const invalidQuestions = data.filter(q => !q.question || !Array.isArray(q.options) || q.options.length < 2 || !q.correctAnswer || !q.options.includes(q.correctAnswer));
@@ -715,9 +695,9 @@
                throw new Error(t('errorFoundInvalidQuestions', {count: invalidQuestions.length, detail}));
              }
              return true;
-          };
+          }, [t]);
 
-          const clearAllLLMOutputs = () => {
+          const clearAllLLMOutputs = useCallback(() => {
             setExplanation(''); setQuizAnalysis(''); setStudyMaterial('');
             setQuizChallenge(''); setRelatedTopics([]); setReviewQuestions([]);
             setKeyConcepts(''); setOpenEndedQuestions(''); setFollowUpQuestion('');
@@ -725,9 +705,33 @@
             setRealWorldApplications(''); setCommonMisconceptions('');
             setAnalogy(''); setFlashcard(''); 
             setStudyPlan(''); setWeaknessSummary(''); 
-          };
+            setFactOfTheDay(''); setChallengeQuestion(null); setChallengeQuestionFeedback(null); setChallengeQuestionAnswer('');
+          }, []);
+          
+          // Sound playing function using Tone.js
+          const playSound = useCallback((params) => {
+            if (!soundEffects || !window.Tone) return; 
+            try {
+                Tone.start(); 
+                const synth = new Tone.Synth({
+                    oscillator: { type: params.oscillatorType || 'sine' },
+                    envelope: {
+                        attack: params.envelope?.attack ?? 0.005,
+                        decay: params.envelope?.decay ?? 0.1,
+                        sustain: params.envelope?.sustain ?? 0.3,
+                        release: params.envelope?.release ?? 1,
+                    },
+                    volume: params.volume ?? -10, 
+                }).toDestination();
+                synth.triggerAttackRelease(params.frequency || "C4", params.duration || "8n", Tone.now());
+            } catch (e) {
+                console.error("Error playing sound with Tone.js:", e);
+                setError(t('errorPlayingSound') + ` ${e.message}`);
+            }
+          }, [soundEffects, t]);
 
-          const fetchQuestionsFromApi = async () => {
+
+          const fetchQuestionsFromApi = useCallback(async () => {
              if (!apiUrl.trim()) { setError(t('errorEnterURL')); return; }
              try { new URL(apiUrl); } catch (_) { setError(t('errorInvalidURL')); return; }
              setIsLoading(true); 
@@ -743,9 +747,9 @@
                showNotification(t('questionsImportedSuccessAPI'), 'success');
              } catch (err) { console.error("Error fetching data:", err); setError(t('errorImportingAPI') + ` ${err.message}`); }
              finally { setIsLoading(false); }
-          };
+          }, [apiUrl, t, validateQuestions, clearAllLLMOutputs, showNotification]);
 
-          const handleFileUpload = (event) => {
+          const handleFileUpload = useCallback((event) => {
             const file = event.target.files[0];
             if (!file) return;
             if (file.type !== "application/json" && !file.name.endsWith('.json')) {
@@ -774,9 +778,9 @@
             };
             reader.onerror = () => { setError(t('errorReadingFileGeneric')); setIsLoading(false); if (event.target) event.target.value = null; };
             reader.readAsText(file);
-          };
+          }, [t, validateQuestions, clearAllLLMOutputs, showNotification]);
 
-          const loadFromHistory = (fileName) => {
+          const loadFromHistory = useCallback((fileName) => {
             const historyItem = uploadedFileHistory.find(item => item.name === fileName);
             if (historyItem) {
                 setQuestions(historyItem.questions);
@@ -785,18 +789,18 @@
                 showNotification(t('loadedFromHistory', { fileName }), 'info');
                 setApiUrl(''); setLlmTopic(''); clearAllLLMOutputs();
             }
-          };
+          }, [uploadedFileHistory, t, clearAllLLMOutputs, showNotification]);
 
-          const useDefaultQuestions = () => {
+          const useDefaultQuestions = useCallback(() => {
             setQuestions(defaultQuestions);
             setSourceType('default');
             setError(''); setNotification({ message: '', type: '' });
             showNotification(t('usingDefaultQuestions'), 'info');
             setApiUrl(''); setLlmTopic(''); clearAllLLMOutputs();
-          };
+          }, [t, clearAllLLMOutputs, showNotification]);
 
           // --- Gemini API Call Helper ---
-          const callGeminiAPI = async (prompt, config = { responseMimeType: "text/plain" }) => {
+          const callGeminiAPI = useCallback(async (prompt, config = { responseMimeType: "text/plain" }) => {
             let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
             const payload = {
                 contents: chatHistory,
@@ -829,12 +833,11 @@
                 }
                 throw new Error(errorMessage);
             }
-          };
+          }, [t]);
 
 
           // --- LLM Feature Functions ---
-          // Note: LLM Prompts are still in Arabic. For full i18n, these would need to be translated.
-          const generateQuestionsFromLLM = async () => {
+          const generateQuestionsFromLLM = useCallback(async () => {
             if (!llmTopic.trim()) { setError(t('errorEnterTopicForQuestions')); return; }
             setIsGeneratingQuestions(true); setError(''); clearAllLLMOutputs();
             const maxRetries = 3;
@@ -863,15 +866,14 @@
                 }
             }
             setIsGeneratingQuestions(false);
-          };
+          }, [llmTopic, difficulty, defaultAiQuestions, t, callGeminiAPI, validateQuestions, clearAllLLMOutputs, showNotification]);
 
-          const getExplanationFromLLM = async () => {
+          const getExplanationFromLLM = useCallback(async () => {
             if (!activeCurrentQuestion) { setError(t('errorNoActiveQuestionForExplanation')); return; }
             setIsExplaining(true); setExplanation(''); setEli5Explanation(''); setRealWorldApplications(''); setAnalogy(''); setFlashcard(''); setError('');
             const { question, options, correctAnswer } = activeCurrentQuestion;
             const userAnswer = userAnswers[currentIndex];
             const isCorrect = userAnswer === correctAnswer;
-            // LLM Prompt in Arabic
             let prompt = `اشرح السؤال التالي وإجابته الصحيحة باللغة العربية. السؤال: "${question}" الخيارات: ${options.join(', ')}. الإجابة الصحيحة: "${correctAnswer}".`;
             if (!isCorrect) prompt += ` إجابة المستخدم كانت: "${userAnswer}". وضح لماذا إجابة المستخدم خاطئة ولماذا الإجابة الصحيحة هي الصواب.`;
             else prompt += ` وضح لماذا هذه هي الإجابة الصحيحة.`;
@@ -880,48 +882,45 @@
                 setExplanation(explanationText);
             } catch (err) { setError(t('errorGettingExplanation') + ` ${err.message}`); }
             finally { setIsExplaining(false); }
-          };
+          }, [activeCurrentQuestion, userAnswers, currentIndex, t, callGeminiAPI]);
 
-          const getHintFromLLM = async () => {
+          const getHintFromLLM = useCallback(async () => {
             if (!activeCurrentQuestion || feedback) return; 
             setIsGeneratingHint(true); setHint(''); setError('');
             const { question, options } = activeCurrentQuestion;
-            // LLM Prompt in Arabic
             const prompt = `للسؤال التالي باللغة العربية: "${question}" مع الخيارات: "${options.join(', ')}", قدم تلميحًا واحدًا دقيقًا وموجزًا باللغة العربية يساعد المستخدم على استنتاج الإجابة الصحيحة دون كشفها مباشرةً.`;
             try {
                 const hintText = await callGeminiAPI(prompt);
                 setHint(hintText);
             } catch (err) { setError(t('errorGettingHint') + ` ${err.message}`); }
             finally { setIsGeneratingHint(false); }
-          };
+          }, [activeCurrentQuestion, feedback, t, callGeminiAPI]);
 
-          const getEli5ExplanationFromLLM = async () => {
+          const getEli5ExplanationFromLLM = useCallback(async () => {
             if (!activeCurrentQuestion || !explanation) { setError(t('errorNeedBaseExplanation')); return; }
             setIsGeneratingEli5(true); setEli5Explanation(''); setError('');
             const { question, correctAnswer } = activeCurrentQuestion;
-             // LLM Prompt in Arabic
             const prompt = `اشرح المفهوم الأساسي للسؤال التالي: "${question}" (الإجابة الصحيحة: "${correctAnswer}") بكلمات بسيطة جداً، كما لو كنت تشرح لطفل عمره 5 سنوات. الشرح الأصلي كان: "${explanation}". قدم الشرح المبسّط باللغة العربية.`;
             try {
                 const eli5Text = await callGeminiAPI(prompt);
                 setEli5Explanation(eli5Text);
             } catch (err) { setError(t('errorGettingEli5') + ` ${err.message}`); }
             finally { setIsGeneratingEli5(false); }
-          };
+          }, [activeCurrentQuestion, explanation, t, callGeminiAPI]);
 
-          const getRealWorldApplicationsFromLLM = async () => {
+          const getRealWorldApplicationsFromLLM = useCallback(async () => {
             if (!activeCurrentQuestion) { setError(t('errorNoActiveQuestionForExamples')); return; }
             setIsGeneratingApplications(true); setRealWorldApplications(''); setError('');
             const { question } = activeCurrentQuestion;
-            // LLM Prompt in Arabic
             const prompt = `بالنسبة لسؤال الاختبار التالي باللغة العربية: "${question}"، ما هي 2-3 تطبيقات أو أمثلة واقعية موجزة للمفهوم الرئيسي الذي يختبره؟ قدم الإجابة باللغة العربية.`;
             try {
                 const appText = await callGeminiAPI(prompt);
                 setRealWorldApplications(appText);
             } catch (err) { setError(t('errorGettingExamples') + ` ${err.message}`); }
             finally { setIsGeneratingApplications(false); }
-          };
+          }, [activeCurrentQuestion, t, callGeminiAPI]);
           
-          const generateCommonMisconceptionsFromLLM = async () => {
+          const generateCommonMisconceptionsFromLLM = useCallback(async () => {
             if (!llmTopic.trim() && !(sourceType === 'llm' && selectedQuestions.length > 0)) { 
                 setError(t('errorEnterTopicOrLLMQuizForMisconceptions')); 
                 return; 
@@ -937,44 +936,41 @@
                  setIsGeneratingMisconceptions(false);
                  return;
             }
-            // LLM Prompt in Arabic
+
             const prompt = `اذكر 2-3 مفاهيم خاطئة شائعة حول موضوع "${topicToUse}". لكل مفهوم خاطئ، قدم شرحًا موجزًا باللغة العربية يوضح لماذا هو خاطئ وما هو الصحيح.`;
             try {
                 const misconceptionsText = await callGeminiAPI(prompt);
                 setCommonMisconceptions(misconceptionsText);
             } catch (err) { setError(t('errorGeneratingMisconceptions') + ` ${err.message}`); }
             finally { setIsGeneratingMisconceptions(false); }
-          };
+          }, [llmTopic, sourceType, selectedQuestions, t, callGeminiAPI]);
 
-          const getAnalogyFromLLM = async () => {
+          const getAnalogyFromLLM = useCallback(async () => {
             if (!activeCurrentQuestion || !explanation) { setError(t('errorNeedBaseExplanationForAnalogy')); return; }
             setIsGeneratingAnalogy(true); setAnalogy(''); setError('');
             const { question, correctAnswer } = activeCurrentQuestion;
-            // LLM Prompt in Arabic
             const prompt = `للمفهوم الذي تم اختباره في سؤال الاختبار التالي باللغة العربية: "${question}" (الإجابة الصحيحة: "${correctAnswer}")، والذي تم شرحه كـ: "${explanation}", قدم تشبيهًا بسيطًا واحدًا باللغة العربية للمساعدة في فهمه بشكل أفضل.`;
             try {
                 const analogyText = await callGeminiAPI(prompt);
                 setAnalogy(analogyText);
             } catch (err) { setError(t('errorGettingAnalogy') + ` ${err.message}`); }
             finally { setIsGeneratingAnalogy(false); }
-          };
+          }, [activeCurrentQuestion, explanation, t, callGeminiAPI]);
 
-          const generateFlashcardFromLLM = async () => {
+          const generateFlashcardFromLLM = useCallback(async () => {
             if (!activeCurrentQuestion) { setError(t('errorNoActiveQuestionForFlashcard')); return; }
             setIsGeneratingFlashcard(true); setFlashcard(''); setError('');
             const { question, correctAnswer } = activeCurrentQuestion;
-            // LLM Prompt in Arabic
             const prompt = `أنشئ بطاقة مراجعة موجزة باللغة العربية لسؤال الاختبار التالي. نسّقها مع "الوجه الأمامي:" و "الوجه الخلفي:".\nالسؤال: "${question}"\nالإجابة الصحيحة: "${correctAnswer}"`;
             try {
                 const flashcardText = await callGeminiAPI(prompt);
                 setFlashcard(flashcardText); 
             } catch (err) { setError(t('errorCreatingFlashcard') + ` ${err.message}`); }
             finally { setIsGeneratingFlashcard(false); }
-          };
+          }, [activeCurrentQuestion, t, callGeminiAPI]);
 
-          const generateStudyPlanFromLLM = async () => {
+          const generateStudyPlanFromLLM = useCallback(async () => {
             setIsGeneratingStudyPlan(true); setStudyPlan(''); setError('');
-            // LLM Prompt in Arabic
             let prompt = `بناءً على أداء المستخدم في الاختبار التالي، قم بإنشاء خطة دراسية موجزة وقابلة للتنفيذ باللغة العربية.`;
             prompt += `\n\nنتائج الاختبار:\n`;
             prompt += `إجمالي الأسئلة: ${selectedQuestions.length}\n`;
@@ -996,9 +992,9 @@
                 setStudyPlan(planText);
             } catch (err) { setError(t('errorCreatingStudyPlan') + ` ${err.message}`); }
             finally { setIsGeneratingStudyPlan(false); }
-          };
+          }, [selectedQuestions, score, userAnswers, llmTopic, sourceType, t, callGeminiAPI]);
 
-          const summarizeWeaknessesFromLLM = async () => {
+          const summarizeWeaknessesFromLLM = useCallback(async () => {
             setIsGeneratingWeaknessSummary(true); setWeaknessSummary(''); setError('');
             const incorrectQs = selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer);
             if (incorrectQs.length === 0) {
@@ -1006,7 +1002,6 @@
                 setIsGeneratingWeaknessSummary(false);
                 return;
             }
-            // LLM Prompt in Arabic
             let prompt = `قم بتحليل الأسئلة التالية التي أجاب عليها المستخدم بشكل غير صحيح. لخص باللغة العربية أهم 2-3 نقاط ضعف أو أنواع أخطاء متكررة يظهرها المستخدم.`;
             prompt += `\n\nالأسئلة الخاطئة:\n`;
             incorrectQs.forEach((q, i) => { prompt += `السؤال ${i + 1}: ${q.question} (الإجابة الصحيحة: ${q.correctAnswer}, إجابة المستخدم: ${userAnswers[selectedQuestions.indexOf(q)]})\n`; });
@@ -1015,12 +1010,83 @@
                 setWeaknessSummary(summaryText);
             } catch (err) { setError(t('errorSummarizingWeaknesses') + ` ${err.message}`); }
             finally { setIsGeneratingWeaknessSummary(false); }
-          };
+          }, [selectedQuestions, userAnswers, t, callGeminiAPI, showNotification]);
+
+          const generateFactOfTheDayFromLLM = useCallback(async () => {
+            if (!llmTopic.trim() && sourceType !== 'llm') return; 
+            setIsGeneratingFact(true); setFactOfTheDay('');
+            let topicForFact = llmTopic.trim();
+            if (!topicForFact && selectedQuestions.length > 0) { 
+                topicForFact = selectedQuestions[0].question.split(" ").slice(0, 5).join(" "); 
+            }
+            if (!topicForFact) { setIsGeneratingFact(false); return; }
+
+            const prompt = `قدم حقيقة واحدة مثيرة للاهتمام وموجزة باللغة العربية حول موضوع "${topicForFact}".`;
+            try {
+                const factText = await callGeminiAPI(prompt);
+                setFactOfTheDay(factText);
+            } catch (err) {
+                console.error("Error generating fact of the day:", err);
+            } finally {
+                setIsGeneratingFact(false);
+            }
+          }, [llmTopic, sourceType, selectedQuestions, callGeminiAPI]);
+
+          const generateChallengeQuestionFromLLM = useCallback(async () => {
+            setIsGeneratingChallengeQuestion(true); 
+            setChallengeQuestion(null); 
+            setChallengeQuestionFeedback(null);
+            setChallengeQuestionAnswer('');
+            setError('');
+
+            let topicForChallenge = llmTopic.trim();
+            if (!topicForChallenge && selectedQuestions.length > 0) {
+                 topicForChallenge = selectedQuestions[0].question.split(" ").slice(0, 5).join(" ");
+            }
+             if (!topicForChallenge) { 
+                 setError(t('errorNoTopicForChallenge')); 
+                 setIsGeneratingChallengeQuestion(false);
+                 return;
+            }
+
+            const prompt = `Generate one significantly harder multiple-choice quiz question in Arabic about "${topicForChallenge}". The question should have 4 options, and one of them MUST be the correct answer. Provide the output as a single JSON object with "question" (string), "options" (array of strings), and "correctAnswer" (string).`;
+            const schema = {
+                type: "OBJECT", properties: {
+                    "question": { "type": "STRING" },
+                    "options": { "type": "ARRAY", "items": { "type": "STRING" } },
+                    "correctAnswer": { "type": "STRING" }
+                }, required: ["question", "options", "correctAnswer"]
+            };
+            try {
+                const jsonString = await callGeminiAPI(prompt, { responseMimeType: "application/json", responseSchema: schema });
+                const cq = JSON.parse(jsonString);
+                if (cq.question && Array.isArray(cq.options) && cq.options.length === 4 && cq.correctAnswer && cq.options.includes(cq.correctAnswer)) {
+                    setChallengeQuestion(cq);
+                    setShowChallengeQuestionModal(true);
+                } else {
+                    throw new Error("Invalid challenge question format from AI.");
+                }
+            } catch (err) {
+                setError(t('errorGeneratingChallengeQuestion') + ` ${err.message}`); 
+                console.error("Error generating challenge question:", err);
+            } finally {
+                setIsGeneratingChallengeQuestion(false);
+            }
+          }, [llmTopic, selectedQuestions, t, callGeminiAPI]);
+
+          const handleChallengeAnswer = useCallback((answer) => {
+            if (!challengeQuestion) return;
+            const isCorrect = answer === challengeQuestion.correctAnswer;
+            setChallengeQuestionFeedback({ correct: isCorrect, correctAnswer: challengeQuestion.correctAnswer });
+            if(soundEffects) playSound(isCorrect 
+                ? { frequency: "G5", duration: "8n", type: "triangle", volume: -8 } 
+                : { frequency: "A2", duration: "4n", type: "square", volume: -12 }
+            );
+          }, [challengeQuestion, soundEffects, playSound]);
 
 
-          const generateQuizAnalysis = async () => {
+          const generateQuizAnalysis = useCallback(async () => {
             setIsAnalyzingQuiz(true); setQuizAnalysis(''); setError('');
-            // LLM Prompt in Arabic
             let prompt = `حلل أداء المستخدم في الاختبار التالي. قدم رؤى حول نقاط القوة والضعف لديهم. اقترح أيضًا مجالات لمزيد من الدراسة.`;
             prompt += `\n\nنتائج الاختبار:\n`;
             prompt += `إجمالي الأسئلة: ${selectedQuestions.length}\n`;
@@ -1036,36 +1102,33 @@
                 setQuizAnalysis(analysisText);
             } catch (err) { setError(t('errorAnalyzingPerformance') + ` ${err.message}`); }
             finally { setIsAnalyzingQuiz(false); }
-          };
+          }, [selectedQuestions, score, userAnswers, t, callGeminiAPI]);
 
-          const generateStudyMaterial = async () => {
+          const generateStudyMaterial = useCallback(async () => {
             if (!llmTopic.trim()) { setError(t('errorEnterTopicForStudyMaterial')); return; }
             setIsGeneratingStudyMaterial(true); setStudyMaterial(''); setError('');
-             // LLM Prompt in Arabic
             const prompt = `أنشئ ملخصًا دراسيًا موجزًا (حوالي 150-200 كلمة) حول الموضوع: "${llmTopic}". ركز على الحقائق الأساسية والمفاهيم الهامة. تأكد من أن الملخص باللغة العربية.`;
             try {
                 const materialText = await callGeminiAPI(prompt);
                 setStudyMaterial(materialText);
             } catch (err) { setError(t('errorGeneratingStudyMaterial') + ` ${err.message}`); }
             finally { setIsGeneratingStudyMaterial(false); }
-          };
+          }, [llmTopic, t, callGeminiAPI]);
           
-          const generateQuizChallenge = async () => {
+          const generateQuizChallenge = useCallback(async () => {
             if (!llmTopic.trim()) { setError(t('errorEnterTopicForChallenge')); return; }
             setIsGeneratingChallenge(true); setQuizChallenge(''); setError('');
-            // LLM Prompt in Arabic
             const prompt = `أنشئ تحديًا إبداعيًا للاختبار أو سيناريو لحل المشكلات يتعلق بالموضوع: "${llmTopic}". يجب أن يشجع هذا على التفكير النقدي أو تطبيق المعرفة، وليس مجرد التذكر. اجعله موجزًا، حوالي 100-150 كلمة. تأكد من أن التحدي باللغة العربية.`;
             try {
                 const challengeText = await callGeminiAPI(prompt);
                 setQuizChallenge(challengeText);
             } catch (err) { setError(t('errorGeneratingQuizChallenge') + ` ${err.message}`); }
             finally { setIsGeneratingChallenge(false); }
-          };
+          }, [llmTopic, t, callGeminiAPI]);
 
-          const generateRelatedTopicsFromLLM = async () => {
+          const generateRelatedTopicsFromLLM = useCallback(async () => {
             if (!llmTopic.trim()) { setError(t('errorEnterTopicForRelated')); return; }
             setIsGeneratingRelatedTopics(true); setRelatedTopics([]); setError('');
-            // LLM Prompt in Arabic
             const prompt = `أنشئ قائمة من 5-7 مواضيع أو كلمات رئيسية ذات صلة بالموضوع: "${llmTopic}". قدم الناتج كـ JSON array of strings. تأكد من أن المواضيع باللغة العربية.`;
             const schema = { type: "ARRAY", items: { "type": "STRING" } };
             try {
@@ -1076,13 +1139,12 @@
                 } else { throw new Error(t('errorInvalidTopicsGenerated')); }
             } catch (err) { setError(t('errorGeneratingRelatedTopics') + ` ${err.message}`); }
             finally { setIsGeneratingRelatedTopics(false); }
-          };
+          }, [llmTopic, t, callGeminiAPI]);
           
-          const generateReviewQuestionsFromLLM = async () => {
+          const generateReviewQuestionsFromLLM = useCallback(async () => {
             const incorrectQs = selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer);
             if (incorrectQs.length === 0) { showNotification(t('errorNoIncorrectToReview'), 'info'); return; }
             setIsGeneratingReviewQuestions(true); setReviewQuestions([]); setError('');
-            // LLM Prompt in Arabic
             let prompt = `أنشئ 3-5 أسئلة اختبار متعددة الخيارات للمراجعة بناءً على الأسئلة التالية التي تمت الإجابة عليها بشكل غير صحيح. يجب أن يحتوي كل سؤال جديد على 4 خيارات وإجابة صحيحة. ركز على المفاهيم من الأسئلة الأصلية غير الصحيحة. قدم الناتج كـ JSON array of objects، حيث يحتوي كل كائن على "question" (string)، "options" (array of strings)، و "correctAnswer" (string، والذي يجب أن يكون أحد الخيارات). تأكد من أن الأسئلة باللغة العربية.\n\nالأسئلة التي تمت الإجابة عليها بشكل غير صحيح:\n`;
             incorrectQs.forEach((q, i) => { prompt += `\nالسؤال ${i + 1}: ${q.question}\nالإجابة الصحيحة: ${q.correctAnswer}\n`; });
             const schema = { type: "ARRAY", items: { type: "OBJECT", properties: { "question": { "type": "STRING" }, "options": { "type": "ARRAY", "items": { "type": "STRING" } }, "correctAnswer": { "type": "STRING" } }, required: ["question", "options", "correctAnswer"] } };
@@ -1094,12 +1156,11 @@
                 showNotification(t('reviewQuestionsGeneratedSuccess'), 'success');
             } catch (err) { setError(t('errorGeneratingReviewQuestions') + ` ${err.message}`); }
             finally { setIsGeneratingReviewQuestions(false); }
-          };
+          }, [selectedQuestions, userAnswers, t, callGeminiAPI, validateQuestions, showNotification]);
 
-          const extractKeyConceptsFromLLM = async () => {
+          const extractKeyConceptsFromLLM = useCallback(async () => {
             if (selectedQuestions.length === 0) { showNotification(t('errorNoQuestionsToExtractConcepts'), 'info'); return; }
             setIsExtractingConcepts(true); setKeyConcepts(''); setError('');
-            // LLM Prompt in Arabic
             let prompt = `استخلص المفاهيم الأساسية والمواضيع الرئيسية من أسئلة الاختبار التالية. قدم ملخصًا موجزًا لهذه المفاهيم.\n\nأسئلة الاختبار:\n`;
             selectedQuestions.forEach((q, i) => { prompt += `\nالسؤال ${i + 1}: ${q.question}\n`; });
             prompt += `\n\nيرجى تقديم المفاهيم الأساسية باللغة العربية.`;
@@ -1108,25 +1169,23 @@
                 setKeyConcepts(conceptsText);
             } catch (err) { setError(t('errorExtractingConcepts') + ` ${err.message}`); }
             finally { setIsExtractingConcepts(false); }
-          };
+          }, [selectedQuestions, t, callGeminiAPI, showNotification]);
 
-          const generateOpenEndedQuestionsFromLLM = async () => {
+          const generateOpenEndedQuestionsFromLLM = useCallback(async () => {
             if (!llmTopic.trim()) { setError(t('errorEnterTopicForOpenEnded')); return; }
             setIsGeneratingOpenEndedQuestions(true); setOpenEndedQuestions(''); setError('');
-            // LLM Prompt in Arabic
             const prompt = `أنشئ 3-5 أسئلة مفتوحة حول الموضوع: "${llmTopic}". يجب أن تشجع هذه الأسئلة على التفكير النقدي والإجابات التفصيلية. تأكد من أن الأسئلة باللغة العربية.`;
             try {
                 const openQsText = await callGeminiAPI(prompt);
                 setOpenEndedQuestions(openQsText);
             } catch (err) { setError(t('errorGeneratingOpenEnded') + ` ${err.message}`); }
             finally { setIsGeneratingOpenEndedQuestions(false); }
-          };
+          }, [llmTopic, t, callGeminiAPI]);
           
-          const generateFollowUpQuestionFromLLM = async () => {
+          const generateFollowUpQuestionFromLLM = useCallback(async () => {
             if (!activeCurrentQuestion) { setError(t('errorNoActiveQuestionForFollowUp')); return; }
             setIsGeneratingFollowUpQuestion(true); setFollowUpQuestion(''); setError('');
             const { question, correctAnswer } = activeCurrentQuestion;
-            // LLM Prompt in Arabic
             let prompt = `بناءً على سؤال الاختبار التالي وإجابته الصحيحة، أنشئ سؤال متابعة واحدًا وموجزًا يشجع على التفكير الأعمق أو يستكشف جانبًا ذا صلة.\n\nالسؤال الأصلي: "${question}"\nالإجابة الصحيحة: "${correctAnswer}"\n`;
             if (explanation) prompt += `الشرح المقدم: "${explanation}"\n`;
             prompt += `تأكد من أن سؤال المتابعة باللغة العربية.`;
@@ -1135,11 +1194,10 @@
                 setFollowUpQuestion(followupText);
             } catch (err) { setError(t('errorGeneratingFollowUp') + ` ${err.message}`); }
             finally { setIsGeneratingFollowUpQuestion(false); }
-          };
+          }, [activeCurrentQuestion, explanation, t, callGeminiAPI]);
 
-          const generatePersonalizedStudyTipsFromLLM = async () => {
+          const generatePersonalizedStudyTipsFromLLM = useCallback(async () => {
             setIsGeneratingStudyTips(true); setPersonalizedStudyTips(''); setError('');
-             // LLM Prompt in Arabic
             let prompt = `بناءً على أداء الاختبار التالي، قدم نصائح دراسية مخصصة لمساعدة المستخدم على التحسن. ركز على المجالات التي ارتكب فيها أخطاء واقترح استراتيجيات تعلم فعالة.\n\nملخص أداء الاختبار:\nإجمالي الأسئلة: ${selectedQuestions.length}\nالإجابات الصحيحة: ${score}\nالإجابات الخاطئة: ${selectedQuestions.length - score}\n`;
             if (selectedQuestions.length - score > 0) {
                 prompt += `\nالأسئلة التي تمت الإجابة عليها بشكل غير صحيح:\n`;
@@ -1152,10 +1210,10 @@
                 setPersonalizedStudyTips(tipsText);
             } catch (err) { setError(t('errorGeneratingPersonalizedStudyTips') + ` ${err.message}`); }
             finally { setIsGeneratingStudyTips(false); }
-          };
+          }, [selectedQuestions, score, userAnswers, llmTopic, t, callGeminiAPI]);
 
           // --- Quiz Flow Functions ---
-          const startQuiz = () => {
+          const startQuiz = useCallback(async () => { 
              if (!questions || questions.length === 0) { setError(t('errorNoQuestionsAvailable')); return; }
              const numToStart = Number.isInteger(numQuestions) && numQuestions > 0 ? numQuestions : defaultQuizLength; 
              if (numToStart > questions.length) { setError(t('errorNumberTooLarge', {val1: numToStart, val2: questions.length})); setNumQuestions(questions.length); return; }
@@ -1165,38 +1223,47 @@
              setUserAnswers({}); setCurrentIndex(0); setScore(0); setShowResult(false);
              setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false);
              setQuizStarted(true);
-          };
 
-          const handleAnswer = (answer) => {
+             if (llmTopic.trim() || sourceType === 'llm') {
+                await generateFactOfTheDayFromLLM();
+             }
+          }, [questions, numQuestions, defaultQuizLength, t, clearAllLLMOutputs, generateFactOfTheDayFromLLM, llmTopic, sourceType]);
+
+          const handleAnswer = useCallback((answer) => {
              if (!activeCurrentQuestion || feedback) return;
              const isCorrect = answer === activeCurrentQuestion.correctAnswer;
-             if (isCorrect) setScore(score + 1);
+             if (isCorrect) {
+                setScore(prevScore => prevScore + 1);
+                if(soundEffects) playSound({ frequency: "C5", duration: "8n", type: "sine", envelope: { attack: 0.001, decay: 0.1, sustain: 0.05, release: 0.2 }, volume: -10 });
+             } else {
+                if(soundEffects) playSound({ frequency: "C3", duration: "4n", type: "sawtooth", envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.2 }, volume: -15 });
+             }
              setUserAnswers(prev => ({ ...prev, [currentIndex]: answer }));
              setFeedback({ correct: isCorrect, correctAnswer: activeCurrentQuestion.correctAnswer, userAnswer: answer });
              setIsNextVisible(true);
              setHint(''); 
              setEli5Explanation(''); setRealWorldApplications(''); setAnalogy(''); setFlashcard('');
-          };
+          }, [activeCurrentQuestion, feedback, currentIndex, soundEffects, playSound]);
 
-          const goToNextQuestion = () => {
+          const goToNextQuestion = useCallback(() => {
             const nextIndex = currentIndex + 1;
             if (nextIndex < selectedQuestions.length) {
                 setCurrentIndex(nextIndex); setFeedback(null); setIsNextVisible(false);
                 clearAllLLMOutputs(); 
             } else { setShowResult(true); }
-          };
+          }, [currentIndex, selectedQuestions.length, clearAllLLMOutputs]);
 
-          const resetQuiz = () => {
+          const resetQuiz = useCallback(() => {
              setQuizStarted(false); setSelectedQuestions([]); setUserAnswers({}); setCurrentIndex(0); setScore(0);
              setShowResult(false); setFeedback(null); setIsNextVisible(false);
              setError(''); setNotification({ message: '', type: '' }); setShowCancelConfirm(false);
              setLlmTopic(''); clearAllLLMOutputs(); setDifficulty('medium'); 
              setNumQuestions(defaultQuizLength); 
-          };
+          }, [defaultQuizLength, clearAllLLMOutputs]);
 
-          const handleCancelRequest = () => setShowCancelConfirm(true);
-          const confirmCancel = () => resetQuiz();
-          const abortCancel = () => setShowCancelConfirm(false);
+          const handleCancelRequest = useCallback(() => setShowCancelConfirm(true), []);
+          const confirmCancel = useCallback(() => resetQuiz(), [resetQuiz]);
+          const abortCancel = useCallback(() => setShowCancelConfirm(false), []);
 
           // Combined loading state for any LLM operation
           const anyLLMLoading = isGeneratingQuestions || isExplaining || isAnalyzingQuiz || isGeneratingStudyMaterial ||
@@ -1204,29 +1271,29 @@
                                 isExtractingConcepts || isGeneratingOpenEndedQuestions || isGeneratingFollowUpQuestion ||
                                 isGeneratingStudyTips || isGeneratingHint || isGeneratingEli5 || isGeneratingApplications ||
                                 isGeneratingMisconceptions || isGeneratingAnalogy || isGeneratingFlashcard || 
-                                isGeneratingStudyPlan || isGeneratingWeaknessSummary;
+                                isGeneratingStudyPlan || isGeneratingWeaknessSummary || isGeneratingFact || isGeneratingChallengeQuestion;
 
-          const toggleTheme = () => setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+          const toggleTheme = useCallback(() => setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light'), []);
           
-          const handleResetSettings = () => {
+          const handleResetSettings = useCallback(() => {
             setTheme('light');
             setDefaultAiQuestions(5);
             setDefaultQuizLength(5);
             setSoundEffects(true);
             setAppLanguage('ar');
             showNotification(t('settingsResetNotification'), "info");
-          };
+          }, [t, showNotification]);
 
 
           // --- Render Components ---
-          const SettingsPanel = ({ 
+          const SettingsPanel = React.memo(({ 
                 currentTheme, onToggleTheme, onClose, 
                 currentDefaultAiQuestions, onSetDefaultAiQuestions,
                 currentDefaultQuizLength, onSetDefaultQuizLength,
                 currentSoundEffects, onToggleSoundEffects,
                 currentAppLanguage, onSetAppLanguage,
                 onResetAllSettings,
-                t // Pass translation function
+                t 
             }) => {
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-opacity-75 flex items-center justify-center p-4 z-50 transition-opacity duration-300 ease-in-out" onClick={onClose}>
@@ -1311,12 +1378,22 @@
                     </div>
                 </div>
             );
-          };
+          });
 
 
-          const ImportQuestionsForm = () => (
+          const ImportQuestionsForm = React.memo(({
+            llmTopic, setLlmTopic, generateQuestionsFromLLM, anyLLMLoading, isGeneratingQuestions,
+            difficulty, setDifficulty, generateStudyMaterial, isGeneratingStudyMaterial,
+            generateQuizChallenge, isGeneratingChallenge, generateRelatedTopicsFromLLM, isGeneratingRelatedTopics,
+            generateOpenEndedQuestionsFromLLM, isGeneratingOpenEndedQuestions, generateCommonMisconceptionsFromLLM, isGeneratingMisconceptions,
+            studyMaterial, quizChallenge, relatedTopics, openEndedQuestions, commonMisconceptions,
+            apiUrl, setApiUrl, fetchQuestionsFromApi, isLoading, sourceType,
+            handleFileUpload, useDefaultQuestions, showFormatInfo, setShowFormatInfo,
+            uploadedFileHistory, loadFromHistory, t
+          }) => (
             <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg mb-6">
               <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center text-indigo-700 dark:text-indigo-400">{t('importOrGenerateQuestions')}</h2>
+              {/* AI Question Generation Section */}
               <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg shadow-inner">
                 <h3 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">{t('generateWithAI')}</h3>
                 <div className="flex flex-col sm:flex-row gap-2 mb-3">
@@ -1359,6 +1436,7 @@
                 {openEndedQuestions && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('openEndedQuestionsTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{openEndedQuestions}</p></div>)}
                 {commonMisconceptions && (<div className="llm-output-card"><h4 className="text-orange-700 dark:text-orange-300">{t('commonMisconceptionsTitle')}</h4><p className="text-orange-600 dark:text-orange-200 whitespace-pre-wrap">{commonMisconceptions}</p></div>)}
               </div>
+              
 
               <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-inner">
                 <h3 className="text-lg font-semibold mb-3 text-blue-700 dark:text-blue-300">{t('importFromAPI')}</h3>
@@ -1410,7 +1488,7 @@
                    </div>
               )}
             </div>
-          );
+          ));
           
           const MainContent = () => {
             if (!quizStarted) {
@@ -1425,7 +1503,16 @@
                 return (
                   <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-green-100 via-blue-100 to-purple-200 dark:from-green-900/30 dark:via-blue-900/30 dark:to-purple-900/30 p-4">
                     <div className="w-full" style={{maxWidth: '700px'}}>
-                      <ImportQuestionsForm />
+                      <ImportQuestionsForm 
+                        llmTopic={llmTopic} setLlmTopic={setLlmTopic} generateQuestionsFromLLM={generateQuestionsFromLLM} anyLLMLoading={anyLLMLoading} isGeneratingQuestions={isGeneratingQuestions}
+                        difficulty={difficulty} setDifficulty={setDifficulty} generateStudyMaterial={generateStudyMaterial} isGeneratingStudyMaterial={isGeneratingStudyMaterial}
+                        generateQuizChallenge={generateQuizChallenge} isGeneratingChallenge={isGeneratingChallenge} generateRelatedTopicsFromLLM={generateRelatedTopicsFromLLM} isGeneratingRelatedTopics={isGeneratingRelatedTopics}
+                        generateOpenEndedQuestionsFromLLM={generateOpenEndedQuestionsFromLLM} isGeneratingOpenEndedQuestions={isGeneratingOpenEndedQuestions} generateCommonMisconceptionsFromLLM={generateCommonMisconceptionsFromLLM} isGeneratingMisconceptions={isGeneratingMisconceptions}
+                        studyMaterial={studyMaterial} quizChallenge={quizChallenge} relatedTopics={relatedTopics} openEndedQuestions={openEndedQuestions} commonMisconceptions={commonMisconceptions}
+                        apiUrl={apiUrl} setApiUrl={setApiUrl} fetchQuestionsFromApi={fetchQuestionsFromApi} isLoading={isLoading} sourceType={sourceType}
+                        handleFileUpload={handleFileUpload} useDefaultQuestions={useDefaultQuestions} showFormatInfo={showFormatInfo} setShowFormatInfo={setShowFormatInfo}
+                        uploadedFileHistory={uploadedFileHistory} loadFromHistory={loadFromHistory} t={t}
+                      />
                       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl text-center">
                         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6">{t('startQuizTitle')}</h2>
                         <div className="flex flex-col items-center">
@@ -1501,6 +1588,11 @@
                                 <button onClick={summarizeWeaknessesFromLLM} disabled={anyLLMLoading || selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer).length === 0} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${anyLLMLoading || selectedQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer).length === 0 ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
                                     {isGeneratingWeaknessSummary ? <><span className="loading-spinner-dark mr-2"></span><span>{t('summarizingWeaknessesButton')}</span></> : t('summarizeWeaknessesButton')}
                                 </button>
+                                {percentage >= 70 && (sourceType === 'llm' || llmTopic.trim()) && (
+                                    <button onClick={generateChallengeQuestionFromLLM} disabled={isGeneratingChallengeQuestion || anyLLMLoading} className={`w-full py-3 px-4 rounded-lg text-base font-semibold transition-all duration-200 ease-in-out flex items-center justify-center gap-2 ${isGeneratingChallengeQuestion || anyLLMLoading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-yellow-500 hover:bg-yellow-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
+                                        {isGeneratingChallengeQuestion ? <><span className="loading-spinner-dark mr-2"></span><span>{t('generatingChallengeQuestionButton')}</span></> : t('challengeMeButton')}
+                                    </button>
+                                )}
                             </div>
     
                             {quizAnalysis && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('quizAnalysisTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{quizAnalysis}</p></div>)}
@@ -1541,6 +1633,12 @@
                 return (
                     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-red-100 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-red-900/30 p-4">
                         <div className="p-6 sm:p-8 bg-white dark:bg-gray-800 shadow-2xl rounded-xl max-w-lg mx-auto w-full" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+                            {factOfTheDay && (
+                                <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-700/30 text-yellow-700 dark:text-yellow-200 rounded-lg text-sm shadow-inner text-center">
+                                    <h4 className="font-semibold mb-1">{t('factOfTheDay')}</h4>
+                                    <p>{isGeneratingFact ? t('generatingFact') : factOfTheDay}</p>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center mb-6 text-sm sm:text-base">
                                 <span className="bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 font-medium px-4 py-2 rounded-full shadow-sm"> {t('questionLabel')} {currentIndex + 1} {t('from')} {selectedQuestions.length} </span>
                                 <span className="bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200 font-medium px-4 py-2 rounded-full shadow-sm"> {t('scoreLabel')} {score} </span>
@@ -1628,12 +1726,70 @@
               return <div className="flex items-center justify-center min-h-screen"><ImportQuestionsForm /></div>;
           };
 
+          // Challenge Question Modal
+            const ChallengeQuestionModal = React.memo(({
+                showModal, onClose, challengeQuestionData, onAnswer, 
+                feedbackData, currentAnswer, setAnswer, anyLLMLoading, t
+            }) => {
+                if (!showModal || !challengeQuestionData) return null;
+                const cqOptions = useMemo(() => shuffleArray(challengeQuestionData.options || []), [challengeQuestionData.options]);
+
+                return (
+                    <div className="fixed inset-0 bg-black bg-opacity-70 dark:bg-opacity-80 flex items-center justify-center p-4 z-50" onClick={onClose}>
+                        <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300 ease-in-out scale-95 opacity-0 animate-fadeInUp" 
+                             onClick={(e) => e.stopPropagation()} 
+                             style={{animationName: 'fadeInUpSlight', animationDuration: '0.3s', animationFillMode: 'forwards'}}
+                             dir={appLanguage === 'ar' ? 'rtl' : 'ltr'} >
+                            <h2 className="text-2xl font-bold text-yellow-500 dark:text-yellow-400 mb-6 text-center">{t('challengeQuestionTitle')}</h2>
+                            <p className="text-lg text-gray-700 dark:text-gray-200 mb-6 text-center">{challengeQuestionData.question}</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                                {cqOptions.map((option, idx) => (
+                                    <button 
+                                        key={idx}
+                                        onClick={() => setAnswer(option)}
+                                        disabled={!!feedbackData || anyLLMLoading}
+                                        className={`py-3 px-4 rounded-lg font-medium shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed
+                                            ${currentAnswer === option ? 'ring-2 ring-yellow-500 dark:ring-yellow-400' : ''}
+                                            ${feedbackData && option === challengeQuestionData.correctAnswer ? 'bg-green-500 text-white' : 
+                                              feedbackData && option === currentAnswer && !feedbackData.correct ? 'bg-red-500 text-white' :
+                                              'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100'
+                                            }`}
+                                    >
+                                        {option}
+                                    </button>
+                                ))}
+                            </div>
+                            {feedbackData && (
+                                <div className={`mt-4 p-3 rounded-lg text-center font-semibold text-lg ${feedbackData.correct ? 'bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-200' : 'bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-200'}`}>
+                                    {feedbackData.correct ? t('challengeCorrect') : `${t('challengeIncorrect')} ${feedbackData.correctAnswer}`}
+                                </div>
+                            )}
+                            <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+                                {!feedbackData && (
+                                    <button 
+                                        onClick={() => onAnswer(currentAnswer)} 
+                                        disabled={!currentAnswer || anyLLMLoading}
+                                        className={`w-full sm:w-auto py-2 px-6 rounded-lg font-semibold transition-colors ${!currentAnswer || anyLLMLoading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-yellow-500 hover:bg-yellow-600 text-white'}`}
+                                    >
+                                        {t('submitChallengeAnswer')}
+                                    </button>
+                                )}
+                                <button onClick={onClose} className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-6 rounded-lg transition-colors">
+                                    {t('closeChallenge')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            });
+
+
           return (
             <>
                 <button 
                     onClick={() => setShowSettings(true)} 
                     disabled={anyLLMLoading}
-                    className={`fixed top-4 ${appLanguage === 'ar' ? 'left-4' : 'right-4'} z-40 p-3 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-110 ${anyLLMLoading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}
+                    className={`fixed top-4 ${appLanguage === 'ar' ? 'left-4' : 'right-4'} z-40 p-3 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-110 ${anyLLMLoading ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 dark:text-gray-100'}`}
                     aria-label={t('settings')}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1655,10 +1811,21 @@
                         currentAppLanguage={appLanguage}
                         onSetAppLanguage={setAppLanguage}
                         onResetAllSettings={handleResetSettings}
-                        t={t} // Pass translation function
+                        t={t} 
                     />
                 }
                 <MainContent />
+                <ChallengeQuestionModal 
+                    showModal={showChallengeQuestionModal}
+                    onClose={() => { setShowChallengeQuestionModal(false); setChallengeQuestionFeedback(null); setChallengeQuestionAnswer(''); }}
+                    challengeQuestionData={challengeQuestion}
+                    onAnswer={handleChallengeAnswer}
+                    feedbackData={challengeQuestionFeedback}
+                    currentAnswer={challengeQuestionAnswer}
+                    setAnswer={setChallengeQuestionAnswer}
+                    anyLLMLoading={anyLLMLoading}
+                    t={t}
+                />
             </>
           );
         };
@@ -1667,18 +1834,6 @@
         root.render(<QuizApp />);
 
     </script>
-    <style>
-        @keyframes fadeInUpSlight { 
-            from {
-                opacity: 0;
-                transform: translateY(10px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    </style>
+    
     </body>
 </html>
