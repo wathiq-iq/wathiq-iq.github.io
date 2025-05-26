@@ -10,6 +10,18 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Make Firebase functions globally available for the React component
+        window.firebaseSDK = {
+            initializeApp,
+            getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+            getFirestore, doc, getDoc, setDoc, onSnapshot, setLogLevel
+        };
+    </script>
 
     <style>
         body { 
@@ -18,11 +30,10 @@
         }
         /* Ensure LTR for specific inputs regardless of page direction */
         input[type="url"].force-ltr, 
-        input[type="text"].force-ltr, 
-        input[type="number"].force-ltr,
+        input[type="number"].force-ltr, /* Text input for topic will now follow page direction */
         textarea.force-ltr { 
             direction: ltr; 
-            text-align: left; 
+            text-align: start; 
         }
         pre.dir-ltr { direction: ltr; text-align: left; }
 
@@ -68,8 +79,8 @@
             animation: spin 1s ease infinite;
         }
         .loading-spinner-dark { 
-             border: 3px solid rgba(96, 165, 250, 0.3); /* Tailwind blue-400 with opacity */
-             border-left-color: #60a5fa; /* Tailwind blue-400 */
+             border: 3px solid rgba(96, 165, 250, 0.3); 
+             border-left-color: #60a5fa; 
              width: 18px; 
              height: 18px;
         }
@@ -77,7 +88,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-         @keyframes fadeInUpSlight { 
+         @keyframes fadeInUpSlight {
             from {
                 opacity: 0;
                 transform: translateY(10px) scale(0.95);
@@ -92,10 +103,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-    <div id="root" class="max-w-2xl mx-auto my-8 px-4"></div> 
+    <div id="root" class="max-w-3xl mx-auto my-4 sm:my-8 px-2 sm:px-4"></div> 
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useCallback } = React; // Added useCallback
+        const { useState, useEffect, useMemo, useCallback } = React; 
 
         // Default questions data (in Arabic) 
         const defaultQuestions = [
@@ -599,6 +610,13 @@
           const [challengeQuestionAnswer, setChallengeQuestionAnswer] = useState('');
           const [challengeQuestionFeedback, setChallengeQuestionFeedback] = useState(null); 
 
+          // Firebase State
+          const [fbApp, setFbApp] = useState(null);
+          const [fbAuth, setFbAuth] = useState(null);
+          const [fbDb, setFbDb] = useState(null);
+          const [userId, setUserId] = useState(null);
+          const [settingsLoaded, setSettingsLoaded] = useState(false);
+
 
           // Translation function
           const t = useCallback((key, params = {}) => {
@@ -614,8 +632,13 @@
 
           // Update numQuestions if defaultQuizLength changes and no quiz is active
           useEffect(() => {
-            if (!quizStarted) {
-                setNumQuestions(defaultQuizLength > 0 ? defaultQuizLength : 1); 
+            if (!quizStarted) { // Only update if quiz is not active
+                const newNum = parseInt(defaultQuizLength);
+                if (!isNaN(newNum) && newNum > 0) {
+                    setNumQuestions(newNum);
+                } else {
+                    setNumQuestions(5); // Fallback default if setting is invalid
+                }
             }
           }, [defaultQuizLength, quizStarted]);
 
@@ -646,23 +669,26 @@
             document.title = t('appTitle');
           }, [theme, appLanguage, t]); 
 
+          // This useEffect is for adjusting numQuestions based on available questions and defaultQuizLength
+          // It should run when questions array changes OR defaultQuizLength changes, ONLY if quiz is not started
           useEffect(() => {
-             if (questions && questions.length > 0 && !quizStarted) { 
-               const maxQuestions = questions.length;
-               const targetNum = Number.isInteger(defaultQuizLength) && defaultQuizLength > 0 
-                                 ? Math.min(defaultQuizLength, maxQuestions) 
-                                 : Math.min(5, maxQuestions);
+             if (!quizStarted) {
+                 const maxQ = questions ? questions.length : 0;
+                 let newNumQ = parseInt(defaultQuizLength);
 
-               setNumQuestions(prevNum => {
-                   const currentNum = parseInt(prevNum);
-                   if (isNaN(currentNum) || currentNum <= 0) return targetNum;
-                   else if (currentNum > maxQuestions) return maxQuestions; 
-                   else return currentNum; 
-               });
-             } else if (!quizStarted) { 
-                setNumQuestions(defaultQuizLength > 0 ? defaultQuizLength : 1); 
+                 if (isNaN(newNumQ) || newNumQ <= 0) {
+                     newNumQ = 5; // Fallback default if setting is invalid
+                 }
+                 
+                 if (maxQ > 0) {
+                     newNumQ = Math.min(newNumQ, maxQ);
+                 } else {
+                     newNumQ = 0; // No questions available
+                 }
+                 setNumQuestions(newNumQ);
              }
           }, [questions, defaultQuizLength, quizStarted]);
+
 
           const activeCurrentQuestion = useMemo(() => {
             if (quizStarted && !showResult && selectedQuestions.length > currentIndex && currentIndex >= 0) {
@@ -678,14 +704,105 @@
             return [];
           }, [activeCurrentQuestion]);
 
+           // Firebase Initialization and Auth
+           useEffect(() => {
+            const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, setLogLevel } = window.firebaseSDK;
+            
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+            if (!firebaseConfig) {
+                console.error("Firebase config not found.");
+                setError("Firebase configuration is missing. Settings cannot be saved.");
+                setSettingsLoaded(true); // Allow app to proceed with defaults if Firebase fails
+                return;
+            }
 
-          // --- Utility and Core Functions ---
-          const showNotification = useCallback((message, type = 'info', duration = 3000) => {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+                setLogLevel('debug'); 
+
+                setFbApp(app);
+                setFbAuth(auth);
+                setFbDb(db);
+
+                const unsubscribe = onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        setUserId(user.uid);
+                    } else {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            try {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } catch (error) {
+                                console.error("Error signing in with custom token:", error);
+                                await signInAnonymously(auth);
+                            }
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+                return () => unsubscribe();
+            } catch (e) {
+                console.error("Firebase initialization error:", e);
+                setError("Failed to initialize Firebase. Settings cannot be saved.");
+                setSettingsLoaded(true); // Allow app to proceed with defaults
+            }
+        }, []);
+
+        // Load settings from Firestore
+        useEffect(() => {
+            if (fbDb && userId && !settingsLoaded) { // Only load once
+                const { doc, getDoc } = window.firebaseSDK;
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const settingsRef = doc(fbDb, `artifacts/${appId}/users/${userId}/userSettings`, "appPreferences");
+                
+                getDoc(settingsRef).then((docSnap) => {
+                    if (docSnap.exists()) {
+                        const loadedSettings = docSnap.data();
+                        setTheme(loadedSettings.theme || 'light');
+                        setDefaultAiQuestions(loadedSettings.defaultAiQuestions || 5);
+                        setDefaultQuizLength(loadedSettings.defaultQuizLength || 5);
+                        setSoundEffects(loadedSettings.soundEffects === undefined ? true : loadedSettings.soundEffects);
+                        setAppLanguage(loadedSettings.appLanguage || 'ar');
+                        console.log("Settings loaded from Firestore:", loadedSettings);
+                    } else {
+                        console.log("No settings found in Firestore, using defaults.");
+                        // Save defaults if no settings found, so they are there next time
+                        saveSettingsToFirestore({ theme, defaultAiQuestions, defaultQuizLength, soundEffects, appLanguage });
+                    }
+                    setSettingsLoaded(true); 
+                }).catch(error => {
+                    console.error("Error loading settings from Firestore:", error);
+                    setError("Failed to load settings. Using defaults.");
+                    setSettingsLoaded(true); 
+                });
+            }
+        }, [fbDb, userId, settingsLoaded, saveSettingsToFirestore, theme, defaultAiQuestions, defaultQuizLength, soundEffects, appLanguage]); // Added dependencies
+
+        // Save settings to Firestore
+        const saveSettingsToFirestore = useCallback(async (settingsToSave) => {
+            if (fbDb && userId) {
+                const { doc, setDoc } = window.firebaseSDK;
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const settingsRef = doc(fbDb, `artifacts/${appId}/users/${userId}/userSettings`, "appPreferences");
+                try {
+                    await setDoc(settingsRef, settingsToSave, { merge: true });
+                    console.log("Settings saved to Firestore:", settingsToSave);
+                } catch (error) {
+                    console.error("Error saving settings to Firestore:", error);
+                    showNotification(t('errorSavingSettings'), 'error'); 
+                }
+            }
+        }, [fbDb, userId, t, showNotification]);
+
+        // --- Utility and Core Functions ---
+        const showNotification = useCallback((message, type = 'info', duration = 3000) => {
             setNotification({ message, type });
             setTimeout(() => { setNotification({ message: '', type: '' }); }, duration);
-          }, []);
+        }, []);
 
-          const validateQuestions = useCallback((data) => {
+        const validateQuestions = useCallback((data) => {
              if (!Array.isArray(data)) throw new Error(t('errorInvalidDataArray'));
              if (data.length === 0) throw new Error(t('errorNoQuestionsReceived'));
              const invalidQuestions = data.filter(q => !q.question || !Array.isArray(q.options) || q.options.length < 2 || !q.correctAnswer || !q.options.includes(q.correctAnswer));
@@ -806,7 +923,7 @@
                 contents: chatHistory,
                 generationConfig: config
             };
-            const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; 
+            const apiKey = ""; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
             const response = await fetch(apiUrl, {
@@ -1273,16 +1390,56 @@
                                 isGeneratingMisconceptions || isGeneratingAnalogy || isGeneratingFlashcard || 
                                 isGeneratingStudyPlan || isGeneratingWeaknessSummary || isGeneratingFact || isGeneratingChallengeQuestion;
 
-          const toggleTheme = useCallback(() => setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light'), []);
+          const toggleTheme = useCallback(() => {
+            const newTheme = theme === 'light' ? 'dark' : 'light';
+            setTheme(newTheme);
+            saveSettingsToFirestore({ 
+                theme: newTheme, defaultAiQuestions, defaultQuizLength, soundEffects, appLanguage 
+            });
+          }, [theme, defaultAiQuestions, defaultQuizLength, soundEffects, appLanguage, saveSettingsToFirestore]);
           
+          const handleDefaultAiQuestionsChange = useCallback((value) => {
+            const newCount = parseInt(value) || 1;
+            setDefaultAiQuestions(newCount);
+            saveSettingsToFirestore({ theme, defaultAiQuestions: newCount, defaultQuizLength, soundEffects, appLanguage });
+          }, [theme, defaultQuizLength, soundEffects, appLanguage, saveSettingsToFirestore]);
+
+          const handleDefaultQuizLengthChange = useCallback((value) => {
+            const newLength = parseInt(value) || 1;
+            setDefaultQuizLength(newLength);
+            if (!quizStarted) setNumQuestions(newLength); 
+            saveSettingsToFirestore({ theme, defaultAiQuestions, defaultQuizLength: newLength, soundEffects, appLanguage });
+          }, [theme, defaultAiQuestions, soundEffects, appLanguage, quizStarted, saveSettingsToFirestore]);
+        
+          const handleToggleSoundEffects = useCallback(() => {
+            const newSoundEffects = !soundEffects;
+            setSoundEffects(newSoundEffects);
+            saveSettingsToFirestore({ theme, defaultAiQuestions, defaultQuizLength, soundEffects: newSoundEffects, appLanguage });
+          }, [theme, defaultAiQuestions, defaultQuizLength, soundEffects, appLanguage, saveSettingsToFirestore]);
+
+          const handleAppLanguageChange = useCallback((value) => {
+            setAppLanguage(value);
+            saveSettingsToFirestore({ theme, defaultAiQuestions, defaultQuizLength, soundEffects, appLanguage: value });
+          }, [theme, defaultAiQuestions, defaultQuizLength, soundEffects, saveSettingsToFirestore]);
+
+
           const handleResetSettings = useCallback(() => {
-            setTheme('light');
-            setDefaultAiQuestions(5);
-            setDefaultQuizLength(5);
-            setSoundEffects(true);
-            setAppLanguage('ar');
+            const defaultSettings = {
+                theme: 'light',
+                defaultAiQuestions: 5,
+                defaultQuizLength: 5,
+                soundEffects: true,
+                appLanguage: 'ar'
+            };
+            setTheme(defaultSettings.theme);
+            setDefaultAiQuestions(defaultSettings.defaultAiQuestions);
+            setDefaultQuizLength(defaultSettings.defaultQuizLength);
+            setSoundEffects(defaultSettings.soundEffects);
+            setAppLanguage(defaultSettings.appLanguage);
+            if (!quizStarted) setNumQuestions(defaultSettings.defaultQuizLength);
+            saveSettingsToFirestore(defaultSettings);
             showNotification(t('settingsResetNotification'), "info");
-          }, [t, showNotification]);
+          }, [t, showNotification, saveSettingsToFirestore, quizStarted]);
 
 
           // --- Render Components ---
@@ -1397,7 +1554,8 @@
               <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg shadow-inner">
                 <h3 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">{t('generateWithAI')}</h3>
                 <div className="flex flex-col sm:flex-row gap-2 mb-3">
-                  <input type="text" value={llmTopic} onChange={(e) => setLlmTopic(e.target.value)} placeholder={t('enterTopicPlaceholder')} className={`flex-grow border-2 border-purple-300 dark:border-purple-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors force-ltr ${anyLLMLoading ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'}`} aria-label="LLM Topic Input" disabled={anyLLMLoading} />
+                  {/* Removed force-ltr from this input to allow natural typing based on appLanguage */}
+                  <input type="text" value={llmTopic} onChange={(e) => setLlmTopic(e.target.value)} placeholder={t('enterTopicPlaceholder')} className={`flex-grow border-2 border-purple-300 dark:border-purple-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${anyLLMLoading ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'}`} aria-label="LLM Topic Input" disabled={anyLLMLoading} />
                   <button onClick={generateQuestionsFromLLM} disabled={anyLLMLoading || !llmTopic.trim()} className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 ease-in-out whitespace-nowrap flex items-center justify-center gap-2 ${anyLLMLoading || !llmTopic.trim() ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'}`}>
                     {isGeneratingQuestions ? <><span className="loading-spinner mr-2"></span><span>{t('generatingButton')}</span></> : t('generateQuestionsButton')}
                   </button>
@@ -1430,11 +1588,11 @@
                         </button>
                     </div>
                 )}
-                {studyMaterial && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('studyMaterialTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{studyMaterial}</p></div>)}
-                {quizChallenge && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('quizChallengeTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{quizChallenge}</p></div>)}
-                {relatedTopics.length > 0 && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('relatedTopicsTitle')}</h4><div className="flex flex-wrap gap-2">{relatedTopics.map((topic, index) => (<span key={index} onClick={() => { setLlmTopic(topic); setRelatedTopics([]); setCommonMisconceptions(''); }} className="cursor-pointer bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 px-3 py-1 rounded-full text-xs transition-colors shadow-sm text-gray-700 dark:text-gray-200">{topic}</span>))}</div></div>)}
-                {openEndedQuestions && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('openEndedQuestionsTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{openEndedQuestions}</p></div>)}
-                {commonMisconceptions && (<div className="llm-output-card"><h4 className="text-orange-700 dark:text-orange-300">{t('commonMisconceptionsTitle')}</h4><p className="text-orange-600 dark:text-orange-200 whitespace-pre-wrap">{commonMisconceptions}</p></div>)}
+                {studyMaterial && (<div className="p-3 mt-4 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm shadow"><h4 className="font-semibold mb-2">{t('studyMaterialTitle')}</h4><p className="whitespace-pre-wrap">{studyMaterial}</p></div>)}
+                {quizChallenge && (<div className="p-3 mt-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 rounded-lg text-sm shadow"><h4 className="font-semibold mb-2">{t('quizChallengeTitle')}</h4><p className="whitespace-pre-wrap">{quizChallenge}</p></div>)}
+                {relatedTopics.length > 0 && (<div className="p-3 mt-4 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm shadow"><h4 className="font-semibold mb-2">{t('relatedTopicsTitle')}</h4><div className="flex flex-wrap gap-2">{relatedTopics.map((topic, index) => (<span key={index} onClick={() => { setLlmTopic(topic); setRelatedTopics([]); setCommonMisconceptions(''); }} className="cursor-pointer bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 px-3 py-1 rounded-full text-xs transition-colors shadow-sm text-gray-700 dark:text-gray-200">{topic}</span>))}</div></div>)}
+                {openEndedQuestions && (<div className="p-3 mt-4 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded-lg text-sm shadow"><h4 className="font-semibold mb-2">{t('openEndedQuestionsTitle')}</h4><p className="whitespace-pre-wrap">{openEndedQuestions}</p></div>)}
+                {commonMisconceptions && (<div className="p-3 mt-4 bg-orange-50 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded-lg text-sm shadow"><h4 className="font-semibold mb-2">{t('commonMisconceptionsTitle')}</h4><p className="text-orange-600 dark:text-orange-200 whitespace-pre-wrap">{commonMisconceptions}</p></div>)}
               </div>
               
 
@@ -1549,11 +1707,11 @@
                             </div>
                             <div className="mt-8 pt-6 border-t border-gray-300/70 dark:border-gray-600">
                                 <h3 className="text-xl sm:text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4 text-center">{t('answerDetails')}</h3>
-                                <ul className="results-list list-none p-0 text-sm md:text-base space-y-3">
+                                <ul className="list-none p-0 text-sm md:text-base space-y-3"> {/* Removed .results-list for direct Tailwind */}
                                     {selectedQuestions.map((question, index) => {
                                         const userAnswer = userAnswers[index]; const isCorrect = userAnswer === question.correctAnswer;
                                         return (
-                                            <li key={index} className={`p-4 rounded-lg shadow-md ${isCorrect ? 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'} transition-colors duration-300`}>
+                                            <li key={index} className={`p-4 rounded-lg shadow-md ${isCorrect ? 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'} transition-colors duration-300 border-b border-gray-200 dark:border-gray-700 last:border-b-0`}>
                                                 <p className="font-semibold text-gray-800 dark:text-gray-100 mb-2">{index + 1}. {question.question}</p>
                                                 <p className="text-gray-700 dark:text-gray-300 mb-1"><span className="font-medium">{t('yourAnswer')} </span><span className={`user-answer-text ${isCorrect ? 'text-green-700 dark:text-green-300 font-semibold' : 'text-red-700 dark:text-red-300 font-semibold'}`}>{userAnswer !== undefined ? userAnswer : <span className="text-gray-500 dark:text-gray-400 italic">{t('notAnswered')}</span>}</span>{isCorrect ? <span className="correct-answer-indicator ms-2">✔️</span> : <span className="incorrect-answer-indicator ms-2">❌</span>}</p>
                                                 {!isCorrect && (<p className="text-gray-700 dark:text-gray-300"><span className="font-medium">{t('correctAnswerLabel')} </span><span className="correct-answer-text font-semibold">{question.correctAnswer}</span></p>)}
@@ -1595,14 +1753,14 @@
                                 )}
                             </div>
     
-                            {quizAnalysis && (<div className="llm-output-card"><h4 className="text-gray-700 dark:text-gray-200">{t('quizAnalysisTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{quizAnalysis}</p></div>)}
-                            {quizChallenge && (<div className="llm-output-card"><h4 className="text-indigo-700 dark:text-indigo-300">{t('quizChallengeTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{quizChallenge}</p></div>)}
-                            {commonMisconceptions && (<div className="llm-output-card"><h4 className="text-orange-700 dark:text-orange-300">{t('commonMisconceptionsTitle')}</h4><p className="text-orange-600 dark:text-orange-200 whitespace-pre-wrap">{commonMisconceptions}</p></div>)}
-                            {studyPlan && (<div className="llm-output-card"><h4 className="text-emerald-700 dark:text-emerald-300">{t('suggestedStudyPlanTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{studyPlan}</p></div>)}
-                            {weaknessSummary && (<div className="llm-output-card"><h4 className="text-rose-700 dark:text-rose-300">{t('weaknessSummaryTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{weaknessSummary}</p></div>)}
+                            {quizAnalysis && (<div className="p-3 mt-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow"><h4 className="font-semibold mb-2 text-gray-700 dark:text-gray-200">{t('quizAnalysisTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{quizAnalysis}</p></div>)}
+                            {quizChallenge && (<div className="p-3 mt-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg shadow"><h4 className="font-semibold mb-2 text-indigo-700 dark:text-indigo-300">{t('quizChallengeTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{quizChallenge}</p></div>)}
+                            {commonMisconceptions && (<div className="p-3 mt-4 bg-orange-50 dark:bg-orange-900/30 rounded-lg shadow"><h4 className="font-semibold mb-2 text-orange-700 dark:text-orange-300">{t('commonMisconceptionsTitle')}</h4><p className="text-orange-600 dark:text-orange-200 whitespace-pre-wrap">{commonMisconceptions}</p></div>)}
+                            {studyPlan && (<div className="p-3 mt-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg shadow"><h4 className="font-semibold mb-2 text-emerald-700 dark:text-emerald-300">{t('suggestedStudyPlanTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{studyPlan}</p></div>)}
+                            {weaknessSummary && (<div className="p-3 mt-4 bg-rose-50 dark:bg-rose-900/30 rounded-lg shadow"><h4 className="font-semibold mb-2 text-rose-700 dark:text-rose-300">{t('weaknessSummaryTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{weaknessSummary}</p></div>)}
                             {reviewQuestions.length > 0 && (
-                                <div className="llm-output-card">
-                                    <h4 className="text-yellow-700 dark:text-yellow-300">{t('reviewQuestionsTitle')}</h4>
+                                <div className="p-3 mt-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow">
+                                    <h4 className="font-semibold mb-2 text-yellow-700 dark:text-yellow-300">{t('reviewQuestionsTitle')}</h4>
                                     <ul className="list-none p-0 space-y-3">
                                         {reviewQuestions.map((q, index) => (
                                             <li key={index} className="mb-3 pb-3 border-b border-yellow-200 dark:border-yellow-700 last:border-b-0 last:pb-0">
@@ -1616,8 +1774,8 @@
                                     <div className="mt-4 text-center"><button onClick={() => { setQuestions(reviewQuestions); setSourceType('llm_review'); setNumQuestions(reviewQuestions.length); startQuiz(); }} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg">{t('startReviewQuizButton')}</button></div>
                                 </div>
                             )}
-                            {keyConcepts && (<div className="llm-output-card"><h4 className="text-lime-700 dark:text-lime-300">{t('keyConceptsTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{keyConcepts}</p></div>)}
-                            {personalizedStudyTips && (<div className="llm-output-card"><h4 className="text-sky-700 dark:text-sky-300">{t('personalizedStudyTipsTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{personalizedStudyTips}</p></div>)}
+                            {keyConcepts && (<div className="p-3 mt-4 bg-lime-50 dark:bg-lime-900/30 rounded-lg shadow"><h4 className="font-semibold mb-2 text-lime-700 dark:text-lime-300">{t('keyConceptsTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{keyConcepts}</p></div>)}
+                            {personalizedStudyTips && (<div className="p-3 mt-4 bg-sky-50 dark:bg-sky-900/30 rounded-lg shadow"><h4 className="font-semibold mb-2 text-sky-700 dark:text-sky-300">{t('personalizedStudyTipsTitle')}</h4><p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{personalizedStudyTips}</p></div>)}
                             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
                                 <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-xl" onClick={resetQuiz}> {t('newQuizButton')} </button>
                                 <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-xl" onClick={() => { clearAllLLMOutputs(); setUserAnswers({}); setCurrentIndex(0); setScore(0); setShowResult(false); setFeedback(null); setIsNextVisible(false); setShowCancelConfirm(false); }}> {t('retrySameQuizButton')} </button>
@@ -1643,7 +1801,7 @@
                                 <span className="bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 font-medium px-4 py-2 rounded-full shadow-sm"> {t('questionLabel')} {currentIndex + 1} {t('from')} {selectedQuestions.length} </span>
                                 <span className="bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200 font-medium px-4 py-2 rounded-full shadow-sm"> {t('scoreLabel')} {score} </span>
                             </div>
-                            <h2 className="text-xl md:text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-100 text-right" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}> {activeCurrentQuestion.question} </h2>
+                            <h2 className={`text-xl md:text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-100 ${appLanguage === 'ar' ? 'text-right' : 'text-left'}`} dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}> {activeCurrentQuestion.question} </h2>
                             
                             {!feedback && !hint && ( 
                                  <div className="mb-4 text-center">
@@ -1653,13 +1811,10 @@
                                 </div>
                             )}
                             {hint && !feedback && ( 
-                                <div className="llm-output-card bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-200">
-                                    <h4 className="font-semibold mb-1">{t('hintTitle')}</h4>
-                                    <p>{hint}</p>
-                                </div>
+                                <div className="p-3 mt-4 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-200 rounded-lg text-sm shadow"><h4 className="font-semibold mb-1">{t('hintTitle')}</h4><p>{hint}</p></div>
                             )}
     
-                            <div className="grid grid-cols-1 gap-4 mb-6 text-right" dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}>
+                            <div className={`grid grid-cols-1 gap-4 mb-6 ${appLanguage === 'ar' ? 'text-right' : 'text-left'}`} dir={appLanguage === 'ar' ? 'rtl' : 'ltr'}>
                                 {currentOptions.map((option, idx) => {
                                     let buttonClass = 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white option-button';
                                     if (feedback) {
@@ -1685,13 +1840,10 @@
                                 </div>
                             )}
                             {flashcard && (
-                                <div className="llm-output-card bg-lime-50 dark:bg-lime-900/30 text-lime-800 dark:text-lime-200">
-                                    <h4 className="font-semibold mb-2 text-base">{t('flashcardTitle')}</h4>
-                                    <pre className="whitespace-pre-wrap text-sm">{flashcard}</pre>
-                                </div>
+                                <div className="p-3 mt-4 bg-lime-50 dark:bg-lime-900/30 text-lime-800 dark:text-lime-200 rounded-lg text-sm shadow"><h4 className="font-semibold mb-2 text-base">{t('flashcardTitle')}</h4><pre className="whitespace-pre-wrap text-sm">{flashcard}</pre></div>
                             )}
                             {explanation && (
-                                <div className="llm-output-card bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
+                                <div className="p-3 mt-4 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-lg text-sm shadow">
                                     <h4 className="font-semibold mb-2 text-base">{t('explanationTitle')}</h4>
                                     <p className="whitespace-pre-wrap">{explanation}</p>
                                     <div className="mt-3 flex flex-col sm:flex-row justify-start items-center gap-2 flex-wrap">
@@ -1710,10 +1862,10 @@
                                     </div>
                                 </div>
                             )}
-                            {analogy && (<div className="llm-output-card bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200"><h4 className="font-semibold mb-1">{t('analogyTitle')}</h4><p className="whitespace-pre-wrap">{analogy}</p></div>)}
-                            {eli5Explanation && (<div className="llm-output-card bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-200"><h4 className="font-semibold mb-1">{t('simplifiedExplanationTitle')}</h4><p className="whitespace-pre-wrap">{eli5Explanation}</p></div>)}
-                            {realWorldApplications && (<div className="llm-output-card bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-200"><h4 className="font-semibold mb-1">{t('realWorldExamplesTitle')}</h4><p className="whitespace-pre-wrap">{realWorldApplications}</p></div>)}
-                            {followUpQuestion && (<div className="llm-output-card bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200"><h4 className="font-semibold mb-1">{t('followUpQuestionTitle')}</h4><p className="whitespace-pre-wrap">{followUpQuestion}</p></div>)}
+                            {analogy && (<div className="p-3 mt-4 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 rounded-lg text-sm shadow-inner"><h4 className="font-semibold mb-1">{t('analogyTitle')}</h4><p className="whitespace-pre-wrap">{analogy}</p></div>)}
+                            {eli5Explanation && (<div className="p-3 mt-4 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-200 rounded-lg text-sm shadow-inner"><h4 className="font-semibold mb-1">{t('simplifiedExplanationTitle')}</h4><p className="whitespace-pre-wrap">{eli5Explanation}</p></div>)}
+                            {realWorldApplications && (<div className="p-3 mt-4 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-200 rounded-lg text-sm shadow-inner"><h4 className="font-semibold mb-1">{t('realWorldExamplesTitle')}</h4><p className="whitespace-pre-wrap">{realWorldApplications}</p></div>)}
+                            {followUpQuestion && (<div className="p-3 mt-4 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-lg text-sm shadow-inner"><h4 className="font-semibold mb-1">{t('followUpQuestionTitle')}</h4><p className="whitespace-pre-wrap">{followUpQuestion}</p></div>)}
                             
                             <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
                                 {!showCancelConfirm ? ( <button className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 text-sm underline disabled:text-gray-300 dark:disabled:text-gray-600 disabled:no-underline disabled:cursor-not-allowed transition-colors" onClick={handleCancelRequest} disabled={showResult || !!feedback || anyLLMLoading}> {t('cancelQuizButton')} </button> ) : ( <div className="flex gap-2 items-center"><p className="text-sm text-red-600 dark:text-red-400 font-medium">{t('areYouSure')}</p><button onClick={confirmCancel} className="text-xs bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition-colors shadow">{t('yes')}</button><button onClick={abortCancel} className="text-xs bg-gray-300 dark:bg-gray-600 px-3 py-1 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors shadow">{t('no')}</button></div> )}
@@ -1803,13 +1955,13 @@
                         onToggleTheme={toggleTheme} 
                         onClose={() => setShowSettings(false)}
                         currentDefaultAiQuestions={defaultAiQuestions}
-                        onSetDefaultAiQuestions={setDefaultAiQuestions}
+                        onSetDefaultAiQuestions={handleDefaultAiQuestionsChange}
                         currentDefaultQuizLength={defaultQuizLength}
-                        onSetDefaultQuizLength={setDefaultQuizLength}
+                        onSetDefaultQuizLength={handleDefaultQuizLengthChange}
                         currentSoundEffects={soundEffects}
-                        onToggleSoundEffects={() => setSoundEffects(prev => !prev)}
+                        onToggleSoundEffects={handleToggleSoundEffects}
                         currentAppLanguage={appLanguage}
-                        onSetAppLanguage={setAppLanguage}
+                        onSetAppLanguage={handleAppLanguageChange}
                         onResetAllSettings={handleResetSettings}
                         t={t} 
                     />
