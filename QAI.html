@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة أسئلة الذكاء الاصطناعي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+
+    <link rel="manifest" href="manifest.json">
+
+    <meta name="theme-color" content="#0369a1"> <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .option-button {
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        .option-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        .correct {
+            background-color: #22c55e !important;
+            color: white !important;
+            border-color: #16a34a !important;
+        }
+        .incorrect {
+            background-color: #ef4444 !important;
+            color: white !important;
+            border-color: #dc2626 !important;
+        }
+        .disabled-button {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .explanation-box {
+            background-color: #e0f2fe;
+            border: 1px solid #7dd3fc;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: #075985;
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield; /* Firefox */
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen p-2 sm:p-4">
+    <div class="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-2xl">
+        <header class="mb-4 sm:mb-6 text-center">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-sky-700">لعبة أسئلة الذكاء الاصطناعي</h1>
+        </header>
+
+        <div id="score-container" class="mb-2 text-base sm:text-lg font-semibold text-slate-700 text-center">
+            النقاط: <span id="score" class="text-sky-600">0</span>
+        </div>
+
+        <div id="round-progress-container" class="mb-3 sm:mb-4 text-sm sm:text-md text-slate-600 text-center hidden">
+            </div>
+
+        <div id="question-container" class="mb-4 sm:mb-6 p-3 sm:p-5 bg-sky-50 rounded-lg shadow min-h-[80px] sm:min-h-[100px] flex items-center justify-center">
+            <p id="question-text" class="text-lg sm:text-xl text-slate-800 text-center">حدد عدد الأسئلة واضغط "ابدأ الجولة" للبدء!</p>
+        </div>
+
+        <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
+            </div>
+
+        <div id="feedback-container" class="mb-2 text-center min-h-[20px] sm:min-h-[24px]">
+            <p id="feedback-text" class="text-md sm:text-lg font-medium"></p>
+        </div>
+
+        <div id="explanation-loader-container" class="text-center mb-2 hidden">
+            <div class="loader"></div>
+            <p class="text-slate-600 text-xs sm:text-sm">جاري جلب الشرح...</p>
+        </div>
+        <div id="explanation-container" class="mb-3 sm:mb-4 min-h-[18px] sm:min-h-[20px]">
+            </div>
+
+        <button id="explain-answer-button" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50 transition duration-150 ease-in-out mb-2 sm:mb-3 hidden">
+            ✨ اشرح الإجابة
+        </button>
+
+        <div id="round-setup-container" class="mb-3 sm:mb-4 p-3 sm:p-4 border border-slate-200 rounded-lg bg-slate-50">
+            <div class="mb-2 sm:mb-3">
+                <label for="num-questions-input" class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">🎯 عدد الأسئلة في الجولة:</label>
+                <input type="number" id="num-questions-input" name="num-questions-input" min="1" max="50" value="5" class="w-20 sm:w-24 p-1.5 sm:p-2 border border-slate-300 rounded-lg focus:ring-sky-500 focus:border-sky-500 text-center">
+            </div>
+            <div>
+                <label for="topic-input" class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">✨ اقترح موضوعًا لأسئلة هذه الجولة (اختياري):</label>
+                <input type="text" id="topic-input" name="topic-input" class="w-full p-1.5 sm:p-2 border border-slate-300 rounded-lg focus:ring-sky-500 focus:border-sky-500" placeholder="مثال: تاريخ الفضاء، عواصم الدول">
+            </div>
+        </div>
+        
+        <div id="question-loader-container" class="text-center mb-3 sm:mb-4 hidden">
+            <div class="loader"></div>
+            <p class="text-slate-600 text-sm">جاري إنشاء السؤال...</p>
+        </div>
+
+        <button id="new-question-button" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50 transition duration-150 ease-in-out mb-2 sm:mb-3">
+            ابدأ الجولة
+        </button>
+        <button id="reset-game-button" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-opacity-50 transition duration-150 ease-in-out">
+            🔄 إعادة البدء
+        </button>
+    </div>
+
+    <script>
+        // DOM Elements
+        const questionTextElement = document.getElementById('question-text');
+        const optionsContainerElement = document.getElementById('options-container');
+        const feedbackTextElement = document.getElementById('feedback-text');
+        const newQuestionButton = document.getElementById('new-question-button');
+        const scoreElement = document.getElementById('score');
+        const questionLoaderContainer = document.getElementById('question-loader-container');
+        const explainAnswerButton = document.getElementById('explain-answer-button');
+        const explanationContainer = document.getElementById('explanation-container');
+        const explanationLoaderContainer = document.getElementById('explanation-loader-container');
+        const topicInput = document.getElementById('topic-input');
+        const numQuestionsInput = document.getElementById('num-questions-input');
+        const roundProgressContainer = document.getElementById('round-progress-container');
+        const roundSetupContainer = document.getElementById('round-setup-container');
+        const resetGameButton = document.getElementById('reset-game-button');
+
+
+        let currentCorrectAnswerIndex = null;
+        let currentQuestionText = "";
+        let currentCorrectOptionText = "";
+        let score = 0;
+        let questionsAttemptedThisSession = 0; 
+
+        let totalQuestionsInRound = 0;
+        let currentQuestionNumberInRound = 0;
+        let isRoundActive = false;
+        let currentRoundTopic = ""; 
+
+        // --- Gemini API Configuration ---
+        const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; 
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        const questionGenerationConfig = {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: "OBJECT",
+                properties: {
+                    question: { type: "STRING", description: "The question in Arabic" },
+                    options: {
+                        type: "ARRAY",
+                        description: "Four answer options in Arabic",
+                        items: { type: "STRING" },
+                        minItems: 4,
+                        maxItems: 4
+                    },
+                    correctAnswerIndex: { type: "INTEGER", description: "The index of the correct answer (0-3)" , minimum: 0, maximum: 3 }
+                },
+                required: ["question", "options", "correctAnswerIndex"]
+            }
+        };
+        
+        function startNewRound() {
+            const numQuestions = parseInt(numQuestionsInput.value);
+            if (isNaN(numQuestions) || numQuestions < 1 || numQuestions > 50) {
+                feedbackTextElement.textContent = "الرجاء إدخال عدد أسئلة صالح بين 1 و 50.";
+                feedbackTextElement.classList.add('text-red-500');
+                return;
+            }
+            feedbackTextElement.textContent = ""; 
+            feedbackTextElement.classList.remove('text-red-500');
+
+            totalQuestionsInRound = numQuestions;
+            currentQuestionNumberInRound = 0;
+            score = 0; 
+            scoreElement.textContent = score;
+            isRoundActive = true;
+            currentRoundTopic = topicInput.value.trim(); 
+
+            numQuestionsInput.disabled = true;
+            topicInput.disabled = true; 
+            newQuestionButton.textContent = "السؤال التالي";
+            roundProgressContainer.classList.remove('hidden');
+            questionTextElement.textContent = "جاري تحضير السؤال الأول...";
+            optionsContainerElement.innerHTML = ''; 
+            explainAnswerButton.classList.add('hidden');
+            explanationContainer.innerHTML = '';
+
+            fetchNewQuestion();
+        }
+
+        function endRound() {
+            isRoundActive = false;
+            questionTextElement.textContent = `انتهت الجولة! نتيجتك النهائية: ${score} من ${totalQuestionsInRound}`;
+            optionsContainerElement.innerHTML = '';
+            feedbackTextElement.textContent = 'أحسنت!';
+            feedbackTextElement.classList.remove('text-red-500', 'text-green-500');
+            feedbackTextElement.classList.add('text-sky-600');
+
+            explainAnswerButton.classList.add('hidden');
+            explanationContainer.innerHTML = '';
+            newQuestionButton.textContent = "ابدأ جولة جديدة";
+            numQuestionsInput.disabled = false;
+            topicInput.disabled = false; 
+            roundProgressContainer.classList.add('hidden');
+            currentQuestionNumberInRound = 0; 
+        }
+
+
+        async function fetchNewQuestion() {
+            if (!isRoundActive) { 
+                 initializeApp(); 
+                 return;
+            }
+
+            if (currentQuestionNumberInRound >= totalQuestionsInRound) {
+                endRound();
+                return;
+            }
+            
+            currentQuestionNumberInRound++;
+            roundProgressContainer.textContent = `السؤال ${currentQuestionNumberInRound} من ${totalQuestionsInRound}`;
+            
+            questionsAttemptedThisSession = 0; 
+
+            newQuestionButton.disabled = true;
+            newQuestionButton.classList.add('disabled-button');
+            questionLoaderContainer.classList.remove('hidden');
+            questionTextElement.textContent = ''; 
+            optionsContainerElement.innerHTML = '';
+            feedbackTextElement.textContent = '';
+            explainAnswerButton.classList.add('hidden');
+            explanationContainer.innerHTML = '';
+            explanationLoaderContainer.classList.add('hidden');
+
+            const topicForThisQuestion = currentRoundTopic;
+
+            try {
+                let prompt;
+                if (topicForThisQuestion) { 
+                    prompt = `Generate a single quiz question about the topic: "${topicForThisQuestion}". The question and its four answer options must be in Classical Arabic (اللغة العربية الفصحى). Only one option should be correct. Provide diverse and clear options. Specify the index of the correct answer (0-3). Ensure the question is relevant to the given topic. If the topic is too general or unclear, try to make a specific question within that general area if possible.`;
+                }
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: questionGenerationConfig
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    console.error("API Error Response (Question):", errorBody);
+                    throw new Error(`Network or API error when fetching question: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0 &&
+                    result.candidates[0].content.parts[0].text) {
+
+                    const quizDataText = result.candidates[0].content.parts[0].text;
+                    const quizData = JSON.parse(quizDataText); 
+
+                    if (quizData.question && quizData.options && quizData.options.length === 4 && quizData.correctAnswerIndex !== undefined) {
+                        displayQuestion(quizData);
+                        questionsAttemptedThisSession = 0; 
+                    } else {
+                        console.error("Invalid data structure from API (Question):", quizData);
+                        throw new Error("Received invalid question data from the API.");
+                    }
+                } else {
+                    console.error("Unexpected API response structure (Question):", result);
+                     if (result.promptFeedback && result.promptFeedback.blockReason) {
+                         throw new Error(`Question request blocked: ${result.promptFeedback.blockReason}. ${result.promptFeedback.blockReasonMessage || ''}`);
+                    }
+                    throw new Error("No valid question content found in the API response.");
+                }
+
+            } catch (error) {
+                console.error('Error fetching question:', error);
+                questionTextElement.textContent = 'عذرًا، حدث خطأ أثناء جلب السؤال.';
+                feedbackTextElement.textContent = `خطأ: ${error.message}`;
+                newQuestionButton.disabled = false; 
+                newQuestionButton.classList.remove('disabled-button');
+                if(currentQuestionNumberInRound >= totalQuestionsInRound){
+                    newQuestionButton.textContent = "عرض النتيجة"; 
+                } else {
+                    newQuestionButton.textContent = "السؤال التالي (محاولة أخرى)";
+                }
+            } finally {
+                questionLoaderContainer.classList.add('hidden');
+            }
+        }
+
+        function displayQuestion(data) {
+            currentQuestionText = data.question;
+            questionTextElement.textContent = currentQuestionText;
+            currentCorrectAnswerIndex = data.correctAnswerIndex;
+            currentCorrectOptionText = data.options[data.correctAnswerIndex];
+            optionsContainerElement.innerHTML = ''; 
+
+            data.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-button', 'w-full', 'p-2', 'sm:p-3', 'bg-slate-200', 'hover:bg-slate-300', 'text-slate-700', 'font-semibold', 'rounded-lg', 'border-2', 'border-slate-300', 'focus:outline-none', 'focus:ring-2', 'focus:ring-sky-500', 'text-sm', 'sm:text-base');
+                button.dataset.index = index;
+                button.addEventListener('click', handleOptionClick);
+                optionsContainerElement.appendChild(button);
+            });
+            feedbackTextElement.textContent = '';
+            newQuestionButton.disabled = true; 
+            newQuestionButton.classList.add('disabled-button'); 
+            explainAnswerButton.classList.add('hidden'); 
+            explanationContainer.innerHTML = ''; 
+        }
+
+        function handleOptionClick(event) {
+            const selectedOptionButton = event.target;
+            const selectedAnswerIndex = parseInt(selectedOptionButton.dataset.index);
+
+            const optionButtons = optionsContainerElement.querySelectorAll('.option-button');
+            optionButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('disabled-button');
+            });
+
+            if (selectedAnswerIndex === currentCorrectAnswerIndex) {
+                selectedOptionButton.classList.remove('bg-slate-200', 'hover:bg-slate-300', 'border-slate-300');
+                selectedOptionButton.classList.add('correct');
+                feedbackTextElement.textContent = 'إجابة صحيحة!';
+                feedbackTextElement.classList.remove('text-red-500');
+                feedbackTextElement.classList.add('text-green-500');
+                score++;
+                scoreElement.textContent = score;
+            } else {
+                selectedOptionButton.classList.remove('bg-slate-200', 'hover:bg-slate-300', 'border-slate-300');
+                selectedOptionButton.classList.add('incorrect');
+                feedbackTextElement.textContent = 'إجابة خاطئة.';
+                feedbackTextElement.classList.remove('text-green-500');
+                feedbackTextElement.classList.add('text-red-500');
+
+                optionButtons.forEach(btn => {
+                    if (parseInt(btn.dataset.index) === currentCorrectAnswerIndex) {
+                        btn.classList.remove('bg-slate-200', 'hover:bg-slate-300', 'border-slate-300');
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+            explainAnswerButton.classList.remove('hidden'); 
+            newQuestionButton.disabled = false; 
+            newQuestionButton.classList.remove('disabled-button');
+            if (currentQuestionNumberInRound >= totalQuestionsInRound) {
+                newQuestionButton.textContent = "عرض النتيجة النهائية";
+            }
+        }
+
+        async function fetchAnswerExplanation() {
+            explainAnswerButton.disabled = true;
+            explainAnswerButton.classList.add('disabled-button');
+            explanationLoaderContainer.classList.remove('hidden');
+            explanationContainer.innerHTML = '';
+
+            try {
+                const prompt = `The question was: "${currentQuestionText}". The correct answer was: "${currentCorrectOptionText}". Please provide a brief and clear explanation (2-3 sentences) in Classical Arabic (اللغة العربية الفصحى) why this answer is correct, or offer some interesting additional information about the topic. The explanation must be in Arabic and suitable for a general knowledge quiz game.`;
+                
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    console.error("API Error Response (Explanation):", errorBody);
+                    throw new Error(`Network or API error when fetching explanation: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0 &&
+                    result.candidates[0].content.parts[0].text) {
+                    
+                    const explanationText = result.candidates[0].content.parts[0].text;
+                    explanationContainer.innerHTML = `<div class="explanation-box">${explanationText}</div>`;
+                } else {
+                    console.error("Unexpected API response structure (Explanation):", result);
+                    if (result.promptFeedback && result.promptFeedback.blockReason) {
+                         throw new Error(`Explanation request blocked: ${result.promptFeedback.blockReason}. ${result.promptFeedback.blockReasonMessage || ''}`);
+                    }
+                    throw new Error("No valid explanation content found in the API response.");
+                }
+
+            } catch (error) {
+                console.error('Error fetching explanation:', error);
+                explanationContainer.innerHTML = `<div class="explanation-box text-red-600">عذرًا، حدث خطأ أثناء جلب الشرح: ${error.message}</div>`;
+            } finally {
+                explanationLoaderContainer.classList.add('hidden');
+                explainAnswerButton.disabled = false;
+                explainAnswerButton.classList.remove('disabled-button');
+            }
+        }
+        
+        function initializeApp() {
+            isRoundActive = false;
+            score = 0;
+            scoreElement.textContent = score;
+            currentQuestionNumberInRound = 0;
+            totalQuestionsInRound = 0;
+            currentRoundTopic = "";
+
+            questionTextElement.textContent = "حدد عدد الأسئلة واضغط 'ابدأ الجولة' للبدء!";
+            optionsContainerElement.innerHTML = '';
+            feedbackTextElement.textContent = '';
+            feedbackTextElement.classList.remove('text-red-500', 'text-green-500', 'text-sky-600');
+            
+            explainAnswerButton.classList.add('hidden');
+            explanationContainer.innerHTML = '';
+            explanationLoaderContainer.classList.add('hidden');
+            
+            questionLoaderContainer.classList.add('hidden');
+            roundProgressContainer.classList.add('hidden');
+            roundProgressContainer.textContent = ''; 
+
+            numQuestionsInput.disabled = false;
+            numQuestionsInput.value = "5"; 
+            topicInput.disabled = false;
+            topicInput.value = '';
+
+            newQuestionButton.textContent = "ابدأ الجولة";
+            newQuestionButton.disabled = false;
+            newQuestionButton.classList.remove('disabled-button');
+        }
+
+
+        // Event Listeners
+        newQuestionButton.addEventListener('click', () => {
+            if (!isRoundActive) {
+                startNewRound();
+            } else {
+                fetchNewQuestion(); 
+            }
+        });
+        explainAnswerButton.addEventListener('click', fetchAnswerExplanation);
+        resetGameButton.addEventListener('click', initializeApp); 
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
+        initializeApp(); 
+
+    </script>
+</body>
+</html>
