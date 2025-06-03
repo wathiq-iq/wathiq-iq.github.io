@@ -2,8 +2,7 @@
 
 const CACHE_NAME = 'quiz-app-cache-v1';
 const urlsToCache = [
-  './qai.html', // Cache the main HTML file
-  './QAI.html',
+  './wqai.html', // Cache the main HTML file
   // Add other important assets here if needed, e.g., CSS files, specific JS files
   // For this example, we'll keep it simple.
   // 'style.css', // If you had an external CSS
