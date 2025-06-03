@@ -34,7 +34,7 @@
             color: white !important;
             border-color: #dc2626 !important;
         }
-        .disabled-button, .mode-button.bg-sky-700, select:disabled {
+        .disabled-button, .mode-button.bg-sky-700, select:disabled, input:disabled {
             opacity: 0.7;
             cursor: not-allowed;
         }
@@ -66,10 +66,10 @@
             color: #c2410c; 
         }
         .why-wrong-box {
-            background-color: #fee2e2; /* Light red for why-wrong */
-            border-color: #f87171;   /* Red border */
-            color: #b91c1c;        /* Darker red text */
-            margin-top: 0.25rem; /* Smaller margin for these specific explanations */
+            background-color: #fee2e2; 
+            border-color: #f87171;   
+            color: #b91c1c;        
+            margin-top: 0.25rem; 
         }
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button {
@@ -77,7 +77,7 @@
             margin: 0;
         }
         input[type=number] {
-            -moz-appearance: textfield; /* Firefox */
+            -moz-appearance: textfield; 
         }
         #generated-image-display {
             width: 100%;
@@ -104,12 +104,12 @@
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
             margin-top: 0.25rem;
-            margin-right: 0.5rem; /* For RTL */
-            background-color: #fbbf24; /* Amber 400 */
-            color: #78350f; /* Amber 900 */
+            margin-right: 0.5rem; 
+            background-color: #fbbf24; 
+            color: #78350f; 
         }
         .why-wrong-btn:hover {
-            background-color: #f59e0b; /* Amber 500 */
+            background-color: #f59e0b; 
         }
     </style>
 </head>
@@ -168,7 +168,6 @@
         
         <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
         </div>
-         <!-- Container for "Why wrong?" explanations -->
         <div id="why-wrong-explanation-container" class="mb-3 sm:mb-4 min-h-[20px]"></div>
 
 
@@ -198,12 +197,11 @@
                 <label for="num-questions-input" class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">🎯 عدد الأسئلة/الصور في الجولة:</label>
                 <input type="number" id="num-questions-input" name="num-questions-input" min="1" max="20" value="3" class="w-20 sm:w-24 p-1.5 sm:p-2 border border-slate-300 rounded-lg focus:ring-sky-500 focus:border-sky-500 text-center">
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                 <div>
                     <label for="main-topic-select" class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">📚 اختر الموضوع الرئيسي:</label>
                     <select id="main-topic-select" class="w-full p-1.5 sm:p-2 border border-slate-300 rounded-lg focus:ring-sky-500 focus:border-sky-500 bg-white">
-                        <option value="loading">جاري تحميل المواضيع...</option>
-                    </select>
+                        </select>
                 </div>
                 <div>
                     <label for="sub-topic-select" class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">🔎 اختر الموضوع الفرعي:</label>
@@ -211,6 +209,10 @@
                         <option value="">اختر الموضوع الرئيسي أولاً</option>
                     </select>
                 </div>
+            </div>
+            <div>
+                <label for="custom-topic-input" class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">⌨️ أو اكتب موضوعًا محددًا (اختياري):</label>
+                <input type="text" id="custom-topic-input" name="custom-topic-input" class="w-full p-1.5 sm:p-2 border border-slate-300 rounded-lg focus:ring-sky-500 focus:border-sky-500" placeholder="مثال: تاريخ الأندلس، فيزياء الكم">
             </div>
         </div>
         
@@ -224,12 +226,7 @@
         </div>
     </div>
 
-    <script type="module">
-        // Firebase Imports
-        import { initializeApp as initializeFirebaseApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"; 
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, Timestamp, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script> 
         // DOM Elements
         const textQuizModeButton = document.getElementById('text-quiz-mode-button');
         const imageQuizModeButton = document.getElementById('image-quiz-mode-button');
@@ -259,6 +256,7 @@
         
         const mainTopicSelect = document.getElementById('main-topic-select');
         const subTopicSelect = document.getElementById('sub-topic-select');
+        const customTopicInput = document.getElementById('custom-topic-input');
         const numQuestionsInput = document.getElementById('num-questions-input');
         const roundProgressContainer = document.getElementById('round-progress-container');
         const resetGameButton = document.getElementById('reset-game-button');
@@ -304,70 +302,31 @@
         };
         
         const defaultTopicsData = {
-            "الكل": [],
+            "الكل": [], // Represents general knowledge
             "التاريخ": ["الكل", "التاريخ القديم", "حضارات ما بين النهرين", "الحضارة الفرعونية", "اليونان والرومان", "التاريخ الوسيط", "الدولة الإسلامية", "الحملات الصليبية", "الإمبراطورية البيزنطية", "التاريخ الحديث", "الثورات (الفرنسية، الصناعية، الأمريكية)", "الاستعمار وحركات التحرر", "الحربان العالميتان", "التاريخ المعاصر", "الحرب الباردة", "سقوط الاتحاد السوفيتي", "الثورات العربية"],
-            "الجغرافيا": ["الكل", "الجغرافيا الطبيعية", "الجغرافيا البشرية", "الجغرافيا الاقتصادية"],
-            "العلوم": ["الكل", "الفيزياء", "الكيمياء", "البيولوجيا", "الرياضيات"],
-            "الذكاء الاصطناعي والروبوتات": ["الكل", "تعلم الآلة والذكاء التوليدي", "الروبوتات المساعدة", "أخلاقيات الذكاء الاصطناعي", "الذكاء الاصطناعي في الفنون والإبداع"],
-            "الاستدامة والبيئة": ["الكل", "التغير المناخي", "الطاقة المتجددة", "الزراعة الذكية", "الهندسة البيئية والتقنيات النظيفة"],
-            "الفضاء واستكشاف الكون": ["الكل", "السياحة الفضائية", "مستعمرات القمر والمريخ", "التلسكوبات الحديثة", "فيزياء الفضاء والزمن"],
+            "الجغرافيا": ["الكل", "الجغرافيا الطبيعية (الجبال والأنهار, المناخ والتضاريس, الزلازل والبراكين)", "الجغرافيا البشرية (السكان والهجرة, التمدن والعمران, الثقافات واللغات)", "الجغرافيا الاقتصادية (الزراعة والصناعة, الموارد الطبيعية, التجارة والنقل)"],
+            "الدين": ["الكل", "الديانات الإبراهيمية (الإسلام, المسيحية, اليهودية)", "الديانات الشرقية (الهندوسية, البوذية, السيخية)", "الديانات القديمة والأسطورية (الوثنية الإغريقية, الأساطير النوردية, الديانات الفرعونية)"],
+            "العلوم": ["الكل", "الفيزياء (الميكانيكا, الكهرباء والمغناطيسية, الفيزياء النووية)", "الكيمياء (الكيمياء العضوية, الكيمياء التحليلية, الكيمياء الفيزيائية)", "البيولوجيا (علم الأحياء الدقيقة, علم الوراثة, علم البيئة)", "الرياضيات (الجبر, الهندسة, الإحصاء والتحليل)"],
+            "الطب": ["الكل", "الطب البشري (الطب العام, الجراحة, الطب النفسي)", "الطب التخصصي (القلب, الأعصاب, الأورام)", "الطب الوقائي (التطعيمات, التغذية, الصحة العامة)"],
+            "الأدب": ["الكل", "الأدب العربي (الجاهلي, العباسي, الحديث والمعاصر)", "الأدب العالمي (الأدب الإنجليزي, الأدب الفرنسي, الأدب الروسي)", "أنواع الأدب (الرواية, القصة القصيرة, الشعر, المسرح)"],
+            "الفن": ["الكل", "الفنون البصرية (الرسم, النحت, التصوير الفوتوغرافي)", "الفنون الأدائية (المسرح, الرقص, السينما)", "الفنون الموسيقية (الموسيقى الكلاسيكية, الموسيقى الشرقية, الجاز والروك)"],
+            "السياسة": ["الكل", "النظم السياسية (الديمقراطية, الديكتاتورية, الملكية والجمهورية)", "العلاقات الدولية (الأمم المتحدة, الحروب والمعاهدات, الدبلوماسية)", "السياسات العامة (الاقتصاد والسياسة, التعليم والصحة, البيئة والطاقة)"],
+            "التقنية": ["الكل", "تقنية المعلومات (البرمجة, الذكاء الاصطناعي, قواعد البيانات)", "العتاد والتصميم (الحواسيب, الإلكترونيات, الطباعة ثلاثية الأبعاد)", "التقنيات الناشئة (الواقع الافتراضي, البلوكشين, التكنولوجيا الحيوية)"],
+            "الرياضة": ["الكل", "الرياضات الفردية (ألعاب القوى, التنس, السباحة)", "الرياضات الجماعية (كرة القدم, كرة السلة, الكرة الطائرة)", "رياضات الدفاع عن النفس (الكاراتيه, الجودو, الملاكمة)"],
+            "شخصيات": ["الكل", "شخصيات تاريخية (قادة عسكريون, ملوك وحكام, علماء وفلاسفة)", "شخصيات معاصرة (سياسيون, فنانون, رجال أعمال)", "شخصيات دينية (الأنبياء, الخلفاء, المصلحون)"],
+            "احداث 2025": ["الكل", "جميع الأحداث الجارية لعام 2025"],
+            "الذكاء الاصطناعي والروبوتات": ["الكل", "تعلم الآلة والذكاء التوليدي", "الروبوتات المساعدة (الصحية، الصناعية، العسكرية)", "أخلاقيات الذكاء الاصطناعي", "الذكاء الاصطناعي في الفنون والإبداع"],
+            "الاستدامة والبيئة": ["الكل", "التغير المناخي", "الطاقة المتجددة (الشمسية، الهيدروجين، الرياح)", "الزراعة الذكية", "الهندسة البيئية والتقنيات النظيفة"],
+            "الفضاء واستكشاف الكون": ["الكل", "السياحة الفضائية", "مستعمرات القمر والمريخ (مشاريع سبيس إكس وناسا)", "التلسكوبات الحديثة (جيمس ويب وما بعده)", "فيزياء الفضاء والزمن"],
+            "الواقع المعزز والافتراضي (XR)": ["الكل", "الميتافيرس", "الواقع المختلط في التعليم والصحة", "الألعاب الغامرة", "التجارب الاجتماعية الرقمية"],
+            "الثقافة الرقمية": ["الكل", "المؤثرون وصنّاع المحتوى", "الهويات الرقمية والميتاهوية", "السوشيال ميديا والوعي الجمعي", "الأمن السيبراني وحماية الخصوصية"],
+            "علم النفس العصبي والتكنولوجيا العصبية": ["الكل", "واجهات الدماغ-الحاسوب (Neuralink وأشباهها)", "فهم الوعي والذاكرة", "علاج الأمراض النفسية بالتقنية", "قراءة وتحليل أنماط الدماغ"],
+            "التعليم الحديث": ["الكل", "التعليم التكيفي بالذكاء الاصطناعي", "المدارس الافتراضية والمنصات التفاعلية", "التعلم مدى الحياة", "التقييم الذكي والسلوك المعرفي"],
+            "الاقتصاد الرقمي": ["الكل", "العملات الرقمية (بيتكوين، إيثيريوم، العملات المركزية)", "الاقتصاد الإبداعي", "التجارة الإلكترونية التنبؤية", "العمل عن بُعد والوظائف الحرة"],
+            "حقوق الإنسان الرقمية": ["الكل", "حرية التعبير في الفضاء الإلكتروني", "الحق في الخصوصية", "الرقابة والحجب", "الأمان من الخوارزميات المتحيزة"],
+            "الفنون المعاصرة والتقنيات الإبداعية": ["الكل", "الفن التوليدي بالذكاء الاصطناعي", "الموسيقى الاصطناعية", "النحت الرقمي ثلاثي الأبعاد", "السينما بتقنية الواقع الافتراضي"]
         };
         let dynamicTopicsData = { ...defaultTopicsData }; 
-
-        // Firebase Configuration
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-quiz-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        let db, auth, currentUserId;
-
-        if (firebaseConfig) {
-            try {
-                const firebaseApp = initializeFirebaseApp(firebaseConfig); 
-                db = getFirestore(firebaseApp);
-                auth = getAuth(firebaseApp);
-                console.log("Firebase initialized successfully.");
-
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        currentUserId = user.uid;
-                        console.log("User is signed in with UID:", currentUserId);
-                        loadAndUpdateCategories(); // Load categories after user is signed in
-                    } else {
-                        currentUserId = null;
-                        console.log("User is signed out. Using default categories.");
-                        dynamicTopicsData = { ...defaultTopicsData }; // Fallback if sign-out happens before load
-                        populateMainTopics();
-                    }
-                });
-
-
-            } catch (e) {
-                console.error("Error initializing Firebase:", e);
-                db = null; auth = null; 
-            }
-        } else {
-            console.warn("Firebase config not found. Firestore features will be disabled.");
-            db = null; auth = null;
-            dynamicTopicsData = { ...defaultTopicsData }; // Use default if no firebase
-            populateMainTopics(); // Populate with default if no firebase
-        }
-        
-        const categoriesDocPath = `/artifacts/${appId}/public/data/quiz_categories/current_topics`;
-
-        async function signInUser() {
-            if (!auth) return;
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Error signing in:", error);
-                 // If sign-in fails, still try to load default categories
-                dynamicTopicsData = { ...defaultTopicsData };
-                populateMainTopics();
-            }
-        }
 
 
         // --- Sound Effects ---
@@ -411,111 +370,6 @@
                 } catch (e) { console.error("Error playing win sound:", e); }
             }
         }
-
-        async function fetchCategoriesFromGemini() {
-            console.log("Fetching new categories from Gemini...");
-            const prompt = "Please generate a list of diverse quiz categories. Provide exactly 10 main categories. For each main category, provide between 3 and 5 sub-categories. All categories and sub-categories must be in Classical Arabic. The response should be a JSON array of objects, where each object has a 'mainTopic' string and a 'subTopics' array of strings. Example: [{'mainTopic': 'التاريخ', 'subTopics': ['التاريخ القديم', 'التاريخ الحديث']}, {'mainTopic': 'العلوم', 'subTopics': ['الفيزياء', 'الكيمياء']}]. Ensure a good mix of topics including some from the following if possible: AI, Sustainability, Space, XR, Digital Culture, Neuroscience, Modern Education, Digital Economy, Digital Human Rights, Contemporary Arts, History, Geography, Religion, Science, Medicine, Literature, Art, Politics, Technology, Sports, Personalities, Current Events.";
-            const schema = {
-                type: "ARRAY",
-                items: {
-                    type: "OBJECT",
-                    properties: {
-                        mainTopic: { type: "STRING", description: "The main category name in Arabic." },
-                        subTopics: {
-                            type: "ARRAY",
-                            description: "An array of sub-category names in Arabic for this main topic.",
-                            items: { type: "STRING" }
-                        }
-                    },
-                    required: ["mainTopic", "subTopics"]
-                }
-            };
-            const payload = {
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json", responseSchema: schema }
-            };
-
-            try {
-                const response = await fetch(geminiApiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) throw new Error(`Gemini API error for categories: ${response.status}`);
-                const result = await response.json();
-                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
-                    const categoriesArray = JSON.parse(result.candidates[0].content.parts[0].text);
-                    const newTopicsData = { "الكل": [] }; 
-                    categoriesArray.forEach(item => {
-                        if (item.mainTopic && Array.isArray(item.subTopics)) {
-                            newTopicsData[item.mainTopic] = ["الكل", ...item.subTopics]; 
-                        }
-                    });
-                    console.log("Successfully fetched and processed categories from Gemini:", newTopicsData);
-                    return newTopicsData;
-                } else {
-                    throw new Error("No valid category content in Gemini API response.");
-                }
-            } catch (error) {
-                console.error("Error fetching categories from Gemini:", error);
-                return null; 
-            }
-        }
-        
-        async function loadAndUpdateCategories() {
-            if (!db || !currentUserId) { // Check if db is initialized and user is signed in
-                console.log("Firestore not available or user not signed in, using default topics.");
-                dynamicTopicsData = { ...defaultTopicsData };
-                populateMainTopics();
-                return;
-            }
-
-            const todayStr = new Date().toISOString().split('T')[0]; 
-            const categoriesDocRef = doc(db, categoriesDocPath);
-
-            try {
-                const docSnap = await getDoc(categoriesDocRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.last_fetched_date === todayStr && data.categories_json_string) {
-                        console.log("Using categories from Firestore (fetched today).");
-                        dynamicTopicsData = JSON.parse(data.categories_json_string);
-                    } else {
-                        console.log("Categories outdated or not found, fetching from Gemini...");
-                        const newCategories = await fetchCategoriesFromGemini();
-                        if (newCategories) {
-                            dynamicTopicsData = newCategories;
-                            await setDoc(categoriesDocRef, {
-                                categories_json_string: JSON.stringify(newCategories),
-                                last_fetched_date: todayStr,
-                                timestamp: Timestamp.now()
-                            });
-                            console.log("Categories updated in Firestore.");
-                        } else {
-                            console.log("Failed to fetch new categories, using previous or default.");
-                            if(data.categories_json_string) dynamicTopicsData = JSON.parse(data.categories_json_string); 
-                            else dynamicTopicsData = { ...defaultTopicsData };
-                        }
-                    }
-                } else {
-                    console.log("No categories document found, fetching from Gemini for the first time...");
-                    const newCategories = await fetchCategoriesFromGemini();
-                    if (newCategories) {
-                        dynamicTopicsData = newCategories;
-                        await setDoc(categoriesDocRef, {
-                            categories_json_string: JSON.stringify(newCategories),
-                            last_fetched_date: todayStr,
-                            timestamp: Timestamp.now()
-                        });
-                        console.log("Categories saved to Firestore for the first time.");
-                    } else {
-                         console.log("Failed to fetch new categories, using default.");
-                        dynamicTopicsData = { ...defaultTopicsData };
-                    }
-                }
-            } catch (error) {
-                console.error("Error loading/updating categories from Firestore:", error);
-                dynamicTopicsData = { ...defaultTopicsData }; 
-            }
-            populateMainTopics();
-        }
-
 
         function populateMainTopics() {
             mainTopicSelect.innerHTML = ''; 
@@ -601,15 +455,19 @@
             scoreElement.textContent = score;
             isRoundActive = true;
             
-            const selectedMainTopic = mainTopicSelect.value;
-            const selectedSubTopic = subTopicSelect.value;
-
-            if (selectedMainTopic === "الكل" || !selectedMainTopic) {
-                currentRoundTopic = ""; 
-            } else if (selectedSubTopic === "الكل" || !selectedSubTopic) {
-                currentRoundTopic = selectedMainTopic; 
+            const customTopic = customTopicInput.value.trim();
+            if (customTopic) {
+                currentRoundTopic = customTopic;
             } else {
-                currentRoundTopic = `${selectedMainTopic} - ${selectedSubTopic}`; 
+                const selectedMainTopic = mainTopicSelect.value;
+                const selectedSubTopic = subTopicSelect.value;
+                if (selectedMainTopic === "الكل" || !selectedMainTopic) {
+                    currentRoundTopic = ""; 
+                } else if (selectedSubTopic === "الكل" || !selectedSubTopic) {
+                    currentRoundTopic = selectedMainTopic; 
+                } else {
+                    currentRoundTopic = `${selectedMainTopic} - ${selectedSubTopic}`; 
+                }
             }
             console.log("Starting round with topic:", currentRoundTopic);
 
@@ -619,6 +477,7 @@
             numQuestionsInput.disabled = true;
             mainTopicSelect.disabled = true;
             subTopicSelect.disabled = true;
+            customTopicInput.disabled = true;
             textQuizModeButton.disabled = true; textQuizModeButton.classList.add('disabled-button');
             imageQuizModeButton.disabled = true; imageQuizModeButton.classList.add('disabled-button');
 
@@ -644,31 +503,7 @@
             }
         }
 
-        async function saveScoreToFirestore() {
-            if (!db || !currentUserId || !isRoundActive) { // Only save if round was active and user is signed in
-                console.log("Firestore not available, user not signed in, or round not active. Score not saved.");
-                return;
-            }
-            try {
-                const scoresCollectionRef = collection(db, `/artifacts/${appId}/users/${currentUserId}/game_scores`);
-                await addDoc(scoresCollectionRef, {
-                    score: score,
-                    totalQuestions: totalQuestionsInRound,
-                    topic: currentRoundTopic || "عام",
-                    mode: currentQuizMode,
-                    date: Timestamp.now()
-                });
-                console.log("Score saved to Firestore successfully.");
-            } catch (error) {
-                console.error("Error saving score to Firestore:", error);
-            }
-        }
-
-
         function endRound() {
-            if(isRoundActive) { // Only save score if the round was actually active
-                 saveScoreToFirestore();
-            }
             isRoundActive = false;
             const mainQuestionDisplay = currentQuizMode === 'text' ? questionTextElement : imageQuestionTextElement;
             mainQuestionDisplay.textContent = `انتهت الجولة! نتيجتك النهائية: ${score} من ${totalQuestionsInRound}`;
@@ -694,6 +529,7 @@
             numQuestionsInput.disabled = false;
             mainTopicSelect.disabled = false;
             subTopicSelect.disabled = mainTopicSelect.value === "الكل"; 
+            customTopicInput.disabled = false;
             textQuizModeButton.disabled = false; textQuizModeButton.classList.remove('disabled-button');
             imageQuizModeButton.disabled = false; imageQuizModeButton.classList.remove('disabled-button');
             roundProgressContainer.classList.add('hidden');
@@ -1117,7 +953,7 @@
             }
         }
         
-        async function initializeQuizApp() { 
+        function initializeQuizApp() { 
             isRoundActive = false;
             score = 0;
             scoreElement.textContent = score;
@@ -1127,17 +963,9 @@
             currentImageBase64 = null;
             askedQuestionsThisRound = []; 
 
-            if (firebaseConfig && !auth?.currentUser) { 
-                await signInUser(); // Await sign-in before loading categories
-            } else if (firebaseConfig && auth?.currentUser) {
-                 // If already signed in (e.g. on reset), load categories directly
-                await loadAndUpdateCategories();
-            } else {
-                // No Firebase, use default topics
-                dynamicTopicsData = { ...defaultTopicsData };
-                populateMainTopics();
-            }
-            
+            // No Firebase interactions here anymore for categories
+            dynamicTopicsData = { ...defaultTopicsData }; // Directly use default
+            populateMainTopics(); 
             setQuizMode('text'); 
 
             questionTextElement.textContent = "اختر وضع اللعب، ثم حدد عدد الأسئلة واضغط 'ابدأ الجولة' للبدء!";
@@ -1168,8 +996,10 @@
             numQuestionsInput.disabled = false;
             numQuestionsInput.value = currentQuizMode === 'text' ? "5" : "3"; 
             mainTopicSelect.disabled = false;
+            customTopicInput.value = ''; // Clear custom topic input
+            customTopicInput.disabled = false;
             // Sub-topic select will be enabled/disabled by populateSubTopics based on main topic
-            if (mainTopicSelect.value) { // Ensure it's called after main topics are populated
+            if (mainTopicSelect.value) { 
                  populateSubTopics();
             }
 
