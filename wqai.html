@@ -302,7 +302,7 @@
         };
         
         const defaultTopicsData = {
-            "الكل": [], // Represents general knowledge
+            "الكل": [], 
             "التاريخ": ["الكل", "التاريخ القديم", "حضارات ما بين النهرين", "الحضارة الفرعونية", "اليونان والرومان", "التاريخ الوسيط", "الدولة الإسلامية", "الحملات الصليبية", "الإمبراطورية البيزنطية", "التاريخ الحديث", "الثورات (الفرنسية، الصناعية، الأمريكية)", "الاستعمار وحركات التحرر", "الحربان العالميتان", "التاريخ المعاصر", "الحرب الباردة", "سقوط الاتحاد السوفيتي", "الثورات العربية"],
             "الجغرافيا": ["الكل", "الجغرافيا الطبيعية (الجبال والأنهار, المناخ والتضاريس, الزلازل والبراكين)", "الجغرافيا البشرية (السكان والهجرة, التمدن والعمران, الثقافات واللغات)", "الجغرافيا الاقتصادية (الزراعة والصناعة, الموارد الطبيعية, التجارة والنقل)"],
             "الدين": ["الكل", "الديانات الإبراهيمية (الإسلام, المسيحية, اليهودية)", "الديانات الشرقية (الهندوسية, البوذية, السيخية)", "الديانات القديمة والأسطورية (الوثنية الإغريقية, الأساطير النوردية, الديانات الفرعونية)"],
@@ -562,16 +562,16 @@
 
             try {
                 let basePrompt;
-                if (currentRoundTopic) { 
-                    basePrompt = `Generate a single quiz question about the topic: "${currentRoundTopic}". The question and its four answer options must be in Classical Arabic (اللغة العربية الفصحى). Only one option should be correct. Provide diverse and clear options. Specify the index of the correct answer (0-3). Ensure the question is relevant to the given topic.`;
+                 if (currentRoundTopic) { 
+                    basePrompt = `Generate a single, highly engaging, and specific quiz question about the topic: "${currentRoundTopic}". The question should be non-trivial and require some thought. The question and its four answer options must be in Classical Arabic (اللغة العربية الفصحى). Only one option should be correct. Provide diverse, plausible, and clear options. Specify the index of the correct answer (0-3). Ensure the question is directly and deeply relevant to the given topic. Avoid overly simple or common knowledge questions unless the topic itself is very niche.`;
                 } else { 
-                    basePrompt = `Generate a single quiz question in the field of "${currentRoundTopic}". The question and its four answer options must be in Classical Arabic (اللغة العربية الفصحى). Only one option should be correct. Provide diverse and clear options. Specify the index of the correct answer (0-3).`;
+                    basePrompt = `Generate a single, interesting, and non-trivial general knowledge quiz question. The question could be from diverse fields like advanced science, deep history, specific geography, or nuanced arts. The question and its four answer options must be in Classical Arabic (اللغة العربية الفصحى). Only one option should be correct. Provide diverse, plausible, and clear options. Specify the index of the correct answer (0-3).`;
                 }
 
                 let prompt = basePrompt;
                 if (askedQuestionsThisRound.length > 0) {
                     const exclusions = askedQuestionsThisRound.map(q => `"${q}"`).join(', ');
-                    prompt += ` IMPORTANT: This question must be different from any of the following questions that have already been asked in this round: [${exclusions}].`;
+                    prompt += ` CRITICAL: This question MUST ABSOLUTELY be different from any of the following questions that have already been asked in this round: [${exclusions}]. Generate a completely new and distinct question.`;
                 }
 
                 const payload = {
@@ -963,8 +963,7 @@
             currentImageBase64 = null;
             askedQuestionsThisRound = []; 
 
-            // No Firebase interactions here anymore for categories
-            dynamicTopicsData = { ...defaultTopicsData }; // Directly use default
+            dynamicTopicsData = { ...defaultTopicsData }; 
             populateMainTopics(); 
             setQuizMode('text'); 
 
@@ -996,9 +995,8 @@
             numQuestionsInput.disabled = false;
             numQuestionsInput.value = currentQuizMode === 'text' ? "5" : "3"; 
             mainTopicSelect.disabled = false;
-            customTopicInput.value = ''; // Clear custom topic input
+            customTopicInput.value = ''; 
             customTopicInput.disabled = false;
-            // Sub-topic select will be enabled/disabled by populateSubTopics based on main topic
             if (mainTopicSelect.value) { 
                  populateSubTopics();
             }
