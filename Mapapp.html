@@ -172,6 +172,7 @@
                         success: true, 
                         data: result, 
                         count: geometries.length,
+                        firstSiteId: geometries[0].siteId,
                         ms: (end - start).toFixed(2)
                     });
                 } catch (err) {
@@ -228,10 +229,10 @@
                 return \`<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Batch Export</name>
+    <name>Maps</name>
     <Style id="msn_line">
-      <LineStyle><color>00000000</color><width>4</width></LineStyle>
-      <PolyStyle><color>3c1478E6</color><fill>1</fill><outline>1</outline></PolyStyle>
+      <LineStyle><color>ff000000</color><width>4</width></LineStyle>
+      <PolyStyle><color>40007cf5</color></PolyStyle>
     </Style>
     <Folder>
       <name>fat_region</name>
@@ -250,6 +251,7 @@
         let activeFormat = 'geojson';
         let map = null;
         let geojsonLayer = null;
+        let lastSiteId = 'batch_export';
 
         const ui = {
             input: document.getElementById('jsonInput'),
@@ -265,7 +267,6 @@
             codeContainer: document.getElementById('codeContainer')
         };
 
-        // Initialize Map
         function initMap() {
             if (map) return;
             map = L.map('map').setView([0, 0], 2);
@@ -307,7 +308,6 @@
         window.showFormat = (fmt) => {
             activeFormat = fmt;
             
-            // Toggle Visibility
             if (fmt === 'map') {
                 ui.codeContainer.classList.add('hidden');
                 ui.mapContainer.classList.remove('hidden');
@@ -320,7 +320,6 @@
                 ui.output.textContent = currentResults[fmt] || "No data processed yet.";
             }
 
-            // Update UI Tabs
             document.querySelectorAll('.view-tab').forEach(btn => {
                 const isMatch = btn.dataset.format === fmt;
                 btn.className = isMatch 
@@ -339,7 +338,7 @@
             geojsonLayer = L.geoJSON(data, {
                 style: { color: "#2563eb", weight: 2, fillOpacity: 0.2 },
                 onEachFeature: (feature, layer) => {
-                    layer.bindPopup(`<strong>Zone:</strong> ${feature.properties.siteId}`);
+                    layer.bindPopup(`<strong>Zone:</strong> ${feature.properties.Zone}`);
                 }
             }).addTo(map);
 
@@ -368,7 +367,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `batch_export.${ext[fmt]}`;
+            a.download = `File Export.${ext[fmt]}`;
             a.click();
             URL.revokeObjectURL(url);
         };
@@ -386,6 +385,7 @@
                 for (const fmt of formats) {
                     const result = await runTask(raw, fmt);
                     currentResults[fmt] = result.data;
+                    lastSiteId = result.firstSiteId;
                     ui.metrics.textContent = `Processed ${result.count} items in ${result.ms}ms`;
                 }
                 showFormat(activeFormat);
@@ -415,7 +415,6 @@
 
         window.closeError = () => ui.errorModal.classList.add('hidden');
 
-        // Init with sample
         loadSample(3);
     </script>
 </body>
