@@ -48,7 +48,7 @@
                     
                     <p class="text-xs text-slate-500">Input JSON with <code>items: [{ siteId, multiCoordinates }]</code>.</p>
                     
-                    <textarea id="jsonInput" class="w-full h-64 p-3 rounded-lg border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder='{ "items": [ { "siteId": "LOC-1", "multiCoordinates": [...] } ] }'></textarea>
+                    <textarea id="jsonInput" class="w-full h-64 p-3 rounded-lg border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder='{ "items": [ { "siteId": "LOC-1", "displayValue": "Location Name", "multiCoordinates": [...] } ] }'></textarea>
                     
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="loadSample(3)" class="text-xs py-2 bg-slate-100 hover:bg-slate-200 rounded font-medium transition-colors">Sample (3)</button>
@@ -112,9 +112,10 @@
     <script type="module">
         const workerCode = `
             class CanonicalGeometry {
-                constructor(type, siteId) {
+                constructor(type, siteId, displayValue) {
                     this.type = type;
                     this.siteId = siteId;
+                    this.displayValue = displayValue;
                     this.rings = []; 
                 }
             }
@@ -130,10 +131,11 @@
 
                     for (const item of items) {
                         const siteId = String(item.siteId || "unknown");
+                        const displayValue = String(item.displayValue || siteId);
                         const rawCoords = item.multiCoordinates;
                         if (!Array.isArray(rawCoords) || rawCoords.length === 0) continue;
 
-                        const geom = new CanonicalGeometry('Polygon', siteId);
+                        const geom = new CanonicalGeometry('Polygon', siteId, displayValue);
                         const getCoord = (p, idx) => {
                             if (Array.isArray(p)) return p[idx];
                             if (idx === 0) return p.longitude || p.lon || p.lng;
@@ -173,6 +175,7 @@
                         data: result, 
                         count: geometries.length,
                         firstSiteId: geometries[0].siteId,
+                        firstDisplay: geometries[0].displayValue,
                         ms: (end - start).toFixed(2)
                     });
                 } catch (err) {
@@ -183,7 +186,7 @@
             function toGeoJSONBatch(geoms) {
                 const features = geoms.map(g => ({
                     type: "Feature",
-                    properties: { Zone: g.siteId },
+                    properties: { Zone: g.siteId, Display: g.displayValue },
                     geometry: { 
                         type: "Polygon", 
                         coordinates: g.rings.map(r => {
@@ -209,13 +212,19 @@
             }
 
             function toKMLBatch(geoms) {
+                const firstDisplay = geoms.length > 0 ? geoms[0].displayValue : "export";
+                const zonename = firstDisplay.replace(/FAT\\d-/gm, '').trim();
+                
                 const placemarks = geoms.map(g => {
-                    const coords = g.rings[0];
+                    const ring = g.rings[0];
                     const chunks = [];
-                    for (let i = 0; i < coords.length; i += 2) chunks.push(\`\${coords[i]},\${coords[i+1]},0\`);
+                    for (let i = 0; i < ring.length; i += 2) {
+                        chunks.push(\`\${ring[i]},\${ring[i+1]},0\`);
+                    }
                     return \`
     <Placemark>
-      <name>\${g.siteId}</name>
+      <name>\${g.displayValue}</name>
+      <description>ID: \${g.siteId}</description>
       <styleUrl>#msn_line</styleUrl>
       <Polygon>
         <tessellate>1</tessellate>
@@ -229,7 +238,7 @@
                 return \`<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Maps</name>
+    <name>\${zonename}</name>
     <Style id="msn_line">
       <LineStyle><color>ff000000</color><width>4</width></LineStyle>
       <PolyStyle><color>40007cf5</color></PolyStyle>
@@ -252,6 +261,7 @@
         let map = null;
         let geojsonLayer = null;
         let lastSiteId = 'batch_export';
+        let lastDisplayValue = 'batch_export';
 
         const ui = {
             input: document.getElementById('jsonInput'),
@@ -291,6 +301,7 @@
             for(let j=0; j<itemCount; j++) {
                 const coords = [];
                 const siteId = `SITE-${1000 + j}`;
+                const displayValue = `FAT1-Location Name ${j + 1}`;
                 const centerLon = -122.4194 + (Math.random() - 0.5) * 5;
                 const centerLat = 37.7749 + (Math.random() - 0.5) * 5;
                 for(let i=0; i<10; i++) {
@@ -300,7 +311,7 @@
                         latitude: parseFloat((Math.sin(angle) * 0.1 + centerLat).toFixed(6))
                     });
                 }
-                items.push({ siteId, multiCoordinates: coords });
+                items.push({ siteId, displayValue, multiCoordinates: coords });
             }
             ui.input.value = JSON.stringify({ items }, null, 2);
         };
@@ -338,7 +349,7 @@
             geojsonLayer = L.geoJSON(data, {
                 style: { color: "#2563eb", weight: 2, fillOpacity: 0.2 },
                 onEachFeature: (feature, layer) => {
-                    layer.bindPopup(`<strong>Zone:</strong> ${feature.properties.Zone}`);
+                    layer.bindPopup(`<strong>Name:</strong> ${feature.properties.Display}<br><strong>ID:</strong> ${feature.properties.Zone}`);
                 }
             }).addTo(map);
 
@@ -361,13 +372,16 @@
             const fmt = activeFormat === 'map' ? 'geojson' : activeFormat;
             const content = currentResults[fmt];
             if (!content) return;
+            
+            const zonename = lastDisplayValue.replace(/FAT\d-/gm, '').trim() || lastSiteId;
             const mimes = { geojson: 'application/geo+json', wkt: 'text/plain', kml: 'application/vnd.google-earth.kml+xml' };
             const ext = { geojson: 'geojson', wkt: 'txt', kml: 'kml' };
+            
             const blob = new Blob([content], { type: mimes[fmt] });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `File Export.${ext[fmt]}`;
+            a.download = `${zonename}.${ext[fmt]}`;
             a.click();
             URL.revokeObjectURL(url);
         };
@@ -386,6 +400,7 @@
                     const result = await runTask(raw, fmt);
                     currentResults[fmt] = result.data;
                     lastSiteId = result.firstSiteId;
+                    lastDisplayValue = result.firstDisplay || result.firstSiteId;
                     ui.metrics.textContent = `Processed ${result.count} items in ${result.ms}ms`;
                 }
                 showFormat(activeFormat);
