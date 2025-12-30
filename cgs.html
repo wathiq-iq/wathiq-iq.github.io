@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chocolate Guide-States</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&family=Playfair+Display:wght@700&display=swap');
+        body { font-family: 'Cairo', sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
+        .serif { font-family: 'Playfair Display', serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        #menu-container { height: calc(100vh - 80px); transition: all 0.5s ease; }
+        #menu-container.fullscreen { height: 100vh; }
+        .hidden-ui { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+        canvas, .image-display { max-width: 100%; max-height: 85vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border-radius: 8px; display: none; }
+        canvas.active, .image-display.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .nav-btn { background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.5); transition: all 0.3s; }
+        .nav-btn:hover:not(:disabled) { background: rgba(245, 158, 11, 0.4); transform: scale(1.1); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- شريط التحكم العلوي -->
+    <header id="top-nav" class="h-20 glass-panel z-50 flex items-center justify-between px-8 sticky top-0 transition-all duration-500">
+        <div class="flex items-center gap-4">
+            <div class="p-2 bg-amber-500 rounded-lg"><i data-lucide="utensils-crossed" class="text-white"></i></div>
+            <div>
+                <h1 class="text-xl font-bold serif tracking-wide text-amber-500">HOSTED MENU</h1>
+                <p class="text-xs text-slate-400 uppercase tracking-tighter">Chocolate Guide-States</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <!-- خيار رفع يدوي للمعاينة السريعة -->
+            <label class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all font-bold text-sm">
+                <input type="file" id="file-input" class="hidden" accept="image/*,application/pdf" multiple disabled>
+            </label>
+
+            <button onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="maximize" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </header>
+
+    <main id="menu-container" class="flex-1 overflow-hidden p-4 md:p-10 flex flex-col items-center justify-center bg-slate-950 relative">
+        <!-- شاشة فارغة في حال عدم وجود ملفات -->
+        <div id="empty-state" class="flex flex-col items-center justify-center h-full text-center space-y-6 max-w-md hidden">
+            <div class="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center border-2 border-dashed border-slate-700">
+                <i data-lucide="server" class="w-12 h-12 text-slate-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold">لا توجد ملفات</h2>
+            <p class="text-slate-400">تأكد من إضافة روابط ملفاتك المرفوعة على الاستضافة داخل الكود البرمجي.</p>
+        </div>
+
+        <!-- منطقة عرض الصور/PDF -->
+        <div id="render-target" class="w-full h-full flex items-center justify-center relative"></div>
+
+        <!-- أزرار التنقل -->
+        <div id="pagination-ctrl" class="fixed bottom-10 flex items-center gap-6 glass-panel px-6 py-3 rounded-full opacity-0 translate-y-20 transition-all duration-500">
+            <button id="prev-btn" onclick="changePage(-1)" class="nav-btn p-3 rounded-full text-amber-500"><i data-lucide="chevron-right"></i></button>
+            <div class="flex items-center gap-2 text-lg font-bold">
+                <span id="current-page">0</span><span class="text-slate-500">/</span><span id="total-pages" class="text-slate-400">0</span>
+            </div>
+            <button id="next-btn" onclick="changePage(1)" class="nav-btn p-3 rounded-full text-amber-500"><i data-lucide="chevron-left"></i></button>
+        </div>
+
+        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-6 left-6 glass-panel px-4 py-2 rounded-lg text-amber-500 text-sm font-bold opacity-0 pointer-events-none transition-all duration-300">إنهاء العرض (Esc)</button>
+    </main>
+
+    <script>
+        // --- إعدادات المنيو الخاصة بك (ضع روابطك هنا) ---
+        // يمكنك وضع روابط صور أو رابط ملف PDF واحد
+        const STABLE_MENU_ITEMS = [
+            'chocolate.pdf'
+            // أو ضع رابط PDF واحد فقط:'
+        ];
+
+        lucide.createIcons();
+        const renderTarget = document.getElementById('render-target');
+        const emptyState = document.getElementById('empty-state');
+        const paginationCtrl = document.getElementById('pagination-ctrl');
+        
+        let currentPage = 1;
+        let totalPages = 0;
+        let items = [];
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // وظيفة التحميل التلقائي عند فتح الصفحة
+        window.onload = () => {
+            if (STABLE_MENU_ITEMS && STABLE_MENU_ITEMS.length > 0) {
+                const firstItem = STABLE_MENU_ITEMS[0].toLowerCase();
+                if (firstItem.endsWith('.pdf')) {
+                    processPdfSource(STABLE_MENU_ITEMS[0]);
+                } else {
+                    displayImagesFromSources(STABLE_MENU_ITEMS);
+                }
+            } else {
+                emptyState.classList.remove('hidden');
+            }
+        };
+
+        // معالجة الرفع اليدوي للمعاينة
+        document.getElementById('file-input').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            const pdfFile = files.find(f => f.type === 'application/pdf');
+            if (pdfFile) {
+                const reader = new FileReader();
+                reader.onload = function() { processPdfSource(this.result); };
+                reader.readAsDataURL(pdfFile);
+            } else {
+                const imagePromises = files.map(file => new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                }));
+                const sources = await Promise.all(imagePromises);
+                displayImagesFromSources(sources);
+            }
+        });
+
+        async function displayImagesFromSources(sources) {
+            initDisplay(sources.length);
+            items = sources.map((src, index) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'image-display' + (index === 0 ? ' active' : '');
+                renderTarget.appendChild(img);
+                return img;
+            });
+            updatePaginationUI();
+        }
+
+        async function processPdfSource(source) {
+            initDisplay(0);
+            try {
+                const pdf = await pdfjsLib.getDocument(source).promise;
+                initDisplay(pdf.numPages);
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    if (i === 1) canvas.classList.add('active');
+                    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                    renderTarget.appendChild(canvas);
+                    items.push(canvas);
+                }
+                updatePaginationUI();
+            } catch (err) {
+                console.error("خطأ في معالجة PDF:", err);
+            }
+        }
+
+        function initDisplay(count) {
+            renderTarget.innerHTML = '';
+            emptyState.classList.add('hidden');
+            items = [];
+            currentPage = 1;
+            totalPages = count;
+        }
+
+        function changePage(delta) {
+            if (totalPages <= 1) return;
+            items[currentPage - 1].classList.remove('active');
+            currentPage = Math.max(1, Math.min(totalPages, currentPage + delta));
+            items[currentPage - 1].classList.add('active');
+            updatePaginationUI();
+        }
+
+        function updatePaginationUI() {
+            document.getElementById('current-page').textContent = currentPage;
+            document.getElementById('total-pages').textContent = totalPages;
+            paginationCtrl.classList.toggle('opacity-0', totalPages <= 1);
+            paginationCtrl.classList.toggle('translate-y-20', totalPages <= 1);
+        }
+
+        window.toggleAppFullscreen = () => {
+            document.getElementById('top-nav').classList.add('hidden-ui');
+            document.getElementById('menu-container').classList.add('fullscreen');
+            document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
+        };
+        window.exitAppFullscreen = () => {
+            document.getElementById('top-nav').classList.remove('hidden-ui');
+            document.getElementById('menu-container').classList.remove('fullscreen');
+            document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
+        };
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight') changePage(-1);
+            if (e.key === 'ArrowLeft') changePage(1);
+            if (e.key === 'Escape') exitAppFullscreen();
+        });
+    </script>
+</body>
+</html>
