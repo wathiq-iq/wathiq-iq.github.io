@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- استخدام نسخة ثابتة تدعم العمل مباشرة في المتصفح -->
+    <!-- استخدام رابط ثابت ومستقر لمكتبة PinchZoom -->
     <script src="https://cdn.jsdelivr.net/npm/pinch-zoom-js@2.3.4/dist/pinch-zoom.umd.min.js"></script>
     
     <style>
@@ -20,31 +20,33 @@
         #menu-container.fullscreen { height: 100vh; }
         .hidden-ui { transform: translateY(-100%); opacity: 0; pointer-events: none; }
         
+        /* تحسين حاوية التكبير */
         .zoom-wrapper { width: 100%; height: 100%; display: none; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
         .zoom-wrapper.active { display: flex; animation: fadeIn 0.4s ease-out; }
         
-        .image-display, canvas { max-width: 100%; max-height: 85vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border-radius: 8px; user-select: none; }
+        .image-display { max-width: 95%; max-height: 85vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border-radius: 12px; user-select: none; background: #1e293b; }
 
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         
         .mini-nav { 
-            background: rgba(15, 23, 42, 0.8); 
-            backdrop-filter: blur(8px); 
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 0.5rem 1rem;
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 0.6rem 1.2rem;
             scale: 0.9;
             transition: opacity 0.4s ease, transform 0.4s ease;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         }
         .nav-hidden { opacity: 0 !important; transform: translateY(20px) !important; pointer-events: none; }
-        .nav-btn { background: rgba(245, 158, 11, 0.2); transition: all 0.2s; border: 1px solid rgba(245, 158, 11, 0.3); }
-        .nav-btn:active { transform: scale(0.9); }
+        .nav-btn { background: rgba(245, 158, 11, 0.15); transition: all 0.2s; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .nav-btn:active { transform: scale(0.9); background: rgba(245, 158, 11, 0.3); }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
     <header id="top-nav" class="h-20 glass-panel z-50 flex items-center justify-between px-8 sticky top-0 transition-all duration-500">
         <div class="flex items-center gap-4">
-            <div class="p-2 bg-amber-600 rounded-lg shadow-lg shadow-amber-900/20"><i data-lucide="book-open" class="text-white"></i></div>
+            <div class="p-2 bg-amber-600 rounded-lg shadow-lg"><i data-lucide="book-open" class="text-white"></i></div>
             <div>
                 <h1 class="text-xl font-bold serif tracking-wide text-amber-500 uppercase">Chocolate Menu</h1>
                 <p class="text-xs text-slate-400 uppercase tracking-tighter">Chocolate Guide</p>
@@ -60,7 +62,12 @@
 
     <main id="menu-container" class="flex-1 overflow-hidden flex flex-col items-center justify-center bg-slate-950 relative" onclick="showControlsTemporarily()">
         
-        <div id="render-target" class="w-full h-full relative select-none"></div>
+        <div id="render-target" class="w-full h-full relative select-none">
+            <!-- تحميل تلقائي لمؤشر التحميل -->
+            <div id="loader" class="absolute inset-0 flex items-center justify-center z-10">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+            </div>
+        </div>
 
         <div id="pagination-ctrl" class="fixed bottom-8 flex items-center gap-6 mini-nav rounded-full nav-hidden z-40">
             <button id="prev-btn" onclick="event.stopPropagation(); changePage(-1)" class="nav-btn p-3 rounded-full text-amber-500 hover:bg-amber-500/10"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
@@ -77,33 +84,77 @@
 
     <script>
         const STABLE_MENU_ITEMS = [
-            'Chocolate Guide-States_1.webp', 'Chocolate Guide-States_2.webp', 'Chocolate Guide-States_3.webp',
-            'Chocolate Guide-States_4.webp', 'Chocolate Guide-States_5.webp', 'Chocolate Guide-States_6.webp',
-            'Chocolate Guide-States_7.webp', 'Chocolate Guide-States_8.webp', 'Chocolate Guide-States_9.webp',
-            'Chocolate Guide-States_10.webp', 'Chocolate Guide-States_11.webp', 'Chocolate Guide-States_12.webp',
-            'Chocolate Guide-States_13.webp', 'Chocolate Guide-States_14.webp', 'Chocolate Guide-States_15.webp',
-            'Chocolate Guide-States_16.webp', 'Chocolate Guide-States_17.png', 'Chocolate Guide-States_18.png',
-            'Chocolate Guide-States_19.png', 'Chocolate Guide-States_20.png', 'Chocolate Guide-States_21.png',
-            'Chocolate Guide-States_22.png', 'Chocolate Guide-States_23.png', 'Chocolate Guide-States_24.png',
-            'Chocolate Guide-States_25.png', 'Chocolate Guide-States_26.png', 'Chocolate Guide-States_27.png',
-            'Chocolate Guide-States_28.png', 'Chocolate Guide-States_29.png', 'Chocolate Guide-States_30.png',
-            'Chocolate Guide-States_31.png', 'Chocolate Guide-States_32.png', 'Chocolate Guide-States_33.png',
-            'Chocolate Guide-States_34.png', 'Chocolate Guide-States_35.png', 'Chocolate Guide-States_36.png',
-            'Chocolate Guide-States_37.png', 'Chocolate Guide-States_38.png', 'Chocolate Guide-States_39.png',
-            'Chocolate Guide-States_40.png', 'Chocolate Guide-States_41.png', 'Chocolate Guide-States_42.png',
-            'Chocolate Guide-States_43.png', 'Chocolate Guide-States_44.png', 'Chocolate Guide-States_45.png',
-            'Chocolate Guide-States_46.png', 'Chocolate Guide-States_47.png', 'Chocolate Guide-States_48.png',
-            'Chocolate Guide-States_49.png', 'Chocolate Guide-States_50.png', 'Chocolate Guide-States_51.png',
-            'Chocolate Guide-States_52.png', 'Chocolate Guide-States_53.png', 'Chocolate Guide-States_54.png',
-            'Chocolate Guide-States_55.png', 'Chocolate Guide-States_56.png', 'Chocolate Guide-States_57.png',
-            'Chocolate Guide-States_58.png', 'Chocolate Guide-States_59.png', 'Chocolate Guide-States_60.png',
-            'Chocolate Guide-States_61.png', 'Chocolate Guide-States_62.png', 'Chocolate Guide-States_63.png',
-            'Chocolate Guide-States_64.png', 'Chocolate Guide-States_65.png'
+            'Chocolate Guide-States_1.webp',
+            'Chocolate Guide-States_2.webp',
+            'Chocolate Guide-States_3.webp',
+            'Chocolate Guide-States_4.webp',
+            'Chocolate Guide-States_5.webp',
+            'Chocolate Guide-States_6.webp',
+            'Chocolate Guide-States_7.webp',
+            'Chocolate Guide-States_8.webp',
+            'Chocolate Guide-States_9.webp',
+            'Chocolate Guide-States_10.webp',
+            'Chocolate Guide-States_11.webp',
+            'Chocolate Guide-States_12.webp',
+            'Chocolate Guide-States_13.webp',
+            'Chocolate Guide-States_14.webp',
+            'Chocolate Guide-States_15.webp',
+            'Chocolate Guide-States_16.webp',
+            'Chocolate Guide-States_17.png',
+            'Chocolate Guide-States_18.png',
+            'Chocolate Guide-States_19.png',
+            'Chocolate Guide-States_20.png',
+            'Chocolate Guide-States_21.png',
+            'Chocolate Guide-States_22.png',
+            'Chocolate Guide-States_23.png',
+            'Chocolate Guide-States_24.png',
+            'Chocolate Guide-States_25.png',
+            'Chocolate Guide-States_26.png',
+            'Chocolate Guide-States_27.png',
+            'Chocolate Guide-States_28.png',
+            'Chocolate Guide-States_29.png',
+            'Chocolate Guide-States_30.png',
+            'Chocolate Guide-States_31.png',
+            'Chocolate Guide-States_32.png',
+            'Chocolate Guide-States_33.png',
+            'Chocolate Guide-States_34.png',
+            'Chocolate Guide-States_35.png',
+            'Chocolate Guide-States_36.png',
+            'Chocolate Guide-States_37.png',
+            'Chocolate Guide-States_38.png',
+            'Chocolate Guide-States_39.png',
+            'Chocolate Guide-States_40.png',
+            'Chocolate Guide-States_41.png',
+            'Chocolate Guide-States_42.png',
+            'Chocolate Guide-States_43.png',
+            'Chocolate Guide-States_44.png',
+            'Chocolate Guide-States_45.png',
+            'Chocolate Guide-States_46.png',
+            'Chocolate Guide-States_47.png',
+            'Chocolate Guide-States_48.png',
+            'Chocolate Guide-States_49.png',
+            'Chocolate Guide-States_50.png',
+            'Chocolate Guide-States_51.png',
+            'Chocolate Guide-States_52.png',
+            'Chocolate Guide-States_53.png',
+            'Chocolate Guide-States_54.png',
+            'Chocolate Guide-States_55.png',
+            'Chocolate Guide-States_56.png',
+            'Chocolate Guide-States_57.png',
+            'Chocolate Guide-States_58.png',
+            'Chocolate Guide-States_59.png',
+            'Chocolate Guide-States_60.png',
+            'Chocolate Guide-States_61.png',
+            'Chocolate Guide-States_62.png',
+            'Chocolate Guide-States_63.png',
+            'Chocolate Guide-States_64.png',
+            'Chocolate Guide-States_65.png'
         ];
 
         lucide.createIcons();
         const renderTarget = document.getElementById('render-target');
         const paginationCtrl = document.getElementById('pagination-ctrl');
+        const loader = document.getElementById('loader');
         
         let currentPage = 1;
         let totalPages = 0;
@@ -127,7 +178,10 @@
         }
 
         async function displayImagesFromSources(sources) {
-            renderTarget.innerHTML = '';
+            // تنظيف الهدف مع الحفاظ على اللودر
+            const existingWrappers = renderTarget.querySelectorAll('.zoom-wrapper');
+            existingWrappers.forEach(el => el.remove());
+            
             wrappers = [];
             currentPage = 1;
             totalPages = sources.length;
@@ -140,33 +194,40 @@
                 img.src = src;
                 img.className = 'image-display';
                 
+                // إخفاء اللودر عند تحميل أول صورة
+                if (index === 0) {
+                    img.onload = () => { if(loader) loader.style.display = 'none'; };
+                }
+                
                 wrapper.appendChild(img);
                 renderTarget.appendChild(wrapper);
                 wrappers.push(wrapper);
 
-                // فحص دقيق للوصول إلى مُنشئ PinchZoom بشكل صحيح
-                let PZ = window.PinchZoom;
-                if (!PZ && window.default && window.default.PinchZoom) PZ = window.default.PinchZoom;
-                
-                if (typeof PZ === 'function') {
-                    try {
-                        new PZ(wrapper, {
-                            draggableUnzoomed: false,
-                            minZoom: 1,
-                            maxZoom: 4
-                        });
-                    } catch (e) {
-                        console.error("خطأ أثناء تهيئة PinchZoom:", e);
-                    }
-                } else if (PZ && typeof PZ.default === 'function') {
-                    new PZ.default(wrapper, {
-                        draggableUnzoomed: false,
-                        minZoom: 1,
-                        maxZoom: 4
-                    });
-                }
+                // تهيئة PinchZoom
+                initPinchZoom(wrapper);
             });
             updatePaginationUI();
+        }
+
+        function initPinchZoom(el) {
+            // محاولة الوصول للمكتبة بطرق مختلفة لضمان التوافق
+            let PZ = window.PinchZoom;
+            if (typeof PZ !== 'function' && window.default && typeof window.default.PinchZoom === 'function') {
+                PZ = window.default.PinchZoom;
+            }
+
+            if (typeof PZ === 'function') {
+                try {
+                    new PZ(el, {
+                        draggableUnzoomed: false,
+                        minZoom: 1,
+                        maxZoom: 4,
+                        onZoomStart: () => clearTimeout(hideTimeout)
+                    });
+                } catch (e) {
+                    console.error("PinchZoom Init Error:", e);
+                }
+            }
         }
 
         function changePage(delta) {
@@ -175,49 +236,35 @@
             const nextIdx = currentPage + delta - 1;
             if (nextIdx < 0 || nextIdx >= totalPages) return;
 
-            if (wrappers[currentPage - 1]) {
-                wrappers[currentPage - 1].classList.remove('active');
-            }
-            
+            // تبديل الفئات النشطة
+            wrappers[currentPage - 1].classList.remove('active');
             currentPage = nextIdx + 1;
-            
-            if (wrappers[currentPage - 1]) {
-                wrappers[currentPage - 1].classList.add('active');
-            }
+            wrappers[currentPage - 1].classList.add('active');
             
             updatePaginationUI();
             showControlsTemporarily();
         }
 
         function updatePaginationUI() {
-            const currSpan = document.getElementById('current-page');
-            const totalSpan = document.getElementById('total-pages');
-            if (currSpan) currSpan.textContent = currentPage;
-            if (totalSpan) totalSpan.textContent = totalPages;
+            document.getElementById('current-page').textContent = currentPage;
+            document.getElementById('total-pages').textContent = totalPages;
         }
 
+        // تفاعلات واجهة المستخدم
         renderTarget.addEventListener('mousedown', () => showControlsTemporarily());
         renderTarget.addEventListener('touchstart', () => showControlsTemporarily(), {passive: true});
 
         window.toggleAppFullscreen = () => {
-            const nav = document.getElementById('top-nav');
-            const container = document.getElementById('menu-container');
-            const exitBtn = document.getElementById('exit-btn');
-            
-            if (nav) nav.classList.add('hidden-ui');
-            if (container) container.classList.add('fullscreen');
-            if (exitBtn) exitBtn.classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('top-nav').classList.add('hidden-ui');
+            document.getElementById('menu-container').classList.add('fullscreen');
+            document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
             showControlsTemporarily();
         };
         
         window.exitAppFullscreen = () => {
-            const nav = document.getElementById('top-nav');
-            const container = document.getElementById('menu-container');
-            const exitBtn = document.getElementById('exit-btn');
-            
-            if (nav) nav.classList.remove('hidden-ui');
-            if (container) container.classList.remove('fullscreen');
-            if (exitBtn) exitBtn.classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('top-nav').classList.remove('hidden-ui');
+            document.getElementById('menu-container').classList.remove('fullscreen');
+            document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
             showControlsTemporarily();
         };
 
