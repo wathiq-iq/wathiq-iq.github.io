@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chocolate Guide-States</title>
+    <title>Chocolate Guide</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&family=Playfair+Display:wght@700&display=swap');
-        body { font-family: 'Cairo', sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
+        body { font-family: 'Cairo', sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; touch-action: none; }
         .serif { font-family: 'Playfair Display', serif; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         #menu-container { height: calc(100vh - 80px); transition: all 0.5s ease; }
         #menu-container.fullscreen { height: 100vh; }
         .hidden-ui { transform: translateY(-100%); opacity: 0; pointer-events: none; }
-        canvas, .image-display { max-width: 100%; max-height: 85vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border-radius: 8px; display: none; }
-        canvas.active, .image-display.active { display: block; animation: fadeIn 0.5s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        canvas, .image-display { max-width: 100%; max-height: 85vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border-radius: 8px; display: none; user-select: none; }
+        canvas.active, .image-display.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         /* شريط التنقل المصغر - شفافية محسنة */
         .mini-nav { 
@@ -41,53 +41,46 @@
         <div class="flex items-center gap-4">
             <div class="p-2 bg-amber-500 rounded-lg"><i data-lucide="utensils-crossed" class="text-white"></i></div>
             <div>
-                <h1 class="text-xl font-bold serif tracking-wide text-amber-500">Chocolate MENU</h1>
+                <h1 class="text-xl font-bold serif tracking-wide text-amber-500 uppercase">Chocolate Menu</h1>
                 <p class="text-xs text-slate-400 uppercase tracking-tighter">Chocolate Guide</p>
             </div>
         </div>
 
         <div class="flex items-center gap-4">
-            <!-- خيار رفع يدوي للمعاينة السريعة -->
-            <label class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all font-bold text-sm">
-                <input type="file" id="file-input" class="hidden" accept="image/*,application/pdf" multiple disabled>
-            </label>
-
             <button onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-white transition-colors">
                 <i data-lucide="maximize" class="w-6 h-6"></i>
             </button>
         </div>
     </header>
 
-    <main id="menu-container" class="flex-1 overflow-hidden p-4 md:p-10 flex flex-col items-center justify-center bg-slate-950 relative">
-        <!-- شاشة فارغة في حال عدم وجود ملفات -->
+    <main id="menu-container" class="flex-1 overflow-hidden flex flex-col items-center justify-center bg-slate-950 relative" onclick="showControlsTemporarily()">
+        <!-- شاشة فارغة -->
         <div id="empty-state" class="flex flex-col items-center justify-center h-full text-center space-y-6 max-w-md hidden">
             <div class="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center border-2 border-dashed border-slate-700">
                 <i data-lucide="server" class="w-12 h-12 text-slate-600"></i>
             </div>
-            <h2 class="text-2xl font-bold">لا توجد ملفات</h2>
-            <p class="text-slate-400">تأكد من إضافة روابط ملفاتك المرفوعة على الاستضافة داخل الكود البرمجي.</p>
+            <h2 class="text-2xl font-bold">No Files Found</h2>
+            <p class="text-slate-400 text-sm">Please update STABLE_MENU_ITEMS with your direct links.</p>
         </div>
 
-        <!-- منطقة عرض الصور/PDF -->
-        <div id="render-target" class="w-full h-full flex items-center justify-center relative"></div>
+        <!-- منطقة العرض -->
+        <div id="render-target" class="w-full h-full flex items-center justify-center relative select-none"></div>
 
-        <!-- أزرار التنقل -->
+        <!-- أزرار التنقل المصغرة (تختفي وتظهر) -->
         <div id="pagination-ctrl" class="fixed bottom-6 flex items-center gap-4 mini-nav rounded-full nav-hidden z-40">
-            <button id="prev-btn" onclick="changePage(-1)" class="nav-btn p-3 rounded-full text-amber-500"><i data-lucide="chevron-right"></i></button>
+            <button id="prev-btn" onclick="event.stopPropagation(); changePage(-1)" class="nav-btn p-2 rounded-full text-amber-500/70 hover:text-amber-500"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
             <div class="flex items-center gap-2 text-sm font-medium text-slate-400">
                 <span id="current-page" class="text-amber-500/80">0</span>
                 <span class="opacity-30">/</span>
                 <span id="total-pages">0</span>
             </div>
-            <button id="next-btn" onclick="changePage(1)" class="nav-btn p-3 rounded-full text-amber-500"><i data-lucide="chevron-left"></i></button>
+            <button id="next-btn" onclick="event.stopPropagation(); changePage(1)" class="nav-btn p-2 rounded-full text-amber-500/70 hover:text-amber-500"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
         </div>
 
-        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-6 left-6 glass-panel px-4 py-2 rounded-lg text-amber-500 text-sm font-bold opacity-0 pointer-events-none transition-all duration-300">إنهاء العرض (Esc)</button>
+        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-6 left-6 glass-panel px-4 py-2 rounded-lg text-amber-500 text-sm font-bold opacity-0 pointer-events-none transition-all duration-300">Exit (Esc)</button>
     </main>
 
     <script>
-        // --- إعدادات المنيو الخاصة بك (ضع روابطك هنا) ---
-        // يمكنك وضع روابط صور أو رابط ملف PDF واحد
         const STABLE_MENU_ITEMS = [
             'Chocolate Guide-States_1.webp',
             'Chocolate Guide-States_2.webp',
@@ -154,7 +147,6 @@
             'Chocolate Guide-States_63.png',
             'Chocolate Guide-States_64.png',
             'Chocolate Guide-States_65.png'
-            // أو ضع رابط PDF واحد فقط:'
         ];
 
         lucide.createIcons();
@@ -165,10 +157,12 @@
         let currentPage = 1;
         let totalPages = 0;
         let items = [];
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let hideTimeout;
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // وظيفة التحميل التلقائي عند فتح الصفحة
         window.onload = () => {
             if (STABLE_MENU_ITEMS && STABLE_MENU_ITEMS.length > 0) {
                 const firstItem = STABLE_MENU_ITEMS[0].toLowerCase();
@@ -180,28 +174,19 @@
             } else {
                 emptyState.classList.remove('hidden');
             }
+            showControlsTemporarily(); // إظهار التحكم عند التحميل لأول مرة
         };
 
-        // معالجة الرفع اليدوي للمعاينة
-        document.getElementById('file-input').addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) return;
-
-            const pdfFile = files.find(f => f.type === 'application/pdf');
-            if (pdfFile) {
-                const reader = new FileReader();
-                reader.onload = function() { processPdfSource(this.result); };
-                reader.readAsDataURL(pdfFile);
-            } else {
-                const imagePromises = files.map(file => new Promise(resolve => {
-                    const reader = new FileReader();
-                    reader.onload = e => resolve(e.target.result);
-                    reader.readAsDataURL(file);
-                }));
-                const sources = await Promise.all(imagePromises);
-                displayImagesFromSources(sources);
-            }
-        });
+        // وظيفة لإظهار شريط التنقل مؤقتاً
+        function showControlsTemporarily() {
+            paginationCtrl.classList.remove('nav-hidden');
+            
+            // إعادة ضبط المؤقت لإخفاء الشريط بعد 3 ثوانٍ
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                paginationCtrl.classList.add('nav-hidden');
+            }, 3000);
+        }
 
         async function displayImagesFromSources(sources) {
             initDisplay(sources.length);
@@ -222,7 +207,7 @@
                 initDisplay(pdf.numPages);
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
-                    const viewport = page.getViewport({ scale: 1.5 });
+                    const viewport = page.getViewport({ scale: 2 });
                     const canvas = document.createElement('canvas');
                     canvas.height = viewport.height;
                     canvas.width = viewport.width;
@@ -233,7 +218,7 @@
                 }
                 updatePaginationUI();
             } catch (err) {
-                console.error("خطأ في معالجة PDF:", err);
+                console.error("PDF Error:", err);
             }
         }
 
@@ -251,27 +236,47 @@
             currentPage = Math.max(1, Math.min(totalPages, currentPage + delta));
             items[currentPage - 1].classList.add('active');
             updatePaginationUI();
+            showControlsTemporarily(); // إظهار الشريط عند تغيير الصفحة
         }
 
         function updatePaginationUI() {
             document.getElementById('current-page').textContent = currentPage;
             document.getElementById('total-pages').textContent = totalPages;
-            paginationCtrl.classList.toggle('opacity-0', totalPages <= 1);
-            paginationCtrl.classList.toggle('translate-y-20', totalPages <= 1);
+        }
+
+        // --- دعم اللمس والتحكم بالإخفاء ---
+        renderTarget.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            showControlsTemporarily(); // إظهار الشريط عند لمس الشاشة
+        }, { passive: true });
+
+        renderTarget.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchEndX < touchStartX - swipeThreshold) changePage(1);
+            if (touchEndX > touchStartX + swipeThreshold) changePage(-1);
         }
 
         window.toggleAppFullscreen = () => {
             document.getElementById('top-nav').classList.add('hidden-ui');
             document.getElementById('menu-container').classList.add('fullscreen');
             document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
+            showControlsTemporarily();
         };
+        
         window.exitAppFullscreen = () => {
             document.getElementById('top-nav').classList.remove('hidden-ui');
             document.getElementById('menu-container').classList.remove('fullscreen');
             document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
+            showControlsTemporarily();
         };
 
         document.addEventListener('keydown', e => {
+            showControlsTemporarily();
             if (e.key === 'ArrowRight') changePage(-1);
             if (e.key === 'ArrowLeft') changePage(1);
             if (e.key === 'Escape') exitAppFullscreen();
