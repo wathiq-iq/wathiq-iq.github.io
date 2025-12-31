@@ -19,9 +19,19 @@
         canvas, .image-display { max-width: 100%; max-height: 85vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border-radius: 8px; display: none; }
         canvas.active, .image-display.active { display: block; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .nav-btn { background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.5); transition: all 0.3s; }
-        .nav-btn:hover:not(:disabled) { background: rgba(245, 158, 11, 0.4); transform: scale(1.1); }
-        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        /* شريط التنقل المصغر - شفافية محسنة */
+        .mini-nav { 
+            background: rgba(15, 23, 42, 0.6); 
+            backdrop-filter: blur(8px); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            scale: 0.85;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .nav-hidden { opacity: 0 !important; transform: translateY(20px) !important; pointer-events: none; }
+        .nav-btn { background: rgba(245, 158, 11, 0.1); transition: all 0.2s; }
+        .nav-btn:active { transform: scale(0.9); }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -62,10 +72,12 @@
         <div id="render-target" class="w-full h-full flex items-center justify-center relative"></div>
 
         <!-- أزرار التنقل -->
-        <div id="pagination-ctrl" class="fixed bottom-10 flex items-center gap-6 glass-panel px-6 py-3 rounded-full opacity-0 translate-y-20 transition-all duration-500">
+        <div id="pagination-ctrl" class="fixed bottom-6 flex items-center gap-4 mini-nav rounded-full nav-hidden z-40">
             <button id="prev-btn" onclick="changePage(-1)" class="nav-btn p-3 rounded-full text-amber-500"><i data-lucide="chevron-right"></i></button>
-            <div class="flex items-center gap-2 text-lg font-bold">
-                <span id="current-page">0</span><span class="text-slate-500">/</span><span id="total-pages" class="text-slate-400">0</span>
+            <div class="flex items-center gap-2 text-sm font-medium text-slate-400">
+                <span id="current-page" class="text-amber-500/80">0</span>
+                <span class="opacity-30">/</span>
+                <span id="total-pages">0</span>
             </div>
             <button id="next-btn" onclick="changePage(1)" class="nav-btn p-3 rounded-full text-amber-500"><i data-lucide="chevron-left"></i></button>
         </div>
