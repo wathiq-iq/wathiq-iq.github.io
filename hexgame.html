@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة خلية حروف المعرفة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #fefce8;
+            background-image: radial-gradient(#fef08a 0.5px, transparent 0.5px);
+            background-size: 20px 20px;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* حاوية الخلية السداسية 5x5 */
+        .honeycomb-grid {
+            display: grid;
+            /* 5 أعمدة بعرض 80 بكسل */
+            grid-template-columns: repeat(5, 80px); 
+            /* ارتفاع الصف 70 بكسل للسماح بالتداخل */
+            grid-auto-rows: 65px; 
+            gap: 5px 5px;
+            margin-top: 40px;
+            justify-content: center;
+            /* إضافة حاشية يمنى للسماح بمساحة الإزاحة */
+            padding-right: 40px; 
+        }
+
+        .hexagon-wrapper {
+            position: relative;
+            width: 80px;
+            height: 90px;
+        }
+
+        /* منطق الإزاحة لشبكة 5 أعمدة */
+        /* الصف الثاني (العناصر 6-10)، الصف الرابع (العناصر 16-20) إلخ */
+        /* يتم إزاحة كل صف زوجي بمقدار نصف عرض السداسي */
+        .hexagon-wrapper:nth-child(10n+6), 
+        .hexagon-wrapper:nth-child(10n+7), 
+        .hexagon-wrapper:nth-child(10n+8), 
+        .hexagon-wrapper:nth-child(10n+9), 
+        .hexagon-wrapper:nth-child(10n+10) {
+            left: 45px; 
+        }
+
+        .hexagon {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            font-size: 1.6rem;
+            font-weight: bold;
+            transition: transform 0.2s, background-color 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* الحالات اللونية */
+        .state-0 { background-color: white; color: #92400e; }
+        .state-0:hover { background-color: #fffbeb; transform: scale(1.05); z-index: 10; }
+        
+        .state-1 { background-color: #4b5563; color: white; } /* مضلل */
+        .state-2 { background-color: #10b981; color: white; } /* أخضر */
+        .state-3 { background-color: #f59e0b; color: white; } /* برتقالي */
+
+        #questionArea {
+            transition: all 0.5s ease;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(217, 119, 6, 0.1);
+            border-top: 4px solid #d97706;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 500px) {
+            .honeycomb-grid {
+                grid-template-columns: repeat(5, 60px);
+                grid-auto-rows: 55px;
+                padding-right: 30px;
+            }
+            .hexagon-wrapper { width: 60px; height: 70px; }
+            .hexagon-wrapper:nth-child(10n+6), 
+            .hexagon-wrapper:nth-child(10n+7), 
+            .hexagon-wrapper:nth-child(10n+8), 
+            .hexagon-wrapper:nth-child(10n+9), 
+            .hexagon-wrapper:nth-child(10n+10) {
+                left: 35px;
+            }
+            .hexagon { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="max-w-4xl w-full">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-extrabold text-amber-900 mb-2">خلية حروف المعرفة 5x5 🐝</h1>
+            <p class="text-amber-800 font-medium">مصفوفة متراصة مكونة من 25 حرفاً</p>
+        </header>
+
+        <div class="flex justify-center mb-4">
+            <button id="shuffleBtn" class="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-xl font-bold transition-all shadow-md active:scale-95 flex items-center gap-2">
+                <span>إعادة ترتيب 🎲</span>
+            </button>
+        </div>
+
+        <div id="grid" class="honeycomb-grid">
+            <!-- ستولد الحروف هنا -->
+        </div>
+
+        <div id="questionArea" class="mt-24 bg-white p-6 rounded-3xl shadow-2xl border-2 border-amber-100 hidden mx-auto relative">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-amber-900 flex items-center gap-3">
+                    <span id="charBadge" class="bg-amber-500 text-white w-10 h-10 flex items-center justify-center rounded-full shadow-inner font-bold"></span>
+                    <span>لغز النحلة الذكية</span>
+                </h2>
+                <button onclick="document.getElementById('questionArea').classList.add('hidden')" class="text-gray-400 hover:text-red-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div id="loading" class="flex flex-col items-center gap-4 py-6">
+                <div class="loading-spinner"></div>
+                <span class="text-amber-800 font-bold">جاري جلب السؤال...</span>
+            </div>
+
+            <div id="contentWrapper" class="hidden">
+                <p id="questionContent" class="text-lg text-gray-800 mb-6 text-center leading-relaxed font-bold"></p>
+                <div id="optionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // اختيار 25 حرفاً للمصفوفة 5x5
+        const allLetters = ["أ", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "هـ", "و", "ي"];
+        let gameData = [];
+        const apiKey = "AIzaSyCyBnGDJOMN0ZhXDXthjVZXleT2_XkgVY8"; 
+
+        const grid = document.getElementById('grid');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const questionArea = document.getElementById('questionArea');
+        const charBadge = document.getElementById('charBadge');
+        const questionContent = document.getElementById('questionContent');
+        const optionsGrid = document.getElementById('optionsGrid');
+        const loading = document.getElementById('loading');
+        const contentWrapper = document.getElementById('contentWrapper');
+
+        function initGame() {
+            // نختار أول 25 حرفاً لملء المصفوفة 5x5
+            const selectedLetters = allLetters.slice(0, 25);
+            gameData = selectedLetters.map(char => ({ char, state: 0 }));
+            renderGrid();
+        }
+
+        function renderGrid() {
+            grid.innerHTML = '';
+            gameData.forEach((item, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'hexagon-wrapper';
+                
+                const card = document.createElement('div');
+                card.className = `hexagon state-${item.state}`;
+                card.textContent = item.char;
+                card.onclick = () => handleCardClick(index);
+                
+                wrapper.appendChild(card);
+                grid.appendChild(wrapper);
+            });
+        }
+
+        async function handleCardClick(index) {
+            const item = gameData[index];
+            item.state = (item.state + 1) % 4;
+            
+            if (item.state === 1) {
+                showQuestion(item.char);
+            } else if (item.state === 0) {
+                questionArea.classList.add('hidden');
+            }
+            renderGrid();
+        }
+
+        function shuffle() {
+            gameData.sort(() => Math.random() - 0.5);
+            questionArea.classList.add('hidden');
+            renderGrid();
+        }
+
+        async function fetchQuestionData(char) {
+            const userPrompt = `أعطني لغزاً قصيراً جوابه يبدأ بحرف "${char}". وزودني بـ 4 خيارات كلها تبدأ بحرف "${char}".
+            الجواب يجب أن يكون بتنسيق JSON حصراً: {"question": "...", "options": ["...", "...", "...", "..."], "answer": "..."}`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+                const data = await response.json();
+                return JSON.parse(data.candidates[0].content.parts[0].text);
+            } catch (error) {
+                return {
+                    question: `شيء يبدأ بحرف ${char}؟`,
+                    options: [char+" 1", char+" 2", char+" 3", char+" 4"],
+                    answer: char+" 1"
+                };
+            }
+        }
+
+        async function showQuestion(char) {
+            questionArea.classList.remove('hidden');
+            questionArea.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            charBadge.textContent = char;
+            loading.classList.remove('hidden');
+            contentWrapper.classList.add('hidden');
+
+            const data = await fetchQuestionData(char);
+            
+            questionContent.textContent = data.question;
+            optionsGrid.innerHTML = '';
+            
+            data.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'p-3 rounded-xl text-center bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold border-2 border-amber-100 transition-all';
+                btn.textContent = opt;
+                btn.onclick = () => {
+                    if(opt === data.answer) {
+                        btn.className = 'p-3 rounded-xl text-center bg-green-500 text-white font-bold border-2 border-green-600';
+                    } else {
+                        btn.className = 'p-3 rounded-xl text-center bg-red-500 text-white font-bold border-2 border-red-600';
+                        Array.from(optionsGrid.children).forEach(b => {
+                            if(b.textContent === data.answer) b.classList.add('ring-2', 'ring-green-400', 'bg-green-100', 'text-green-800');
+                        });
+                    }
+                };
+                optionsGrid.appendChild(btn);
+            });
+
+            loading.classList.add('hidden');
+            contentWrapper.classList.remove('hidden');
+        }
+
+        shuffleBtn.onclick = shuffle;
+        window.onload = initGame;
+    </script>
+</body>
+</html>
