@@ -2,17 +2,20 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chocolate Guide</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- استخدام رابط ثابت ومستقر لمكتبة PinchZoom -->
-    <script src="https://cdn.jsdelivr.net/npm/pinch-zoom-js@2.3.4/dist/pinch-zoom.umd.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&family=Playfair+Display:wght@700&display=swap');
-        body { font-family: 'Cairo', sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            overflow: hidden; 
+            touch-action: manipulation;
+        }
         .serif { font-family: 'Playfair Display', serif; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         
@@ -20,13 +23,31 @@
         #menu-container.fullscreen { height: 100vh; }
         .hidden-ui { transform: translateY(-100%); opacity: 0; pointer-events: none; }
         
-        /* تحسين حاوية التكبير */
-        .zoom-wrapper { width: 100%; height: 100%; display: none; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
-        .zoom-wrapper.active { display: flex; animation: fadeIn 0.4s ease-out; }
+        /* تحسين أداء الحاويات */
+        .page-wrapper { 
+            width: 100%; 
+            height: 100%; 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden;
+            will-change: transform, opacity;
+        }
+        .page-wrapper.active { display: flex; animation: fadeIn 0.3s ease-out; }
         
-        .image-display { max-width: 95%; max-height: 85vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border-radius: 12px; user-select: none; background: #1e293b; }
+        .image-display { 
+            max-width: 95%; 
+            max-height: 85vh; 
+            object-fit: contain; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
+            border-radius: 12px; 
+            user-select: none; 
+            background: #1e293b;
+            /* منع الوميض عند التحميل */
+            content-visibility: auto;
+        }
 
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
         
         .mini-nav { 
             background: rgba(15, 23, 42, 0.85); 
@@ -40,6 +61,14 @@
         .nav-hidden { opacity: 0 !important; transform: translateY(20px) !important; pointer-events: none; }
         .nav-btn { background: rgba(245, 158, 11, 0.15); transition: all 0.2s; border: 1px solid rgba(245, 158, 11, 0.2); }
         .nav-btn:active { transform: scale(0.9); background: rgba(245, 158, 11, 0.3); }
+
+        /* مظهر الهيكل العظمي أثناء التحميل */
+        .skeleton {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading { to { background-position: -200% 0; } }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -63,9 +92,12 @@
     <main id="menu-container" class="flex-1 overflow-hidden flex flex-col items-center justify-center bg-slate-950 relative" onclick="showControlsTemporarily()">
         
         <div id="render-target" class="w-full h-full relative select-none">
-            <!-- تحميل تلقائي لمؤشر التحميل -->
-            <div id="loader" class="absolute inset-0 flex items-center justify-center z-10">
-                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+            <!-- لودر البداية -->
+            <div id="loader" class="absolute inset-0 flex items-center justify-center z-10 bg-slate-950">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+                    <p class="text-amber-500 text-sm animate-pulse">جاري التحميل...</p>
+                </div>
             </div>
         </div>
 
@@ -100,55 +132,55 @@
             'Chocolate Guide-States_14.webp',
             'Chocolate Guide-States_15.webp',
             'Chocolate Guide-States_16.webp',
-            'Chocolate Guide-States_17.png',
-            'Chocolate Guide-States_18.png',
-            'Chocolate Guide-States_19.png',
-            'Chocolate Guide-States_20.png',
-            'Chocolate Guide-States_21.png',
-            'Chocolate Guide-States_22.png',
-            'Chocolate Guide-States_23.png',
-            'Chocolate Guide-States_24.png',
-            'Chocolate Guide-States_25.png',
-            'Chocolate Guide-States_26.png',
-            'Chocolate Guide-States_27.png',
-            'Chocolate Guide-States_28.png',
-            'Chocolate Guide-States_29.png',
-            'Chocolate Guide-States_30.png',
-            'Chocolate Guide-States_31.png',
-            'Chocolate Guide-States_32.png',
-            'Chocolate Guide-States_33.png',
-            'Chocolate Guide-States_34.png',
-            'Chocolate Guide-States_35.png',
-            'Chocolate Guide-States_36.png',
-            'Chocolate Guide-States_37.png',
-            'Chocolate Guide-States_38.png',
-            'Chocolate Guide-States_39.png',
-            'Chocolate Guide-States_40.png',
-            'Chocolate Guide-States_41.png',
-            'Chocolate Guide-States_42.png',
-            'Chocolate Guide-States_43.png',
-            'Chocolate Guide-States_44.png',
-            'Chocolate Guide-States_45.png',
-            'Chocolate Guide-States_46.png',
-            'Chocolate Guide-States_47.png',
-            'Chocolate Guide-States_48.png',
-            'Chocolate Guide-States_49.png',
-            'Chocolate Guide-States_50.png',
-            'Chocolate Guide-States_51.png',
-            'Chocolate Guide-States_52.png',
-            'Chocolate Guide-States_53.png',
-            'Chocolate Guide-States_54.png',
-            'Chocolate Guide-States_55.png',
-            'Chocolate Guide-States_56.png',
-            'Chocolate Guide-States_57.png',
-            'Chocolate Guide-States_58.png',
-            'Chocolate Guide-States_59.png',
-            'Chocolate Guide-States_60.png',
-            'Chocolate Guide-States_61.png',
-            'Chocolate Guide-States_62.png',
-            'Chocolate Guide-States_63.png',
-            'Chocolate Guide-States_64.png',
-            'Chocolate Guide-States_65.png'
+            'Chocolate Guide-States_17.webp',
+            'Chocolate Guide-States_18.webp',
+            'Chocolate Guide-States_19.webp',
+            'Chocolate Guide-States_20.webp',
+            'Chocolate Guide-States_21.webp',
+            'Chocolate Guide-States_22.webp',
+            'Chocolate Guide-States_23.webp',
+            'Chocolate Guide-States_24.webp',
+            'Chocolate Guide-States_25.webp',
+            'Chocolate Guide-States_26.webp',
+            'Chocolate Guide-States_27.webp',
+            'Chocolate Guide-States_28.webp',
+            'Chocolate Guide-States_29.webp',
+            'Chocolate Guide-States_30.webp',
+            'Chocolate Guide-States_31.webp',
+            'Chocolate Guide-States_32.webp',
+            'Chocolate Guide-States_33.webp',
+            'Chocolate Guide-States_34.webp',
+            'Chocolate Guide-States_35.webp',
+            'Chocolate Guide-States_36.webp',
+            'Chocolate Guide-States_37.webp',
+            'Chocolate Guide-States_38.webp',
+            'Chocolate Guide-States_39.webp',
+            'Chocolate Guide-States_40.webp',
+            'Chocolate Guide-States_41.webp',
+            'Chocolate Guide-States_42.webp',
+            'Chocolate Guide-States_43.webp',
+            'Chocolate Guide-States_44.webp',
+            'Chocolate Guide-States_45.webp',
+            'Chocolate Guide-States_46.webp',
+            'Chocolate Guide-States_47.webp',
+            'Chocolate Guide-States_48.webp',
+            'Chocolate Guide-States_49.webp',
+            'Chocolate Guide-States_50.webp',
+            'Chocolate Guide-States_51.webp',
+            'Chocolate Guide-States_52.webp',
+            'Chocolate Guide-States_53.webp',
+            'Chocolate Guide-States_54.webp',
+            'Chocolate Guide-States_55.webp',
+            'Chocolate Guide-States_56.webp',
+            'Chocolate Guide-States_57.webp',
+            'Chocolate Guide-States_58.webp',
+            'Chocolate Guide-States_59.webp',
+            'Chocolate Guide-States_60.webp',
+            'Chocolate Guide-States_61.webp',
+            'Chocolate Guide-States_62.webp',
+            'Chocolate Guide-States_63.webp',
+            'Chocolate Guide-States_64.webp',
+            'Chocolate Guide-States_65.webp'
         ];
 
         lucide.createIcons();
@@ -157,14 +189,12 @@
         const loader = document.getElementById('loader');
         
         let currentPage = 1;
-        let totalPages = 0;
+        let totalPages = STABLE_MENU_ITEMS.length;
         let wrappers = [];
         let hideTimeout;
 
         window.onload = () => {
-            if (STABLE_MENU_ITEMS && STABLE_MENU_ITEMS.length > 0) {
-                displayImagesFromSources(STABLE_MENU_ITEMS);
-            }
+            initApp();
             showControlsTemporarily();
         };
 
@@ -174,60 +204,56 @@
             clearTimeout(hideTimeout);
             hideTimeout = setTimeout(() => {
                 paginationCtrl.classList.add('nav-hidden');
-            }, 3500);
+            }, 3000);
         }
 
-        async function displayImagesFromSources(sources) {
-            // تنظيف الهدف مع الحفاظ على اللودر
-            const existingWrappers = renderTarget.querySelectorAll('.zoom-wrapper');
-            existingWrappers.forEach(el => el.remove());
-            
+        function initApp() {
+            renderTarget.querySelectorAll('.page-wrapper').forEach(el => el.remove());
             wrappers = [];
-            currentPage = 1;
-            totalPages = sources.length;
-
-            sources.forEach((src, index) => {
+            
+            // إنشاء الهياكل الأساسية لجميع الصفحات دون تحميل الصور
+            STABLE_MENU_ITEMS.forEach((src, index) => {
                 const wrapper = document.createElement('div');
-                wrapper.className = 'zoom-wrapper' + (index === 0 ? ' active' : '');
+                wrapper.className = 'page-wrapper' + (index === 0 ? ' active' : '');
+                wrapper.setAttribute('data-src', src);
+                wrapper.setAttribute('data-index', index);
                 
-                const img = document.createElement('img');
-                img.src = src;
-                img.className = 'image-display';
-                
-                // إخفاء اللودر عند تحميل أول صورة
-                if (index === 0) {
-                    img.onload = () => { if(loader) loader.style.display = 'none'; };
-                }
-                
-                wrapper.appendChild(img);
                 renderTarget.appendChild(wrapper);
                 wrappers.push(wrapper);
-
-                // تهيئة PinchZoom
-                initPinchZoom(wrapper);
             });
+
             updatePaginationUI();
+            // تحميل الصفحة الأولى فوراً
+            loadPageContent(1);
+            // تحميل ذكي للصفحات المجاورة
+            preloadAdjacentPages(1);
         }
 
-        function initPinchZoom(el) {
-            // محاولة الوصول للمكتبة بطرق مختلفة لضمان التوافق
-            let PZ = window.PinchZoom;
-            if (typeof PZ !== 'function' && window.default && typeof window.default.PinchZoom === 'function') {
-                PZ = window.default.PinchZoom;
-            }
+        // وظيفة التحميل الذكي للصورة
+        function loadPageContent(pageNumber) {
+            const index = pageNumber - 1;
+            const wrapper = wrappers[index];
+            if (!wrapper || wrapper.querySelector('img')) return;
 
-            if (typeof PZ === 'function') {
-                try {
-                    new PZ(el, {
-                        draggableUnzoomed: false,
-                        minZoom: 1,
-                        maxZoom: 4,
-                        onZoomStart: () => clearTimeout(hideTimeout)
-                    });
-                } catch (e) {
-                    console.error("PinchZoom Init Error:", e);
-                }
-            }
+            const img = document.createElement('img');
+            img.className = 'image-display skeleton';
+            img.src = wrapper.getAttribute('data-src');
+            
+            img.onload = () => {
+                img.classList.remove('skeleton');
+                if (pageNumber === 1 && loader) loader.style.display = 'none';
+            };
+
+            wrapper.appendChild(img);
+        }
+
+        // تحميل الصور المجاورة (الصفحة التالية والسابقة) في الخلفية
+        function preloadAdjacentPages(pageNumber) {
+            const next = pageNumber + 1;
+            const prev = pageNumber - 1;
+
+            if (next <= totalPages) loadPageContent(next);
+            if (prev >= 1) loadPageContent(prev);
         }
 
         function changePage(delta) {
@@ -236,10 +262,18 @@
             const nextIdx = currentPage + delta - 1;
             if (nextIdx < 0 || nextIdx >= totalPages) return;
 
-            // تبديل الفئات النشطة
+            // إخفاء الصفحة الحالية
             wrappers[currentPage - 1].classList.remove('active');
+            
             currentPage = nextIdx + 1;
+            
+            // تحميل المحتوى إذا لم يتم تحميله بعد
+            loadPageContent(currentPage);
+            // إظهار الصفحة الجديدة
             wrappers[currentPage - 1].classList.add('active');
+            
+            // الاستعداد للصفحة القادمة
+            preloadAdjacentPages(currentPage);
             
             updatePaginationUI();
             showControlsTemporarily();
@@ -250,8 +284,7 @@
             document.getElementById('total-pages').textContent = totalPages;
         }
 
-        // تفاعلات واجهة المستخدم
-        renderTarget.addEventListener('mousedown', () => showControlsTemporarily());
+        renderTarget.addEventListener('click', () => showControlsTemporarily());
         renderTarget.addEventListener('touchstart', () => showControlsTemporarily(), {passive: true});
 
         window.toggleAppFullscreen = () => {
