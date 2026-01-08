@@ -19,9 +19,10 @@
         .serif { font-family: 'Playfair Display', serif; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         
-        #menu-container { height: calc(100vh - 80px); transition: all 0.5s ease; position: relative; }
+        #menu-container { height: calc(100vh - 120px); transition: all 0.5s ease; position: relative; }
         #menu-container.fullscreen { height: 100vh; }
         .hidden-ui { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+        .hidden-footer { transform: translateY(100%); opacity: 0; pointer-events: none; }
         
         /* تحسين أداء الحاويات */
         .page-wrapper { 
@@ -37,13 +38,12 @@
         
         .image-display { 
             max-width: 95%; 
-            max-height: 85vh; 
+            max-height: 80vh; 
             object-fit: contain; 
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
             border-radius: 12px; 
             user-select: none; 
             background: #1e293b;
-            /* منع الوميض عند التحميل */
             content-visibility: auto;
         }
 
@@ -62,13 +62,23 @@
         .nav-btn { background: rgba(245, 158, 11, 0.15); transition: all 0.2s; border: 1px solid rgba(245, 158, 11, 0.2); }
         .nav-btn:active { transform: scale(0.9); background: rgba(245, 158, 11, 0.3); }
 
-        /* مظهر الهيكل العظمي أثناء التحميل */
         .skeleton {
             background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
             background-size: 200% 100%;
             animation: loading 1.5s infinite;
         }
         @keyframes loading { to { background-position: -200% 0; } }
+
+        footer {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: rgba(248, 250, 252, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.5s ease;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -83,7 +93,7 @@
         </div>
 
         <div class="flex items-center gap-4">
-            <button onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-white transition-colors">
+            <button id="fullscreen-btn" onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-white transition-colors">
                 <i data-lucide="maximize" class="w-6 h-6"></i>
             </button>
         </div>
@@ -101,7 +111,7 @@
             </div>
         </div>
 
-        <div id="pagination-ctrl" class="fixed bottom-8 flex items-center gap-6 mini-nav rounded-full nav-hidden z-40">
+        <div id="pagination-ctrl" class="fixed bottom-12 flex items-center gap-6 mini-nav rounded-full nav-hidden z-40">
             <button id="prev-btn" onclick="event.stopPropagation(); changePage(-1)" class="nav-btn p-3 rounded-full text-amber-500 hover:bg-amber-500/10"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
             <div class="flex items-center gap-3 text-base font-bold text-slate-300">
                 <span id="current-page" class="text-amber-500">0</span>
@@ -111,7 +121,7 @@
             <button id="next-btn" onclick="event.stopPropagation(); changePage(1)" class="nav-btn p-3 rounded-full text-amber-500 hover:bg-amber-500/10"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
         </div>
 
-        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-6 left-6 glass-panel px-4 py-2 rounded-lg text-amber-500 text-sm font-bold opacity-0 pointer-events-none transition-all duration-300">Exit (Esc)</button>
+        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-6 left-6 glass-panel px-4 py-2 rounded-lg text-amber-500 text-sm font-bold opacity-0 pointer-events-none transition-all duration-300 z-50">Exit (Esc)</button>
     </main>
 
     <footer id="main-footer" class="glass-panel z-50">
@@ -191,7 +201,11 @@
         const renderTarget = document.getElementById('render-target');
         const paginationCtrl = document.getElementById('pagination-ctrl');
         const loader = document.getElementById('loader');
+        const yearSpan = document.getElementById('year');
         
+        // تعيين السنة الحالية
+        if(yearSpan) yearSpan.textContent = new Date().getFullYear();
+
         let currentPage = 1;
         let totalPages = STABLE_MENU_ITEMS.length;
         let wrappers = [];
@@ -208,14 +222,13 @@
             clearTimeout(hideTimeout);
             hideTimeout = setTimeout(() => {
                 paginationCtrl.classList.add('nav-hidden');
-            }, 3000);
+            }, 3500);
         }
 
         function initApp() {
             renderTarget.querySelectorAll('.page-wrapper').forEach(el => el.remove());
             wrappers = [];
             
-            // إنشاء الهياكل الأساسية لجميع الصفحات دون تحميل الصور
             STABLE_MENU_ITEMS.forEach((src, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'page-wrapper' + (index === 0 ? ' active' : '');
@@ -227,13 +240,10 @@
             });
 
             updatePaginationUI();
-            // تحميل الصفحة الأولى فوراً
             loadPageContent(1);
-            // تحميل ذكي للصفحات المجاورة
             preloadAdjacentPages(1);
         }
 
-        // وظيفة التحميل الذكي للصورة
         function loadPageContent(pageNumber) {
             const index = pageNumber - 1;
             const wrapper = wrappers[index];
@@ -251,7 +261,6 @@
             wrapper.appendChild(img);
         }
 
-        // تحميل الصور المجاورة (الصفحة التالية والسابقة) في الخلفية
         function preloadAdjacentPages(pageNumber) {
             const next = pageNumber + 1;
             const prev = pageNumber - 1;
@@ -266,17 +275,10 @@
             const nextIdx = currentPage + delta - 1;
             if (nextIdx < 0 || nextIdx >= totalPages) return;
 
-            // إخفاء الصفحة الحالية
             wrappers[currentPage - 1].classList.remove('active');
-            
             currentPage = nextIdx + 1;
-            
-            // تحميل المحتوى إذا لم يتم تحميله بعد
             loadPageContent(currentPage);
-            // إظهار الصفحة الجديدة
             wrappers[currentPage - 1].classList.add('active');
-            
-            // الاستعداد للصفحة القادمة
             preloadAdjacentPages(currentPage);
             
             updatePaginationUI();
@@ -293,6 +295,7 @@
 
         window.toggleAppFullscreen = () => {
             document.getElementById('top-nav').classList.add('hidden-ui');
+            document.getElementById('main-footer').classList.add('hidden-footer');
             document.getElementById('menu-container').classList.add('fullscreen');
             document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
             showControlsTemporarily();
@@ -300,6 +303,7 @@
         
         window.exitAppFullscreen = () => {
             document.getElementById('top-nav').classList.remove('hidden-ui');
+            document.getElementById('main-footer').classList.remove('hidden-footer');
             document.getElementById('menu-container').classList.remove('fullscreen');
             document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
             showControlsTemporarily();
