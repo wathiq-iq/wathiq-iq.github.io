@@ -3,32 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Chocolate Guide - Ultra Fast</title>
+    <title>Chocolate Guide</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Playfair+Display:wght@700&display=swap');
         
-        :root {
-            --bg-dark: #020617;
-            --accent-gold: #f59e0b;
-        }
-
+        :root { --bg-dark: #020617; --accent-gold: #f59e0b; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body { 
             font-family: 'Cairo', sans-serif; 
             background-color: var(--bg-dark); 
             color: #f8fafc; 
             overflow: hidden; 
-            touch-action: none; /* منع السحب العشوائي للمتصفح */
+            touch-action: none;
             -webkit-font-smoothing: antialiased;
         }
 
         .serif { font-family: 'Playfair Display', serif; }
-        
-        /* تصميم زجاجي فائق النقاء */
         .glass-panel { 
             background: rgba(15, 23, 42, 0.8); 
             backdrop-filter: blur(20px); 
@@ -36,134 +30,84 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
         }
         
-        /* حاوية العرض الرئيسية - ملء الشاشة */
         #menu-container { 
-            height: calc(100vh - 80px - 40px); /* المساحة المتبقية بعد الهيدر والفوتر */
+            height: calc(100vh - 80px - 40px); 
             width: 100vw;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            transition: all 0.3s ease; 
             position: relative; 
             background: #000;
+            overflow: hidden;
         }
 
-        #menu-container.fullscreen { 
-            height: 100vh; 
-            width: 100vw;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 100;
-        }
+        #menu-container.fullscreen { height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; z-index: 100; }
         
         .hidden-ui { transform: translateY(-100%); opacity: 0; pointer-events: none; }
         .hidden-footer { transform: translateY(100%); opacity: 0; pointer-events: none; }
         
-        /* حاوية الصفحة - ملء كامل */
         .page-wrapper { 
-            position: absolute;
-            inset: 0;
-            display: none; 
-            align-items: center; 
-            justify-content: center; 
-            overflow: hidden;
-            will-change: opacity;
-            transform: translateZ(0); /* تسريع عتادي */
+            position: absolute; inset: 0; display: none; align-items: center; justify-content: center; 
+            will-change: opacity; transform: translateZ(0);
         }
-
         .page-wrapper.active { display: flex; animation: fastFade 0.2s ease-out; }
         
-        /* الصورة بملء الشاشة دون فراغات */
-        .image-display { 
-            width: 100%;
-            height: 100%;
-            object-fit: contain; /* يحافظ على النسبة ويملأ المساحة المتاحة */
-            user-select: none;
-            -webkit-user-drag: none;
-            transition: transform 0.2s ease;
+        .image-display { width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+
+        /* منطقة تفاعلية فوق الباركود */
+        .qr-hotspot {
+            position: absolute;
+            border: 2px solid rgba(245, 158, 11, 0.5);
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 20;
+            animation: qrPulse 2s infinite;
         }
 
-        @keyframes fastFade { 
-            from { opacity: 0; } 
-            to { opacity: 1; } 
+        @keyframes qrPulse {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
         }
+
+        @keyframes fastFade { from { opacity: 0; } to { opacity: 1; } }
         
-        /* أزرار التنقل العائمة */
         .mini-nav { 
-            background: rgba(0, 0, 0, 0.6); 
+            background: rgba(0, 0, 0, 0.7); 
             backdrop-filter: blur(10px); 
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 0.5rem 1rem;
-            transform: scale(1);
             transition: all 0.3s ease;
         }
-        
         .nav-hidden { opacity: 0 !important; transform: translateY(30px) scale(0.9) !important; pointer-events: none; }
-        
-        .nav-btn { 
-            background: rgba(245, 158, 11, 0.2); 
-            color: #f59e0b;
-            border-radius: 9999px;
-            padding: 0.75rem;
-            transition: all 0.2s;
-        }
+        .nav-btn { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border-radius: 9999px; padding: 0.75rem; transition: all 0.2s; }
         .nav-btn:active { transform: scale(0.85); background: rgba(245, 158, 11, 0.4); }
 
-        /* هيكل التحميل الذكي */
-        .skeleton {
-            background: #0f172a;
-            position: relative;
-            overflow: hidden;
-        }
-        .skeleton::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-            animation: slide 1.5s infinite;
-        }
-        @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
-
-        footer {
-            height: 40px;
-            background: #020617;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.4);
-            z-index: 40;
-        }
+        footer { height: 40px; background: #020617; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); z-index: 40; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-    <!-- الهيدر -->
     <header id="top-nav" class="h-20 glass-panel z-50 flex items-center justify-between px-6 sticky top-0 transition-all duration-300">
         <div class="flex items-center gap-3">
-            <div class="p-2 bg-amber-600 rounded-lg shadow-lg"><i data-lucide="book-open" class="text-white w-5 h-5"></i></div>
+            <div class="p-2 bg-amber-600 rounded-lg shadow-lg"><i data-lucide="scan-eye" class="text-white w-5 h-5"></i></div>
             <div>
                 <h1 class="text-lg font-bold serif tracking-tight text-amber-500 uppercase leading-none">Chocolate Menu</h1>
-                <p class="text-[10px] text-slate-500 uppercase mt-1 tracking-widest">Premium Collection</p>
+                <p class="text-[10px] text-slate-500 uppercase mt-1 tracking-widest">Smart Multi-Scan</p>
             </div>
         </div>
-
-        <button id="fullscreen-btn" onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-white transition-colors">
-            <i data-lucide="maximize" class="w-6 h-6"></i>
-        </button>
+        <button onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-white"><i data-lucide="maximize" class="w-6 h-6"></i></button>
     </header>
 
-    <!-- منطقة العرض الرئيسية -->
-    <main id="menu-container" class="flex-1 overflow-hidden flex flex-col items-center justify-center relative" onclick="showControlsTemporarily()">
-        
-        <div id="render-target" class="w-full h-full relative select-none">
-            <!-- المؤشر الأولي -->
+    <main id="menu-container" class="flex-1 relative" onclick="handleGlobalClick(event)">
+        <div id="render-target" class="w-full h-full relative">
             <div id="loader" class="absolute inset-0 flex items-center justify-center z-10 bg-black">
-                <div class="flex flex-col items-center gap-4">
-                    <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-amber-500"></div>
-                </div>
+                <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-amber-500"></div>
             </div>
         </div>
 
-        <!-- أزرار التحكم -->
+        <!-- حاوية النقاط التفاعلية للباركود -->
+        <div id="hotspot-layer" class="absolute inset-0 pointer-events-none z-20"></div>
+
         <div id="pagination-ctrl" class="fixed bottom-12 flex items-center gap-6 mini-nav rounded-full nav-hidden z-[110]">
             <button onclick="event.stopPropagation(); changePage(-1)" class="nav-btn"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
             <div class="flex items-center gap-3 font-bold text-slate-200">
@@ -174,61 +118,106 @@
             <button onclick="event.stopPropagation(); changePage(1)" class="nav-btn"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
         </div>
 
-        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-6 left-6 glass-panel px-4 py-2 rounded-full text-amber-500 text-xs font-bold opacity-0 pointer-events-none transition-all duration-300 z-[120] border border-amber-500/20">خروج من ملء الشاشة</button>
+        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-6 left-6 glass-panel px-4 py-2 rounded-full text-amber-500 text-xs font-bold opacity-0 pointer-events-none transition-all duration-300 z-[120] border border-amber-500/20">خروج</button>
     </main>
 
-    <!-- الفوتر -->
-    <footer id="main-footer" class="transition-all duration-300">
+    <footer id="main-footer">
         <p>هذه البرمجيات من دار المها للطباعة، ديالى &copy; <span id="year"></span></p>
     </footer>
 
     <script>
-        const CACHE_NAME = 'choc-menu-v3';
         const STABLE_MENU_ITEMS = [
-            'https://wathiq-iq.github.io/Chocolate%20Guide-States_1.webp',
-            'https://wathiq-iq.github.io/Chocolate%20Guide-States_2.webp'
+            'Chocolate Guide-States_1.webp',
+            'Chocolate Guide-States_2.webp',
+            'Chocolate Guide-States_3.webp',
+            'Chocolate Guide-States_4.webp',
+            'Chocolate Guide-States_5.webp',
+            'Chocolate Guide-States_6.webp',
+            'Chocolate Guide-States_7.webp',
+            'Chocolate Guide-States_8.webp',
+            'Chocolate Guide-States_9.webp',
+            'Chocolate Guide-States_10.webp',
+            'Chocolate Guide-States_11.webp',
+            'Chocolate Guide-States_12.webp',
+            'Chocolate Guide-States_13.webp',
+            'Chocolate Guide-States_14.webp',
+            'Chocolate Guide-States_15.webp',
+            'Chocolate Guide-States_16.webp',
+            'Chocolate Guide-States_17.webp',
+            'Chocolate Guide-States_18.webp',
+            'Chocolate Guide-States_19.webp',
+            'Chocolate Guide-States_20.webp',
+            'Chocolate Guide-States_21.webp',
+            'Chocolate Guide-States_22.webp',
+            'Chocolate Guide-States_23.webp',
+            'Chocolate Guide-States_24.webp',
+            'Chocolate Guide-States_25.webp',
+            'Chocolate Guide-States_26.webp',
+            'Chocolate Guide-States_27.webp',
+            'Chocolate Guide-States_28.webp',
+            'Chocolate Guide-States_29.webp',
+            'Chocolate Guide-States_30.webp',
+            'Chocolate Guide-States_31.webp',
+            'Chocolate Guide-States_32.webp',
+            'Chocolate Guide-States_33.webp',
+            'Chocolate Guide-States_34.webp',
+            'Chocolate Guide-States_35.webp',
+            'Chocolate Guide-States_36.webp',
+            'Chocolate Guide-States_37.webp',
+            'Chocolate Guide-States_38.webp',
+            'Chocolate Guide-States_39.webp',
+            'Chocolate Guide-States_40.webp',
+            'Chocolate Guide-States_41.webp',
+            'Chocolate Guide-States_42.webp',
+            'Chocolate Guide-States_43.webp',
+            'Chocolate Guide-States_44.webp',
+            'Chocolate Guide-States_45.webp',
+            'Chocolate Guide-States_46.webp',
+            'Chocolate Guide-States_47.webp',
+            'Chocolate Guide-States_48.webp',
+            'Chocolate Guide-States_49.webp',
+            'Chocolate Guide-States_50.webp',
+            'Chocolate Guide-States_51.webp',
+            'Chocolate Guide-States_52.webp',
+            'Chocolate Guide-States_53.webp',
+            'Chocolate Guide-States_54.webp',
+            'Chocolate Guide-States_55.webp',
+            'Chocolate Guide-States_56.webp',
+            'Chocolate Guide-States_57.webp',
+            'Chocolate Guide-States_58.webp',
+            'Chocolate Guide-States_59.webp',
+            'Chocolate Guide-States_60.webp',
+            'Chocolate Guide-States_61.webp',
+            'Chocolate Guide-States_62.webp',
+            'Chocolate Guide-States_63.webp',
+            'Chocolate Guide-States_64.webp',
+            'Chocolate Guide-States_65.webp'
         ];
 
         lucide.createIcons();
-
         const renderTarget = document.getElementById('render-target');
+        const hotspotLayer = document.getElementById('hotspot-layer');
         const paginationCtrl = document.getElementById('pagination-ctrl');
         const loader = document.getElementById('loader');
-        const yearSpan = document.getElementById('year');
         
-        if(yearSpan) yearSpan.textContent = new Date().getFullYear();
+        document.getElementById('year').textContent = new Date().getFullYear();
 
         let currentPage = 1;
         let totalPages = STABLE_MENU_ITEMS.length;
         let wrappers = [];
         let hideTimeout;
+        let qrDataStore = {}; // تخزين إحداثيات وروابط كل صفحة
 
-        window.addEventListener('DOMContentLoaded', () => {
-            initApp();
-            setupOfflineCache();
-            showControlsTemporarily();
-        });
-
-        // تحسين الـ Cache لجعل الموقع يعمل فوراً في المرات القادمة
-        async function setupOfflineCache() {
-            if ('caches' in window) {
-                const cache = await caches.open(CACHE_NAME);
-                STABLE_MENU_ITEMS.forEach(url => cache.add(url).catch(() => {}));
-            }
-        }
+        window.addEventListener('DOMContentLoaded', initApp);
 
         function showControlsTemporarily() {
             paginationCtrl.classList.remove('nav-hidden');
             clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(() => {
-                paginationCtrl.classList.add('nav-hidden');
-            }, 2500);
+            hideTimeout = setTimeout(() => paginationCtrl.classList.add('nav-hidden'), 2500);
         }
 
         function initApp() {
             const fragment = document.createDocumentFragment();
-            wrappers = [];
-            
             STABLE_MENU_ITEMS.forEach((src, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = `page-wrapper ${index === 0 ? 'active' : ''}`;
@@ -236,54 +225,118 @@
                 fragment.appendChild(wrapper);
                 wrappers.push(wrapper);
             });
-
             renderTarget.appendChild(fragment);
-            updatePaginationUI();
-            
-            loadPageContent(1); // تحميل الصفحة الأولى
-            preloadStrategy(1); // تحميل الصفحات المجاورة
+            document.getElementById('total-pages').textContent = totalPages;
+            document.getElementById('current-page').textContent = 1;
+            loadPage(1);
         }
 
-        async function loadPageContent(pageNumber) {
+        async function loadPage(pageNumber) {
             const index = pageNumber - 1;
             const wrapper = wrappers[index];
-            if (!wrapper || wrapper.querySelector('img')) return;
-
-            const url = wrapper.dataset.src;
-            const img = new Image();
-            img.className = 'image-display skeleton';
-            img.decoding = 'async'; 
-            
-            // محاولة التحميل من الكاش لزيادة السرعة
-            if ('caches' in window) {
-                const cache = await caches.open(CACHE_NAME);
-                const match = await cache.match(url);
-                if (match) {
-                    const blob = await match.blob();
-                    img.src = URL.createObjectURL(blob);
-                } else {
-                    img.src = url;
-                }
-            } else {
-                img.src = url;
+            if (!wrapper || wrapper.querySelector('img')) {
+                renderHotspots(pageNumber);
+                return;
             }
-            
+
+            const img = new Image();
+            img.className = 'image-display';
+            img.crossOrigin = "Anonymous";
             img.onload = () => {
-                img.classList.remove('skeleton');
                 if (pageNumber === 1) {
                     loader.style.opacity = '0';
                     setTimeout(() => loader.style.display = 'none', 300);
                 }
+                scanForMultipleQR(img, pageNumber);
             };
+            img.src = wrapper.dataset.src;
             wrapper.appendChild(img);
         }
 
-        function preloadStrategy(current) {
-            [current + 1, current - 1, current + 2].forEach(p => {
-                if (p >= 1 && p <= totalPages) {
-                    setTimeout(() => loadPageContent(p), 100);
-                }
+        // مسح الصورة لاكتشاف كافة الباركودات ومواقعها
+        function scanForMultipleQR(img, pageNumber) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            // ملاحظة: jsQR يكتشف كود واحد في المسحة الواحدة، لكننا سنقوم بمسح متقدم إذا لزم الأمر مستقبلاً.
+            // حالياً سنلتقط الكود الأساسي بدقة إحداثيات.
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            
+            if (code) {
+                qrDataStore[pageNumber] = qrDataStore[pageNumber] || [];
+                qrDataStore[pageNumber].push({
+                    url: code.data,
+                    location: code.location // يحتوي على إحداثيات الزوايا الأربعة
+                });
+                if (pageNumber === currentPage) renderHotspots(pageNumber);
+            }
+        }
+
+        // رسم المناطق التفاعلية فوق الباركود
+        function renderHotspots(pageNumber) {
+            hotspotLayer.innerHTML = '';
+            const pageData = qrDataStore[pageNumber];
+            if (!pageData) return;
+
+            const wrapper = wrappers[pageNumber - 1];
+            const img = wrapper.querySelector('img');
+            if (!img) return;
+
+            // حساب أبعاد الصورة الحقيقية داخل الـ contain
+            const rect = img.getBoundingClientRect();
+            const imgRatio = img.naturalWidth / img.naturalHeight;
+            const containerRatio = rect.width / rect.height;
+
+            let actualW, actualH, offsetX, offsetY;
+            if (imgRatio > containerRatio) {
+                actualW = rect.width;
+                actualH = rect.width / imgRatio;
+                offsetX = rect.left;
+                offsetY = rect.top + (rect.height - actualH) / 2;
+            } else {
+                actualH = rect.height;
+                actualW = rect.height * imgRatio;
+                offsetY = rect.top;
+                offsetX = rect.left + (rect.width - actualW) / 2;
+            }
+
+            pageData.forEach(qr => {
+                const loc = qr.location;
+                // تحويل الإحداثيات من حجم الصورة الأصلي إلى الحجم المعروض على الشاشة
+                const scaleX = actualW / img.naturalWidth;
+                const scaleY = actualH / img.naturalHeight;
+
+                const hs = document.createElement('div');
+                hs.className = 'qr-hotspot pointer-events-auto';
+                
+                // تحديد موقع الـ Hotspot (المربع المحيط بالباركود)
+                const left = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x) * scaleX + offsetX;
+                const top = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y) * scaleY + offsetY;
+                const width = (Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x) - Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x)) * scaleX;
+                const height = (Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y) - Math.min(loc.topLeftCorner.y, loc.topRightCorner.y)) * scaleY;
+
+                hs.style.left = `${left}px`;
+                hs.style.top = `${top}px`;
+                hs.style.width = `${width}px`;
+                hs.style.height = `${height}px`;
+
+                hs.onclick = (e) => {
+                    e.stopPropagation();
+                    window.open(qr.url, '_blank');
+                };
+                hotspotLayer.appendChild(hs);
             });
+        }
+
+        function handleGlobalClick(e) {
+            // إذا كانت النقرة ليست على زر أو hotspot، اظهر التحكم
+            if (!e.target.closest('button') && !e.target.closest('.qr-hotspot')) {
+                showControlsTemporarily();
+            }
         }
 
         function changePage(delta) {
@@ -292,26 +345,19 @@
 
             wrappers[currentPage - 1].classList.remove('active');
             currentPage = nextIdx + 1;
-            
-            loadPageContent(currentPage);
             wrappers[currentPage - 1].classList.add('active');
             
-            preloadStrategy(currentPage);
-            updatePaginationUI();
+            document.getElementById('current-page').textContent = currentPage;
+            loadPage(currentPage);
             showControlsTemporarily();
         }
 
-        function updatePaginationUI() {
-            document.getElementById('current-page').textContent = currentPage;
-            document.getElementById('total-pages').textContent = totalPages;
-        }
-
-        // وضع ملء الشاشة الحقيقي
         window.toggleAppFullscreen = () => {
             document.getElementById('top-nav').classList.add('hidden-ui');
             document.getElementById('main-footer').classList.add('hidden-footer');
             document.getElementById('menu-container').classList.add('fullscreen');
             document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => renderHotspots(currentPage), 310);
         };
         
         window.exitAppFullscreen = () => {
@@ -319,14 +365,10 @@
             document.getElementById('main-footer').classList.remove('hidden-footer');
             document.getElementById('menu-container').classList.remove('fullscreen');
             document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => renderHotspots(currentPage), 310);
         };
 
-        // اختصارات الكيبورد
-        document.addEventListener('keydown', e => {
-            if (e.key === 'ArrowRight') changePage(-1);
-            if (e.key === 'ArrowLeft') changePage(1);
-            if (e.key === 'Escape') exitAppFullscreen();
-        }, { passive: true });
+        window.onresize = () => renderHotspots(currentPage);
     </script>
 </body>
 </html>
