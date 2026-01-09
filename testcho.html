@@ -3,40 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Chocolate Guide</title>
+    <title>Chocolate Guide - Multi-Scan Precision</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- مكتبة jsQR لمعالجة الرموز -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Playfair+Display:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
         
-        :root { --bg-dark: #020617; --accent-gold: #f59e0b; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { 
+            --bg-dark: #020617; 
+            --accent-gold: #f59e0b; 
+            --glass: rgba(15, 23, 42, 0.8);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+        
         body { 
             font-family: 'Cairo', sans-serif; 
             background-color: var(--bg-dark); 
             color: #f8fafc; 
             overflow: hidden; 
-            touch-action: none;
+            touch-action: manipulation;
             -webkit-font-smoothing: antialiased;
         }
 
         .serif { font-family: 'Playfair Display', serif; }
-        .glass-panel { 
-            background: rgba(15, 23, 42, 0.8); 
-            backdrop-filter: blur(20px); 
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+        
+        /* تصميم الهيدر الزجاجي */
+        .glass-header { 
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
         }
         
         #menu-container { 
             height: calc(100vh - 80px - 40px); 
             width: 100vw;
-            transition: all 0.3s ease; 
+            transition: all 0.5s ease; 
             position: relative; 
             background: #000;
-            overflow: hidden;
         }
 
         #menu-container.fullscreen { height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; z-index: 100; }
@@ -48,85 +56,141 @@
             position: absolute; inset: 0; display: none; align-items: center; justify-content: center; 
             will-change: opacity; transform: translateZ(0);
         }
-        .page-wrapper.active { display: flex; animation: fastFade 0.2s ease-out; }
+        .page-wrapper.active { display: flex; animation: fadeIn 0.4s ease; }
         
-        .image-display { width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+        .image-display { width: 100%; height: 100%; object-fit: contain; user-select: none; }
 
-        /* منطقة تفاعلية فوق الباركود */
+        /* حاوية المربعات التفاعلية */
         .qr-hotspot {
             position: absolute;
-            border: 2px solid rgba(245, 158, 11, 0.5);
+            border: 2px solid var(--accent-gold);
             background: rgba(245, 158, 11, 0.1);
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            z-index: 20;
-            animation: qrPulse 2s infinite;
+            z-index: 40;
+            pointer-events: auto;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
         }
-
-        @keyframes qrPulse {
-            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
-
-        @keyframes fastFade { from { opacity: 0; } to { opacity: 1; } }
         
-        .mini-nav { 
-            background: rgba(0, 0, 0, 0.7); 
-            backdrop-filter: blur(10px); 
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 0.5rem 1rem;
-            transition: all 0.3s ease;
+        .qr-hotspot:hover {
+            background: rgba(245, 158, 11, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+            z-index: 50;
         }
-        .nav-hidden { opacity: 0 !important; transform: translateY(30px) scale(0.9) !important; pointer-events: none; }
-        .nav-btn { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border-radius: 9999px; padding: 0.75rem; transition: all 0.2s; }
-        .nav-btn:active { transform: scale(0.85); background: rgba(245, 158, 11, 0.4); }
 
-        footer { height: 40px; background: #020617; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); z-index: 40; }
+        .qr-label {
+            position: absolute;
+            bottom: -25px;
+            background: var(--accent-gold);
+            color: black;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* أزرار التحكم */
+        .nav-panel { 
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.6rem 1.2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: all 0.4s ease;
+        }
+        
+        .nav-hidden { opacity: 0 !important; transform: translateY(40px) scale(0.95) !important; pointer-events: none; }
+        
+        .btn-action {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--accent-gold);
+            transition: all 0.2s;
+        }
+        
+        .btn-action:hover { background: var(--accent-gold); color: black; }
+
+        footer { 
+            height: 40px; 
+            background: #020617; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.7rem; 
+            color: rgba(255, 255, 255, 0.4); 
+            z-index: 40;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-    <header id="top-nav" class="h-20 glass-panel z-50 flex items-center justify-between px-6 sticky top-0 transition-all duration-300">
-        <div class="flex items-center gap-3">
-            <div class="p-2 bg-amber-600 rounded-lg shadow-lg"><i data-lucide="scan-eye" class="text-white w-5 h-5"></i></div>
+    <header id="top-nav" class="h-20 glass-header z-50 flex items-center justify-between px-8 sticky top-0 transition-all duration-500">
+        <div class="flex items-center gap-4">
+            <div class="p-2 bg-amber-600 rounded-lg shadow-lg"><i data-lucide="scan-face" class="text-white w-5 h-5"></i></div>
             <div>
                 <h1 class="text-lg font-bold serif tracking-tight text-amber-500 uppercase leading-none">Chocolate Menu</h1>
-                <p class="text-[10px] text-slate-500 uppercase mt-1 tracking-widest">Smart Multi-Scan</p>
+                <p class="text-[10px] text-slate-400 tracking-widest mt-1">SMART INTERACTIVE DISPLAY</p>
             </div>
         </div>
-        <button onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-white"><i data-lucide="maximize" class="w-6 h-6"></i></button>
+        <button onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-amber-500 transition-all">
+            <i data-lucide="maximize" class="w-6 h-6"></i>
+        </button>
     </header>
 
-    <main id="menu-container" class="flex-1 relative" onclick="handleGlobalClick(event)">
+    <main id="menu-container" class="flex-1 relative" onclick="handleGlobalInteraction(event)">
         <div id="render-target" class="w-full h-full relative">
-            <div id="loader" class="absolute inset-0 flex items-center justify-center z-10 bg-black">
-                <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-amber-500"></div>
+            <div id="loader" class="absolute inset-0 flex items-center justify-center z-10 bg-slate-950">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="w-12 h-12 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
+                    <span class="text-amber-500 text-[10px] font-bold tracking-widest uppercase">جاري معالجة الصور...</span>
+                </div>
             </div>
         </div>
 
-        <!-- حاوية النقاط التفاعلية للباركود -->
-        <div id="hotspot-layer" class="absolute inset-0 pointer-events-none z-20"></div>
+        <!-- طبقة الباركودات المكتشفة -->
+        <div id="hotspot-layer" class="absolute inset-0 pointer-events-none z-30"></div>
 
-        <div id="pagination-ctrl" class="fixed bottom-12 flex items-center gap-6 mini-nav rounded-full nav-hidden z-[110]">
-            <button onclick="event.stopPropagation(); changePage(-1)" class="nav-btn"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
-            <div class="flex items-center gap-3 font-bold text-slate-200">
-                <span id="current-page" class="text-amber-500">0</span>
-                <span class="opacity-20">/</span>
-                <span id="total-pages">0</span>
+        <!-- أزرار التحكم بالتنقل -->
+        <div id="pagination-ctrl" class="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-6 nav-panel rounded-full nav-hidden z-[110]">
+            <button onclick="event.stopPropagation(); changePage(-1)" class="btn-action">
+                <i data-lucide="chevron-right" class="w-6 h-6"></i>
+            </button>
+            
+            <div class="flex items-center gap-3 font-bold text-sm">
+                <span id="current-page" class="text-amber-500">1</span>
+                <span class="text-slate-600">/</span>
+                <span id="total-pages" class="text-slate-400">2</span>
             </div>
-            <button onclick="event.stopPropagation(); changePage(1)" class="nav-btn"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
+
+            <button onclick="event.stopPropagation(); changePage(1)" class="btn-action">
+                <i data-lucide="chevron-left" class="w-6 h-6"></i>
+            </button>
         </div>
 
-        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-6 left-6 glass-panel px-4 py-2 rounded-full text-amber-500 text-xs font-bold opacity-0 pointer-events-none transition-all duration-300 z-[120] border border-amber-500/20">خروج</button>
+        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-8 left-8 glass-header px-5 py-2 rounded-full text-amber-500 text-[10px] font-bold opacity-0 pointer-events-none transition-all duration-300 z-[120] border border-amber-500/20 hover:bg-amber-500 hover:text-black uppercase">إغلاق المعاينة</button>
     </main>
 
     <footer id="main-footer">
-        <p>هذه البرمجيات من دار المها للطباعة، ديالى &copy; <span id="year"></span></p>
+        <p>برمجيات دار المها للطباعة &copy; <span id="year"></span></p>
     </footer>
 
     <script>
-        const STABLE_MENU_ITEMS = [
+        // قائمة الصور (يمكن استبدالها لاحقاً بروابط الصور الفعلية)
+        const MENU_IMAGES = [
             'Chocolate Guide-States_1.webp',
             'Chocolate Guide-States_2.webp',
             'Chocolate Guide-States_3.webp',
@@ -203,22 +267,22 @@
         document.getElementById('year').textContent = new Date().getFullYear();
 
         let currentPage = 1;
-        let totalPages = STABLE_MENU_ITEMS.length;
+        let totalPages = MENU_IMAGES.length;
         let wrappers = [];
         let hideTimeout;
-        let qrDataStore = {}; // تخزين إحداثيات وروابط كل صفحة
+        let discoveredQRs = {}; // تخزين البيانات لكل صفحة
 
-        window.addEventListener('DOMContentLoaded', initApp);
+        window.addEventListener('DOMContentLoaded', initializeApp);
 
-        function showControlsTemporarily() {
+        function showControls() {
             paginationCtrl.classList.remove('nav-hidden');
             clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(() => paginationCtrl.classList.add('nav-hidden'), 2500);
+            hideTimeout = setTimeout(() => paginationCtrl.classList.add('nav-hidden'), 4000);
         }
 
-        function initApp() {
+        function initializeApp() {
             const fragment = document.createDocumentFragment();
-            STABLE_MENU_ITEMS.forEach((src, index) => {
+            MENU_IMAGES.forEach((src, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = `page-wrapper ${index === 0 ? 'active' : ''}`;
                 wrapper.dataset.src = src;
@@ -227,34 +291,35 @@
             });
             renderTarget.appendChild(fragment);
             document.getElementById('total-pages').textContent = totalPages;
-            document.getElementById('current-page').textContent = 1;
-            loadPage(1);
+            loadPageData(1);
+            showControls();
         }
 
-        async function loadPage(pageNumber) {
-            const index = pageNumber - 1;
+        async function loadPageData(pageNo) {
+            const index = pageNo - 1;
             const wrapper = wrappers[index];
             if (!wrapper || wrapper.querySelector('img')) {
-                renderHotspots(pageNumber);
+                renderQRBoxes(pageNo);
                 return;
             }
 
             const img = new Image();
             img.className = 'image-display';
-            img.crossOrigin = "Anonymous";
+            img.crossOrigin = "Anonymous"; // للسماح بقراءة البكسلات من سيرفر خارجي
             img.onload = () => {
-                if (pageNumber === 1) {
+                if (pageNo === 1) {
                     loader.style.opacity = '0';
-                    setTimeout(() => loader.style.display = 'none', 300);
+                    setTimeout(() => loader.style.display = 'none', 500);
                 }
-                scanForMultipleQR(img, pageNumber);
+                // تنفيذ مسح ذكي عند تحميل الصورة
+                processImageForQRs(img, pageNo);
             };
             img.src = wrapper.dataset.src;
             wrapper.appendChild(img);
         }
 
-        // مسح الصورة لاكتشاف كافة الباركودات ومواقعها
-        function scanForMultipleQR(img, pageNumber) {
+        // خوارزمية البحث عن باركودات متعددة
+        function processImageForQRs(img, pageNo) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = img.naturalWidth;
@@ -262,80 +327,86 @@
             ctx.drawImage(img, 0, 0);
             
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            // ملاحظة: jsQR يكتشف كود واحد في المسحة الواحدة، لكننا سنقوم بمسح متقدم إذا لزم الأمر مستقبلاً.
-            // حالياً سنلتقط الكود الأساسي بدقة إحداثيات.
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
             
-            if (code) {
-                qrDataStore[pageNumber] = qrDataStore[pageNumber] || [];
-                qrDataStore[pageNumber].push({
-                    url: code.data,
-                    location: code.location // يحتوي على إحداثيات الزوايا الأربعة
-                });
-                if (pageNumber === currentPage) renderHotspots(pageNumber);
+            // حالياً jsQR يكتشف واحداً، سنقوم بعمل مسح للقطاعات إذا أردنا اكتشاف أكثر من واحد بفعالية أكبر
+            // لكن النسخة الأساسية تكتشف الكود الأبرز. قمنا بتجهيز الهيكل لدعم مصفوفة من النتائج.
+            const result = jsQR(imageData.data, imageData.width, imageData.height);
+            
+            if (result) {
+                discoveredQRs[pageNo] = discoveredQRs[pageNo] || [];
+                // إضافة الكود المكتشف إذا لم يكن موجوداً
+                if (!discoveredQRs[pageNo].find(q => q.data === result.data)) {
+                    discoveredQRs[pageNo].push({
+                        data: result.data,
+                        location: result.location
+                    });
+                }
+                if (pageNo === currentPage) renderQRBoxes(pageNo);
             }
         }
 
-        // رسم المناطق التفاعلية فوق الباركود
-        function renderHotspots(pageNumber) {
+        function renderQRBoxes(pageNo) {
             hotspotLayer.innerHTML = '';
-            const pageData = qrDataStore[pageNumber];
-            if (!pageData) return;
+            const data = discoveredQRs[pageNo];
+            if (!data || data.length === 0) return;
 
-            const wrapper = wrappers[pageNumber - 1];
-            const img = wrapper.querySelector('img');
+            const img = wrappers[pageNo - 1].querySelector('img');
             if (!img) return;
 
-            // حساب أبعاد الصورة الحقيقية داخل الـ contain
             const rect = img.getBoundingClientRect();
             const imgRatio = img.naturalWidth / img.naturalHeight;
             const containerRatio = rect.width / rect.height;
 
-            let actualW, actualH, offsetX, offsetY;
+            let actualWidth, actualHeight, leftOffset, topOffset;
+
             if (imgRatio > containerRatio) {
-                actualW = rect.width;
-                actualH = rect.width / imgRatio;
-                offsetX = rect.left;
-                offsetY = rect.top + (rect.height - actualH) / 2;
+                actualWidth = rect.width;
+                actualHeight = rect.width / imgRatio;
+                leftOffset = rect.left;
+                topOffset = rect.top + (rect.height - actualHeight) / 2;
             } else {
-                actualH = rect.height;
-                actualW = rect.height * imgRatio;
-                offsetY = rect.top;
-                offsetX = rect.left + (rect.width - actualW) / 2;
+                actualHeight = rect.height;
+                actualWidth = rect.height * imgRatio;
+                topOffset = rect.top;
+                leftOffset = rect.left + (rect.width - actualWidth) / 2;
             }
 
-            pageData.forEach(qr => {
+            const scaleX = actualWidth / img.naturalWidth;
+            const scaleY = actualHeight / img.naturalHeight;
+
+            data.forEach(qr => {
                 const loc = qr.location;
-                // تحويل الإحداثيات من حجم الصورة الأصلي إلى الحجم المعروض على الشاشة
-                const scaleX = actualW / img.naturalWidth;
-                const scaleY = actualH / img.naturalHeight;
-
-                const hs = document.createElement('div');
-                hs.className = 'qr-hotspot pointer-events-auto';
+                const box = document.createElement('div');
+                box.className = 'qr-hotspot';
                 
-                // تحديد موقع الـ Hotspot (المربع المحيط بالباركود)
-                const left = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x) * scaleX + offsetX;
-                const top = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y) * scaleY + offsetY;
-                const width = (Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x) - Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x)) * scaleX;
-                const height = (Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y) - Math.min(loc.topLeftCorner.y, loc.topRightCorner.y)) * scaleY;
+                const x = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x) * scaleX + leftOffset;
+                const y = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y) * scaleY + topOffset;
+                const w = (Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x) - Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x)) * scaleX;
+                const h = (Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y) - Math.min(loc.topLeftCorner.y, loc.topRightCorner.y)) * scaleY;
 
-                hs.style.left = `${left}px`;
-                hs.style.top = `${top}px`;
-                hs.style.width = `${width}px`;
-                hs.style.height = `${height}px`;
+                box.style.left = `${x}px`;
+                box.style.top = `${y}px`;
+                box.style.width = `${w}px`;
+                box.style.height = `${h}px`;
 
-                hs.onclick = (e) => {
+                box.innerHTML = `
+                    <div class="qr-label">فتح الرابط</div>
+                    <i data-lucide="external-link" class="w-4 h-4 text-amber-500 opacity-50"></i>
+                `;
+
+                box.onclick = (e) => {
                     e.stopPropagation();
-                    window.open(qr.url, '_blank');
+                    window.open(qr.data, '_blank');
                 };
-                hotspotLayer.appendChild(hs);
+
+                hotspotLayer.appendChild(box);
+                lucide.createIcons();
             });
         }
 
-        function handleGlobalClick(e) {
-            // إذا كانت النقرة ليست على زر أو hotspot، اظهر التحكم
+        function handleGlobalInteraction(e) {
             if (!e.target.closest('button') && !e.target.closest('.qr-hotspot')) {
-                showControlsTemporarily();
+                showControls();
             }
         }
 
@@ -348,8 +419,8 @@
             wrappers[currentPage - 1].classList.add('active');
             
             document.getElementById('current-page').textContent = currentPage;
-            loadPage(currentPage);
-            showControlsTemporarily();
+            loadPageData(currentPage);
+            showControls();
         }
 
         window.toggleAppFullscreen = () => {
@@ -357,7 +428,7 @@
             document.getElementById('main-footer').classList.add('hidden-footer');
             document.getElementById('menu-container').classList.add('fullscreen');
             document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
-            setTimeout(() => renderHotspots(currentPage), 310);
+            setTimeout(() => renderQRBoxes(currentPage), 550);
         };
         
         window.exitAppFullscreen = () => {
@@ -365,10 +436,16 @@
             document.getElementById('main-footer').classList.remove('hidden-footer');
             document.getElementById('menu-container').classList.remove('fullscreen');
             document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => renderHotspots(currentPage), 310);
+            setTimeout(() => renderQRBoxes(currentPage), 550);
         };
 
-        window.onresize = () => renderHotspots(currentPage);
+        window.onresize = () => renderQRBoxes(currentPage);
+        
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowUp') changePage(-1);
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') changePage(1);
+            if (e.key === 'Escape') exitAppFullscreen();
+        });
     </script>
 </body>
 </html>
