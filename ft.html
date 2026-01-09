@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TOOT Fresh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&family=Playfair+Display:wght@700&display=swap');
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            overflow: hidden; 
+            touch-action: manipulation;
+        }
+        .serif { font-family: 'Playfair Display', serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        #menu-container { height: calc(100vh - 120px); transition: all 0.5s ease; position: relative; }
+        #menu-container.fullscreen { height: 100vh; }
+        .hidden-ui { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+        .hidden-footer { transform: translateY(100%); opacity: 0; pointer-events: none; }
+        
+        /* تحسين أداء الحاويات */
+        .page-wrapper { 
+            width: 100%; 
+            height: 100%; 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden;
+            will-change: transform, opacity;
+        }
+        .page-wrapper.active { display: flex; animation: fadeIn 0.3s ease-out; }
+        
+        .image-display { 
+            max-width: 95%; 
+            max-height: 80vh; 
+            object-fit: contain; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
+            border-radius: 12px; 
+            user-select: none; 
+            background: #1e293b;
+            content-visibility: auto;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+        
+        .mini-nav { 
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 0.6rem 1.2rem;
+            scale: 0.9;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        .nav-hidden { opacity: 0 !important; transform: translateY(20px) !important; pointer-events: none; }
+        .nav-btn { background: rgba(245, 158, 11, 0.15); transition: all 0.2s; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .nav-btn:active { transform: scale(0.9); background: rgba(245, 158, 11, 0.3); }
+
+        .skeleton {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading { to { background-position: -200% 0; } }
+
+        footer {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: rgba(248, 250, 252, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.5s ease;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <header id="top-nav" class="h-20 glass-panel z-50 flex items-center justify-between px-8 sticky top-0 transition-all duration-500">
+        <div class="flex items-center gap-4">
+            <div class="p-2 bg-amber-600 rounded-lg shadow-lg"><i data-lucide="book-open" class="text-white"></i></div>
+            <div>
+                <h1 class="text-xl font-bold serif tracking-wide text-amber-500 uppercase">TOOT Fresh Menu</h1>
+                <p class="text-xs text-slate-400 uppercase tracking-tighter">TOOT Fresh</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <button id="fullscreen-btn" onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="maximize" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </header>
+
+    <main id="menu-container" class="flex-1 overflow-hidden flex flex-col items-center justify-center bg-slate-950 relative" onclick="showControlsTemporarily()">
+        
+        <div id="render-target" class="w-full h-full relative select-none">
+            <!-- لودر البداية -->
+            <div id="loader" class="absolute inset-0 flex items-center justify-center z-10 bg-slate-950">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+                    <p class="text-amber-500 text-sm animate-pulse">جاري التحميل...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="pagination-ctrl" class="fixed bottom-12 flex items-center gap-6 mini-nav rounded-full nav-hidden z-40">
+            <button id="prev-btn" onclick="event.stopPropagation(); changePage(-1)" class="nav-btn p-3 rounded-full text-amber-500 hover:bg-amber-500/10"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
+            <div class="flex items-center gap-3 text-base font-bold text-slate-300">
+                <span id="current-page" class="text-amber-500">0</span>
+                <span class="opacity-20 text-xl">|</span>
+                <span id="total-pages">0</span>
+            </div>
+            <button id="next-btn" onclick="event.stopPropagation(); changePage(1)" class="nav-btn p-3 rounded-full text-amber-500 hover:bg-amber-500/10"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
+        </div>
+
+        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-6 left-6 glass-panel px-4 py-2 rounded-lg text-amber-500 text-sm font-bold opacity-0 pointer-events-none transition-all duration-300 z-50">Exit (Esc)</button>
+    </main>
+
+    <footer id="main-footer" class="glass-panel z-50">
+        <p>هذه البرمجيات من دار المها للطباعة، ديالى &copy; <span id="year"></span></p>
+    </footer>
+
+    <script>
+        const STABLE_MENU_ITEMS = [
+            'Tootfresh_1.webp',
+            'Tootfresh_2.webp',
+            'Tootfresh_3.webp',
+            'Tootfresh_4.webp',
+            'Tootfresh_5.webp',
+            'Tootfresh_6.webp',
+            'Tootfresh_7.webp',
+            'Tootfresh_8.webp',
+            'Tootfresh_9.webp',
+            'Tootfresh_10.webp',
+            'Tootfresh_11.webp',
+            'Tootfresh_12.webp',
+            'Tootfresh_13.webp',
+            'Tootfresh_14.webp',
+            'Tootfresh_15.webp',
+            'Tootfresh_16.webp'
+        ];
+
+        lucide.createIcons();
+        const renderTarget = document.getElementById('render-target');
+        const paginationCtrl = document.getElementById('pagination-ctrl');
+        const loader = document.getElementById('loader');
+        const yearSpan = document.getElementById('year');
+        
+        // تعيين السنة الحالية
+        if(yearSpan) yearSpan.textContent = new Date().getFullYear();
+
+        let currentPage = 1;
+        let totalPages = STABLE_MENU_ITEMS.length;
+        let wrappers = [];
+        let hideTimeout;
+
+        window.onload = () => {
+            initApp();
+            showControlsTemporarily();
+        };
+
+        function showControlsTemporarily() {
+            if (!paginationCtrl) return;
+            paginationCtrl.classList.remove('nav-hidden');
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                paginationCtrl.classList.add('nav-hidden');
+            }, 3500);
+        }
+
+        function initApp() {
+            renderTarget.querySelectorAll('.page-wrapper').forEach(el => el.remove());
+            wrappers = [];
+            
+            STABLE_MENU_ITEMS.forEach((src, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'page-wrapper' + (index === 0 ? ' active' : '');
+                wrapper.setAttribute('data-src', src);
+                wrapper.setAttribute('data-index', index);
+                
+                renderTarget.appendChild(wrapper);
+                wrappers.push(wrapper);
+            });
+
+            updatePaginationUI();
+            loadPageContent(1);
+            preloadAdjacentPages(1);
+        }
+
+        function loadPageContent(pageNumber) {
+            const index = pageNumber - 1;
+            const wrapper = wrappers[index];
+            if (!wrapper || wrapper.querySelector('img')) return;
+
+            const img = document.createElement('img');
+            img.className = 'image-display skeleton';
+            img.src = wrapper.getAttribute('data-src');
+            
+            img.onload = () => {
+                img.classList.remove('skeleton');
+                if (pageNumber === 1 && loader) loader.style.display = 'none';
+            };
+
+            wrapper.appendChild(img);
+        }
+
+        function preloadAdjacentPages(pageNumber) {
+            const next = pageNumber + 1;
+            const prev = pageNumber - 1;
+
+            if (next <= totalPages) loadPageContent(next);
+            if (prev >= 1) loadPageContent(prev);
+        }
+
+        function changePage(delta) {
+            if (totalPages <= 1) return;
+            
+            const nextIdx = currentPage + delta - 1;
+            if (nextIdx < 0 || nextIdx >= totalPages) return;
+
+            wrappers[currentPage - 1].classList.remove('active');
+            currentPage = nextIdx + 1;
+            loadPageContent(currentPage);
+            wrappers[currentPage - 1].classList.add('active');
+            preloadAdjacentPages(currentPage);
+            
+            updatePaginationUI();
+            showControlsTemporarily();
+        }
+
+        function updatePaginationUI() {
+            document.getElementById('current-page').textContent = currentPage;
+            document.getElementById('total-pages').textContent = totalPages;
+        }
+
+        renderTarget.addEventListener('click', () => showControlsTemporarily());
+        renderTarget.addEventListener('touchstart', () => showControlsTemporarily(), {passive: true});
+
+        window.toggleAppFullscreen = () => {
+            document.getElementById('top-nav').classList.add('hidden-ui');
+            document.getElementById('main-footer').classList.add('hidden-footer');
+            document.getElementById('menu-container').classList.add('fullscreen');
+            document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
+            showControlsTemporarily();
+        };
+        
+        window.exitAppFullscreen = () => {
+            document.getElementById('top-nav').classList.remove('hidden-ui');
+            document.getElementById('main-footer').classList.remove('hidden-footer');
+            document.getElementById('menu-container').classList.remove('fullscreen');
+            document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
+            showControlsTemporarily();
+        };
+
+        document.addEventListener('keydown', e => {
+            showControlsTemporarily();
+            if (e.key === 'ArrowRight') changePage(-1);
+            if (e.key === 'ArrowLeft') changePage(1);
+            if (e.key === 'Escape') exitAppFullscreen();
+        });
+    </script>
+</body>
+</html>
