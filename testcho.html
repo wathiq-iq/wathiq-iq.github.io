@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Chocolate Guide - Ultra Scan</title>
+    <title>Chocolate Guide</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -14,7 +14,7 @@
         :root { 
             --bg-dark: #020617; 
             --accent-gold: #f59e0b; 
-            --glass: rgba(15, 23, 42, 0.85);
+            --glass: rgba(15, 23, 42, 0.9);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
@@ -32,9 +32,9 @@
         
         .glass-header { 
             background: var(--glass);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
         }
         
         #menu-container { 
@@ -58,56 +58,72 @@
         
         .image-display { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
 
+        /* طبقة المربعات - مثبتة بدقة فوق الصورة */
+        #hotspot-layer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 40;
+        }
+
         .qr-hotspot {
             position: absolute;
             border: 2px solid var(--accent-gold);
-            background: rgba(245, 158, 11, 0.1);
-            border-radius: 8px;
+            background: rgba(245, 158, 11, 0.18);
+            border-radius: 12px;
             cursor: pointer;
-            z-index: 40;
             pointer-events: auto;
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+            animation: pulse-border 2s infinite;
         }
         
-        .qr-hotspot:active { transform: scale(0.92); }
-        .qr-hotspot:hover { background: rgba(245, 158, 11, 0.25); box-shadow: 0 0 25px rgba(245, 158, 11, 0.5); }
+        @keyframes pulse-border {
+            0% { border-color: rgba(245, 158, 11, 1); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+            50% { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 0 30px rgba(245, 158, 11, 0.6); }
+            100% { border-color: rgba(245, 158, 11, 1); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+        }
+
+        .qr-hotspot:active { transform: scale(0.9); }
+        .qr-hotspot:hover { background: rgba(245, 158, 11, 0.3); }
 
         .qr-label {
             position: absolute;
-            bottom: -32px;
+            bottom: -36px;
             background: var(--accent-gold);
             color: black;
             font-size: 10px;
             font-weight: 800;
-            padding: 3px 12px;
+            padding: 4px 14px;
             border-radius: 20px;
             white-space: nowrap;
             pointer-events: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.6);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            border: 1px solid rgba(0,0,0,0.1);
         }
 
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         
         .nav-panel { 
             background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 0.5rem 1rem;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            padding: 0.6rem 1.2rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
             transition: all 0.3s ease;
         }
         
         .nav-hidden { opacity: 0 !important; transform: translateY(30px) translateX(-50%) scale(0.9) !important; pointer-events: none; }
         
         .btn-action {
-            width: 42px;
-            height: 42px;
+            width: 46px;
+            height: 46px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -118,19 +134,19 @@
         }
         
         .btn-action:hover:not(:disabled) { background: var(--accent-gold); color: black; }
-        .btn-action:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-action:disabled { opacity: 0.2; cursor: not-allowed; }
 
-        footer { height: 40px; background: #020617; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: rgba(255, 255, 255, 0.3); z-index: 40; border-top: 1px solid rgba(255,255,255,0.05); }
+        footer { height: 40px; background: #020617; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: rgba(255, 255, 255, 0.3); z-index: 40; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
     <header id="top-nav" class="h-20 glass-header z-50 flex items-center justify-between px-6 sticky top-0 transition-all duration-500">
         <div class="flex items-center gap-4">
-            <div class="p-2 bg-amber-600 rounded-xl shadow-lg shadow-amber-900/20"><i data-lucide="qr-code" class="text-white w-5 h-5"></i></div>
+            <div class="p-2 bg-amber-600 rounded-xl shadow-lg shadow-amber-900/40"><i data-lucide="qr-code" class="text-white w-5 h-5"></i></div>
             <div>
                 <h1 class="text-lg font-bold serif tracking-tight text-amber-500 leading-none">Chocolate Menu</h1>
-                <p class="text-[9px] text-slate-400 tracking-[0.2em] mt-1 uppercase">Smart Interactive Guide</p>
+                <p class="text-[9px] text-slate-400 tracking-[0.2em] mt-1 uppercase">Smart Multi-Scan Guide</p>
             </div>
         </div>
         <button onclick="toggleAppFullscreen()" class="p-2.5 bg-slate-800/50 rounded-full text-slate-400 hover:text-amber-500 transition-all">
@@ -142,25 +158,25 @@
         <div id="render-target" class="w-full h-full">
             <div id="loader" class="absolute inset-0 flex items-center justify-center z-[60] bg-slate-950">
                 <div class="flex flex-col items-center gap-4">
-                    <div class="w-10 h-10 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
-                    <span class="text-amber-500 text-[10px] font-bold tracking-widest uppercase opacity-80">تحليل الأكواد...</span>
+                    <div class="w-12 h-12 border-2 border-amber-500/10 border-t-amber-500 rounded-full animate-spin"></div>
+                    <span class="text-amber-500 text-[10px] font-bold tracking-widest uppercase opacity-80 italic">تحليل الباركودات المتعددة...</span>
                 </div>
             </div>
         </div>
 
-        <div id="hotspot-layer" class="absolute inset-0 pointer-events-none z-30"></div>
+        <div id="hotspot-layer"></div>
 
         <div id="pagination-ctrl" class="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-5 nav-panel rounded-2xl nav-hidden z-[110]">
             <button onclick="event.stopPropagation(); changePage(-1)" id="prev-btn" class="btn-action">
-                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                <i data-lucide="chevron-right" class="w-6 h-6"></i>
             </button>
             <div class="flex items-center gap-3 font-bold text-xs">
                 <span id="current-page" class="text-amber-500 min-w-[12px] text-center">1</span>
                 <span class="text-slate-700">/</span>
-                <span id="total-pages" class="text-slate-500">42</span>
+                <span id="total-pages" class="text-slate-500">65</span>
             </div>
             <button onclick="event.stopPropagation(); changePage(1)" id="next-btn" class="btn-action">
-                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                <i data-lucide="chevron-left" class="w-6 h-6"></i>
             </button>
         </div>
 
@@ -179,6 +195,9 @@
         const paginationCtrl = document.getElementById('pagination-ctrl');
         const loader = document.getElementById('loader');
         
+        const sharedCanvas = document.createElement('canvas');
+        const sharedCtx = sharedCanvas.getContext('2d', { alpha: false, desynchronized: true });
+
         let currentPage = 1;
         let wrappers = [];
         let hideTimeout;
@@ -232,115 +251,119 @@
         }
 
         /**
-         * خوارزمية المسح الشبكي المحسنة:
-         * 1. تقسيم ذكي لتقليل عدد عمليات التحليل.
-         * 2. منع تكرار المربعات بناءً على تقارب الموقع الفيزيائي.
+         * خوارزمية المسح الشبكي المكثف (Intensive Grid Scanning):
+         * تقوم بمسح الصورة عبر 6 مناطق متداخلة لضمان التقاط كل الأكواد.
          */
         function processImageForQRs(img, pageNo) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d', { alpha: false });
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            ctx.drawImage(img, 0, 0);
+            sharedCanvas.width = img.naturalWidth;
+            sharedCanvas.height = img.naturalHeight;
+            sharedCtx.drawImage(img, 0, 0);
             
-            const results = [];
-            
-            // دالة مساعدة لمنع التكرار بناءً على المركز (Center point deduplication)
-            const isNewQR = (newLoc, content) => {
-                const newCX = (newLoc.topLeftCorner.x + newLoc.bottomRightCorner.x) / 2;
-                const newCY = (newLoc.topLeftCorner.y + newLoc.bottomRightCorner.y) / 2;
-                
-                return !results.some(existing => {
-                    const exCX = (existing.location.topLeftCorner.x + existing.location.bottomRightCorner.x) / 2;
-                    const exCY = (existing.location.topLeftCorner.y + existing.location.bottomRightCorner.y) / 2;
-                    const dist = Math.sqrt(Math.pow(newCX - exCX, 2) + Math.pow(newCY - exCY, 2));
-                    // إذا كان المركز قريباً جداً أو المحتوى متطابق، نعتبره مكرراً
-                    return dist < 45 || existing.data === content;
+            const finalResults = [];
+
+            // دالة الفحص المكاني لمنع التكرار مع السماح بالأكواد المختلفة
+            const isTrulyNew = (newCode) => {
+                const nLoc = newCode.location;
+                const nCX = (nLoc.topLeftCorner.x + nLoc.bottomRightCorner.x) / 2;
+                const nCY = (nLoc.topLeftCorner.y + nLoc.bottomRightCorner.y) / 2;
+
+                return !finalResults.some(existing => {
+                    const eLoc = existing.location;
+                    const eCX = (eLoc.topLeftCorner.x + eLoc.bottomRightCorner.x) / 2;
+                    const eCY = (eLoc.topLeftCorner.y + eLoc.bottomRightCorner.y) / 2;
+                    const dist = Math.hypot(nCX - eCX, nCY - eCY);
+                    
+                    // إذا كان المحتوى متطابق أو الموقع متداخل جداً
+                    return (existing.data === newCode.data) || (dist < 40);
                 });
             };
 
-            // 1. المسح الشامل (الأسرع)
-            const fullData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const mainRes = jsQR(fullData.data, fullData.width, fullData.height, { inversionAttempts: "attemptBoth" });
-            if (mainRes) results.push(mainRes);
-
-            // 2. المسح الشبكي الرباعي (أكثر فعالية من 3x3 للصور الطولية)
-            const regions = [
-                {x: 0, y: 0, w: canvas.width, h: canvas.height/1.8}, // النصف العلوي
-                {x: 0, y: canvas.height/2.2, w: canvas.width, h: canvas.height/1.8}, // النصف السفلي
-                {x: 0, y: canvas.height/4, w: canvas.width, h: canvas.height/2} // المنتصف
+            // تحديد 6 مناطق مسح (3 علوية، 3 سفلية متداخلة)
+            const w = sharedCanvas.width;
+            const h = sharedCanvas.height;
+            const zones = [
+                {x: 0, y: 0, width: w, height: h}, // الصورة كاملة
+                {x: 0, y: 0, width: w, height: h * 0.4}, // الجزء العلوي
+                {x: 0, y: h * 0.3, width: w, height: h * 0.4}, // المنتصف
+                {x: 0, y: h * 0.6, width: w, height: h * 0.4}, // الجزء السفلي
+                {x: 0, y: 0, width: w * 0.6, height: h}, // الجزء الأيمن
+                {x: w * 0.4, y: 0, width: w * 0.6, height: h} // الجزء الأيسر
             ];
 
-            regions.forEach(reg => {
-                const subData = ctx.getImageData(reg.x, reg.y, reg.w, reg.h);
-                const subRes = jsQR(subData.data, subData.width, subData.height, { inversionAttempts: "attemptBoth" });
+            zones.forEach(zone => {
+                const imageData = sharedCtx.getImageData(zone.x, zone.y, zone.width, zone.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
                 
-                if (subRes && isNewQR(subRes.location, subRes.data)) {
-                    subRes.location.topLeftCorner.x += reg.x; subRes.location.topLeftCorner.y += reg.y;
-                    subRes.location.topRightCorner.x += reg.x; subRes.location.topRightCorner.y += reg.y;
-                    subRes.location.bottomLeftCorner.x += reg.x; subRes.location.bottomLeftCorner.y += reg.y;
-                    subRes.location.bottomRightCorner.x += reg.x; subRes.location.bottomRightCorner.y += reg.y;
-                    results.push(subRes);
+                if (code) {
+                    // تصحيح الإحداثيات بالنسبة للصورة الأصلية
+                    const correctedCode = {
+                        data: code.data,
+                        location: {
+                            topLeftCorner: { x: code.location.topLeftCorner.x + zone.x, y: code.location.topLeftCorner.y + zone.y },
+                            topRightCorner: { x: code.location.topRightCorner.x + zone.x, y: code.location.topRightCorner.y + zone.y },
+                            bottomLeftCorner: { x: code.location.bottomLeftCorner.x + zone.x, y: code.location.bottomLeftCorner.y + zone.y },
+                            bottomRightCorner: { x: code.location.bottomRightCorner.x + zone.x, y: code.location.bottomRightCorner.y + zone.y }
+                        }
+                    };
+
+                    if (isTrulyNew(correctedCode)) {
+                        finalResults.push(correctedCode);
+                    }
                 }
             });
 
-            discoveredQRs.set(pageNo, results);
+            discoveredQRs.set(pageNo, finalResults);
             if (pageNo === currentPage) renderQRBoxes(pageNo);
         }
 
         function renderQRBoxes(pageNo) {
             hotspotLayer.innerHTML = '';
-            const data = discoveredQRs.get(pageNo);
-            if (!data || data.length === 0) return;
+            const codes = discoveredQRs.get(pageNo);
+            if (!codes || codes.length === 0) return;
 
             const img = wrappers[pageNo - 1].querySelector('img');
             if (!img) return;
 
-            // استخدام requestAnimationFrame لضمان دقة الحسابات بعد معالجة المتصفح للصور
-            requestAnimationFrame(() => {
-                const rect = img.getBoundingClientRect();
-                const containerW = rect.width;
-                const containerH = rect.height;
-                const naturalW = img.naturalWidth;
-                const naturalH = img.naturalHeight;
+            const container = document.getElementById('menu-container');
+            const cRect = container.getBoundingClientRect();
+            
+            const scale = Math.min(cRect.width / img.naturalWidth, cRect.height / img.naturalHeight);
+            const actualW = img.naturalWidth * scale;
+            const actualH = img.naturalHeight * scale;
 
-                const ratio = Math.min(containerW / naturalW, containerH / naturalH);
-                const actualW = naturalW * ratio;
-                const actualH = naturalH * ratio;
+            hotspotLayer.style.width = `${actualW}px`;
+            hotspotLayer.style.height = `${actualH}px`;
 
-                const offsetX = (containerW - actualW) / 2 + rect.left;
-                const offsetY = (containerH - actualH) / 2 + rect.top;
-                const scale = actualW / naturalW;
+            codes.forEach((qr, idx) => {
+                const loc = qr.location;
+                const minX = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x);
+                const minY = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y);
+                const maxX = Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x);
+                const maxY = Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y);
 
-                data.forEach(qr => {
-                    const loc = qr.location;
-                    const box = document.createElement('div');
-                    box.className = 'qr-hotspot';
-                    
-                    const minX = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x);
-                    const minY = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y);
-                    const maxX = Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x);
-                    const maxY = Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y);
+                const box = document.createElement('div');
+                box.className = 'qr-hotspot';
+                box.style.left = `${minX * scale}px`;
+                box.style.top = `${minY * scale}px`;
+                box.style.width = `${(maxX - minX) * scale}px`;
+                box.style.height = `${(maxY - minY) * scale}px`;
 
-                    box.style.left = `${minX * scale + offsetX}px`;
-                    box.style.top = `${minY * scale + offsetY}px`;
-                    box.style.width = `${(maxX - minX) * scale}px`;
-                    box.style.height = `${(maxY - minY) * scale}px`;
+                // ترقيم المربعات إذا وجد أكثر من واحد لسهولة التمييز
+                const labelText = codes.length > 1 ? `عرض العرض ${idx + 1}` : `فتح الرابط`;
+                
+                box.innerHTML = `
+                    <div class="qr-label">${labelText}</div>
+                    <i data-lucide="external-link" class="w-5 h-5 text-amber-500"></i>
+                `;
 
-                    box.innerHTML = `
-                        <div class="qr-label">فتح الرابط</div>
-                        <i data-lucide="external-link" class="w-4 h-4 text-amber-500"></i>
-                    `;
+                box.onclick = (e) => {
+                    e.stopPropagation();
+                    window.open(qr.data, '_blank');
+                };
 
-                    box.onclick = (e) => {
-                        e.stopPropagation();
-                        window.open(qr.data, '_unfencedTop');
-                    };
-
-                    hotspotLayer.appendChild(box);
-                });
-                lucide.createIcons();
+                hotspotLayer.appendChild(box);
             });
+            lucide.createIcons();
         }
 
         function changePage(delta) {
@@ -352,8 +375,8 @@
             wrappers[currentPage - 1].classList.add('active');
             
             document.getElementById('current-page').textContent = currentPage;
-            document.getElementById('prev-btn').disabled = currentPage === 1;
-            document.getElementById('next-btn').disabled = currentPage === MENU_IMAGES.length;
+            document.getElementById('prev-btn').disabled = (currentPage === 1);
+            document.getElementById('next-btn').disabled = (currentPage === MENU_IMAGES.length);
             
             loadPageData(currentPage);
             showControls();
@@ -369,18 +392,18 @@
             document.getElementById('top-nav').style.transform = 'translateY(-100%)';
             document.getElementById('menu-container').classList.add('fullscreen');
             document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
-            setTimeout(() => renderQRBoxes(currentPage), 400);
+            setTimeout(() => renderQRBoxes(currentPage), 350);
         };
         
         window.exitAppFullscreen = () => {
             document.getElementById('top-nav').style.transform = 'translateY(0)';
             document.getElementById('menu-container').classList.remove('fullscreen');
             document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => renderQRBoxes(currentPage), 400);
+            setTimeout(() => renderQRBoxes(currentPage), 350);
         };
 
         window.addEventListener('resize', () => renderQRBoxes(currentPage));
-        window.addEventListener('orientationchange', () => setTimeout(() => renderQRBoxes(currentPage), 300));
+        window.addEventListener('orientationchange', () => setTimeout(() => renderQRBoxes(currentPage), 500));
 
         document.addEventListener('keydown', e => {
             if (e.key === 'ArrowRight' || e.key === 'ArrowUp') changePage(-1);
