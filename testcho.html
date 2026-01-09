@@ -358,7 +358,7 @@
 
                 box.onclick = (e) => {
                     e.stopPropagation();
-                    window.open(qr.data);
+                    window.open(qr.data, '_parent');
                 };
 
                 hotspotLayer.appendChild(box);
