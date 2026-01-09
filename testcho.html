@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Chocolate Guide - Multi-Scan Precision</title>
+    <title>Chocolate Guide</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- مكتبة jsQR لمعالجة الرموز -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     
     <style>
@@ -31,7 +30,6 @@
 
         .serif { font-family: 'Playfair Display', serif; }
         
-        /* تصميم الهيدر الزجاجي */
         .glass-header { 
             background: var(--glass);
             backdrop-filter: blur(15px);
@@ -45,6 +43,7 @@
             transition: all 0.5s ease; 
             position: relative; 
             background: #000;
+            overflow: hidden;
         }
 
         #menu-container.fullscreen { height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; z-index: 100; }
@@ -60,45 +59,43 @@
         
         .image-display { width: 100%; height: 100%; object-fit: contain; user-select: none; }
 
-        /* حاوية المربعات التفاعلية */
         .qr-hotspot {
             position: absolute;
             border: 2px solid var(--accent-gold);
-            background: rgba(245, 158, 11, 0.1);
+            background: rgba(245, 158, 11, 0.15);
             border-radius: 6px;
             cursor: pointer;
             z-index: 40;
             pointer-events: auto;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
         }
         
         .qr-hotspot:hover {
             background: rgba(245, 158, 11, 0.3);
-            transform: scale(1.1);
-            box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
-            z-index: 50;
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.7);
         }
 
         .qr-label {
             position: absolute;
-            bottom: -25px;
+            bottom: -28px;
             background: var(--accent-gold);
             color: black;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: bold;
-            padding: 2px 8px;
+            padding: 2px 10px;
             border-radius: 4px;
             white-space: nowrap;
             pointer-events: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* أزرار التحكم */
         .nav-panel { 
             background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(10px);
@@ -124,16 +121,7 @@
         
         .btn-action:hover { background: var(--accent-gold); color: black; }
 
-        footer { 
-            height: 40px; 
-            background: #020617; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 0.7rem; 
-            color: rgba(255, 255, 255, 0.4); 
-            z-index: 40;
-        }
+        footer { height: 40px; background: #020617; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); z-index: 40; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -156,26 +144,22 @@
             <div id="loader" class="absolute inset-0 flex items-center justify-center z-10 bg-slate-950">
                 <div class="flex flex-col items-center gap-4">
                     <div class="w-12 h-12 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
-                    <span class="text-amber-500 text-[10px] font-bold tracking-widest uppercase">جاري معالجة الصور...</span>
+                    <span class="text-amber-500 text-[10px] font-bold tracking-widest uppercase">جاري تحليل الأكواد المتعددة...</span>
                 </div>
             </div>
         </div>
 
-        <!-- طبقة الباركودات المكتشفة -->
         <div id="hotspot-layer" class="absolute inset-0 pointer-events-none z-30"></div>
 
-        <!-- أزرار التحكم بالتنقل -->
         <div id="pagination-ctrl" class="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-6 nav-panel rounded-full nav-hidden z-[110]">
             <button onclick="event.stopPropagation(); changePage(-1)" class="btn-action">
                 <i data-lucide="chevron-right" class="w-6 h-6"></i>
             </button>
-            
             <div class="flex items-center gap-3 font-bold text-sm">
                 <span id="current-page" class="text-amber-500">1</span>
                 <span class="text-slate-600">/</span>
-                <span id="total-pages" class="text-slate-400">2</span>
+                <span id="total-pages" class="text-slate-400">3</span>
             </div>
-
             <button onclick="event.stopPropagation(); changePage(1)" class="btn-action">
                 <i data-lucide="chevron-left" class="w-6 h-6"></i>
             </button>
@@ -189,7 +173,6 @@
     </footer>
 
     <script>
-        // قائمة الصور (يمكن استبدالها لاحقاً بروابط الصور الفعلية)
         const MENU_IMAGES = [
             'Chocolate Guide-States_1.webp',
             'Chocolate Guide-States_2.webp',
@@ -270,7 +253,7 @@
         let totalPages = MENU_IMAGES.length;
         let wrappers = [];
         let hideTimeout;
-        let discoveredQRs = {}; // تخزين البيانات لكل صفحة
+        let discoveredQRs = {}; 
 
         window.addEventListener('DOMContentLoaded', initializeApp);
 
@@ -305,20 +288,22 @@
 
             const img = new Image();
             img.className = 'image-display';
-            img.crossOrigin = "Anonymous"; // للسماح بقراءة البكسلات من سيرفر خارجي
+            img.crossOrigin = "Anonymous";
             img.onload = () => {
                 if (pageNo === 1) {
                     loader.style.opacity = '0';
                     setTimeout(() => loader.style.display = 'none', 500);
                 }
-                // تنفيذ مسح ذكي عند تحميل الصورة
                 processImageForQRs(img, pageNo);
             };
             img.src = wrapper.dataset.src;
             wrapper.appendChild(img);
         }
 
-        // خوارزمية البحث عن باركودات متعددة
+        /**
+         * خوارزمية المسح الشبكي المكثف (Dense Grid Scanning)
+         * تقوم بتقسيم الصورة إلى 9 قطاعات متداخلة لضمان اكتشاف كافة الأكواد
+         */
         function processImageForQRs(img, pageNo) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -326,25 +311,60 @@
             canvas.height = img.naturalHeight;
             ctx.drawImage(img, 0, 0);
             
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const detectedResults = [];
             
-            // حالياً jsQR يكتشف واحداً، سنقوم بعمل مسح للقطاعات إذا أردنا اكتشاف أكثر من واحد بفعالية أكبر
-            // لكن النسخة الأساسية تكتشف الكود الأبرز. قمنا بتجهيز الهيكل لدعم مصفوفة من النتائج.
-            const result = jsQR(imageData.data, imageData.width, imageData.height);
-            
-            if (result) {
-                discoveredQRs[pageNo] = discoveredQRs[pageNo] || [];
-                // إضافة الكود المكتشف إذا لم يكن موجوداً
-                if (!discoveredQRs[pageNo].find(q => q.data === result.data)) {
-                    discoveredQRs[pageNo].push({
-                        data: result.data,
-                        location: result.location
-                    });
+            // 1. المسح العام (Full Scale) مع محاولة قلب الألوان
+            const fullData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const mainRes = jsQR(fullData.data, fullData.width, fullData.height, { inversionAttempts: "attemptBoth" });
+            if (mainRes) detectedResults.push(mainRes);
+
+            // 2. المسح الشبكي (3x3 Grid) لاكتشاف الأكواد المتعددة
+            // نقسم الصورة إلى 9 مناطق متداخلة بنسبة 20% لضمان عدم ضياع أي كود في الفواصل
+            const gridRows = 3;
+            const gridCols = 3;
+            const stepX = canvas.width / (gridCols + 0.5);
+            const stepY = canvas.height / (gridRows + 0.5);
+            const zoneW = stepX * 1.5;
+            const zoneH = stepY * 1.5;
+
+            for (let r = 0; r < gridRows; r++) {
+                for (let c = 0; c < gridCols; c++) {
+                    const x = Math.max(0, c * stepX);
+                    const y = Math.max(0, r * stepY);
+                    const w = Math.min(zoneW, canvas.width - x);
+                    const h = Math.min(zoneH, canvas.height - y);
+
+                    if (w < 40 || h < 40) continue;
+
+                    const subData = ctx.getImageData(x, y, w, h);
+                    const subRes = jsQR(subData.data, subData.width, subData.height, { inversionAttempts: "attemptBoth" });
+
+                    if (subRes) {
+                        // التحقق من عدم تكرار نفس الرابط في نفس الصفحة
+                        const isDuplicate = detectedResults.some(existing => existing.data === subRes.data);
+                        if (!isDuplicate) {
+                            // تصحيح الإحداثيات النسبية لتصبح مطلقة بالنسبة للصورة الكاملة
+                            subRes.location.topLeftCorner.x += x;
+                            subRes.location.topLeftCorner.y += y;
+                            subRes.location.topRightCorner.x += x;
+                            subRes.location.topRightCorner.y += y;
+                            subRes.location.bottomLeftCorner.x += x;
+                            subRes.location.bottomLeftCorner.y += y;
+                            subRes.location.bottomRightCorner.x += x;
+                            subRes.location.bottomRightCorner.y += y;
+                            detectedResults.push(subRes);
+                        }
+                    }
                 }
-                if (pageNo === currentPage) renderQRBoxes(pageNo);
             }
+
+            discoveredQRs[pageNo] = detectedResults;
+            if (pageNo === currentPage) renderQRBoxes(pageNo);
         }
 
+        /**
+         * دالة رسم المربعات مع تصحيح ذكي لمساحة العرض (Object-fit Contain Logic)
+         */
         function renderQRBoxes(pageNo) {
             hotspotLayer.innerHTML = '';
             const data = discoveredQRs[pageNo];
@@ -354,44 +374,48 @@
             if (!img) return;
 
             const rect = img.getBoundingClientRect();
-            const imgRatio = img.naturalWidth / img.naturalHeight;
-            const containerRatio = rect.width / rect.height;
+            const containerW = rect.width;
+            const containerH = rect.height;
+            const naturalW = img.naturalWidth;
+            const naturalH = img.naturalHeight;
 
-            let actualWidth, actualHeight, leftOffset, topOffset;
+            // حساب الأبعاد الفعلية للصورة المعروضة داخل الإطار (Contain)
+            const ratio = Math.min(containerW / naturalW, containerH / naturalH);
+            const actualW = naturalW * ratio;
+            const actualH = naturalH * ratio;
 
-            if (imgRatio > containerRatio) {
-                actualWidth = rect.width;
-                actualHeight = rect.width / imgRatio;
-                leftOffset = rect.left;
-                topOffset = rect.top + (rect.height - actualHeight) / 2;
-            } else {
-                actualHeight = rect.height;
-                actualWidth = rect.height * imgRatio;
-                topOffset = rect.top;
-                leftOffset = rect.left + (rect.width - actualWidth) / 2;
-            }
-
-            const scaleX = actualWidth / img.naturalWidth;
-            const scaleY = actualHeight / img.naturalHeight;
+            // حساب الإزاحة (Offsets) لمركزة المربعات بدقة
+            const offsetX = (containerW - actualW) / 2;
+            const offsetY = (containerH - actualH) / 2;
+            const scale = actualW / naturalW;
 
             data.forEach(qr => {
                 const loc = qr.location;
                 const box = document.createElement('div');
                 box.className = 'qr-hotspot';
                 
-                const x = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x) * scaleX + leftOffset;
-                const y = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y) * scaleY + topOffset;
-                const w = (Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x) - Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x)) * scaleX;
-                const h = (Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y) - Math.min(loc.topLeftCorner.y, loc.topRightCorner.y)) * scaleY;
+                // تحديد حدود المربع (Bounding Box)
+                const xs = [loc.topLeftCorner.x, loc.topRightCorner.x, loc.bottomLeftCorner.x, loc.bottomRightCorner.x];
+                const ys = [loc.topLeftCorner.y, loc.topRightCorner.y, loc.bottomLeftCorner.y, loc.bottomRightCorner.y];
 
-                box.style.left = `${x}px`;
-                box.style.top = `${y}px`;
-                box.style.width = `${w}px`;
-                box.style.height = `${h}px`;
+                const minX = Math.min(...xs);
+                const minY = Math.min(...ys);
+                const maxX = Math.max(...xs);
+                const maxY = Math.max(...ys);
+
+                const left = minX * scale + offsetX;
+                const top = minY * scale + offsetY;
+                const width = (maxX - minX) * scale;
+                const height = (maxY - minY) * scale;
+
+                box.style.left = `${left}px`;
+                box.style.top = `${top}px`;
+                box.style.width = `${width}px`;
+                box.style.height = `${height}px`;
 
                 box.innerHTML = `
-                    <div class="qr-label">فتح الرابط</div>
-                    <i data-lucide="external-link" class="w-4 h-4 text-amber-500 opacity-50"></i>
+                    <div class="qr-label">توجيه الرابط</div>
+                    <i data-lucide="external-link" class="w-4 h-4 text-amber-500 shadow-sm"></i>
                 `;
 
                 box.onclick = (e) => {
@@ -400,8 +424,8 @@
                 };
 
                 hotspotLayer.appendChild(box);
-                lucide.createIcons();
             });
+            lucide.createIcons();
         }
 
         function handleGlobalInteraction(e) {
@@ -428,7 +452,7 @@
             document.getElementById('main-footer').classList.add('hidden-footer');
             document.getElementById('menu-container').classList.add('fullscreen');
             document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
-            setTimeout(() => renderQRBoxes(currentPage), 550);
+            setTimeout(() => renderQRBoxes(currentPage), 600);
         };
         
         window.exitAppFullscreen = () => {
@@ -436,7 +460,7 @@
             document.getElementById('main-footer').classList.remove('hidden-footer');
             document.getElementById('menu-container').classList.remove('fullscreen');
             document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => renderQRBoxes(currentPage), 550);
+            setTimeout(() => renderQRBoxes(currentPage), 600);
         };
 
         window.onresize = () => renderQRBoxes(currentPage);
