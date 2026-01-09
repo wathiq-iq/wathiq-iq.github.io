@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Chocolate Guide</title>
+    <title>Chocolate Guide - Ultra Scan</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -14,17 +14,17 @@
         :root { 
             --bg-dark: #020617; 
             --accent-gold: #f59e0b; 
-            --glass: rgba(15, 23, 42, 0.8);
+            --glass: rgba(15, 23, 42, 0.85);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
         
         body { 
             font-family: 'Cairo', sans-serif; 
             background-color: var(--bg-dark); 
             color: #f8fafc; 
             overflow: hidden; 
-            touch-action: manipulation;
+            touch-action: pan-y;
             -webkit-font-smoothing: antialiased;
         }
 
@@ -32,84 +32,82 @@
         
         .glass-header { 
             background: var(--glass);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
         }
         
         #menu-container { 
             height: calc(100vh - 80px - 40px); 
             width: 100vw;
-            transition: all 0.5s ease; 
             position: relative; 
             background: #000;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #menu-container.fullscreen { height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; z-index: 100; }
         
-        .hidden-ui { transform: translateY(-100%); opacity: 0; pointer-events: none; }
-        .hidden-footer { transform: translateY(100%); opacity: 0; pointer-events: none; }
-        
         .page-wrapper { 
             position: absolute; inset: 0; display: none; align-items: center; justify-content: center; 
-            will-change: opacity; transform: translateZ(0);
+            will-change: opacity, transform;
         }
-        .page-wrapper.active { display: flex; animation: fadeIn 0.4s ease; }
+        .page-wrapper.active { display: flex; animation: fadeIn 0.3s ease-out; }
         
-        .image-display { width: 100%; height: 100%; object-fit: contain; user-select: none; }
+        .image-display { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
 
         .qr-hotspot {
             position: absolute;
             border: 2px solid var(--accent-gold);
-            background: rgba(245, 158, 11, 0.15);
-            border-radius: 6px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 8px;
             cursor: pointer;
             z-index: 40;
             pointer-events: auto;
-            transition: all 0.2s ease;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
         }
         
-        .qr-hotspot:hover {
-            background: rgba(245, 158, 11, 0.3);
-            transform: scale(1.05);
-            box-shadow: 0 0 25px rgba(245, 158, 11, 0.7);
-        }
+        .qr-hotspot:active { transform: scale(0.92); }
+        .qr-hotspot:hover { background: rgba(245, 158, 11, 0.25); box-shadow: 0 0 25px rgba(245, 158, 11, 0.5); }
 
         .qr-label {
             position: absolute;
-            bottom: -28px;
+            bottom: -32px;
             background: var(--accent-gold);
             color: black;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 2px 10px;
-            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 12px;
+            border-radius: 20px;
             white-space: nowrap;
             pointer-events: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         
         .nav-panel { 
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 0.6rem 1.2rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: all 0.4s ease;
+            padding: 0.5rem 1rem;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            transition: all 0.3s ease;
         }
         
-        .nav-hidden { opacity: 0 !important; transform: translateY(40px) scale(0.95) !important; pointer-events: none; }
+        .nav-hidden { opacity: 0 !important; transform: translateY(30px) translateX(-50%) scale(0.9) !important; pointer-events: none; }
         
         .btn-action {
-            width: 44px;
-            height: 44px;
+            width: 42px;
+            height: 42px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -119,148 +117,80 @@
             transition: all 0.2s;
         }
         
-        .btn-action:hover { background: var(--accent-gold); color: black; }
+        .btn-action:hover:not(:disabled) { background: var(--accent-gold); color: black; }
+        .btn-action:disabled { opacity: 0.3; cursor: not-allowed; }
 
-        footer { height: 40px; background: #020617; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); z-index: 40; }
+        footer { height: 40px; background: #020617; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: rgba(255, 255, 255, 0.3); z-index: 40; border-top: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-    <header id="top-nav" class="h-20 glass-header z-50 flex items-center justify-between px-8 sticky top-0 transition-all duration-500">
+    <header id="top-nav" class="h-20 glass-header z-50 flex items-center justify-between px-6 sticky top-0 transition-all duration-500">
         <div class="flex items-center gap-4">
-            <div class="p-2 bg-amber-600 rounded-lg shadow-lg"><i data-lucide="scan-face" class="text-white w-5 h-5"></i></div>
+            <div class="p-2 bg-amber-600 rounded-xl shadow-lg shadow-amber-900/20"><i data-lucide="qr-code" class="text-white w-5 h-5"></i></div>
             <div>
-                <h1 class="text-lg font-bold serif tracking-tight text-amber-500 uppercase leading-none">Chocolate Menu</h1>
-                <p class="text-[10px] text-slate-400 tracking-widest mt-1">SMART INTERACTIVE DISPLAY</p>
+                <h1 class="text-lg font-bold serif tracking-tight text-amber-500 leading-none">Chocolate Menu</h1>
+                <p class="text-[9px] text-slate-400 tracking-[0.2em] mt-1 uppercase">Smart Interactive Guide</p>
             </div>
         </div>
-        <button onclick="toggleAppFullscreen()" class="p-2 text-slate-400 hover:text-amber-500 transition-all">
-            <i data-lucide="maximize" class="w-6 h-6"></i>
+        <button onclick="toggleAppFullscreen()" class="p-2.5 bg-slate-800/50 rounded-full text-slate-400 hover:text-amber-500 transition-all">
+            <i data-lucide="maximize-2" class="w-5 h-5"></i>
         </button>
     </header>
 
     <main id="menu-container" class="flex-1 relative" onclick="handleGlobalInteraction(event)">
-        <div id="render-target" class="w-full h-full relative">
-            <div id="loader" class="absolute inset-0 flex items-center justify-center z-10 bg-slate-950">
+        <div id="render-target" class="w-full h-full">
+            <div id="loader" class="absolute inset-0 flex items-center justify-center z-[60] bg-slate-950">
                 <div class="flex flex-col items-center gap-4">
-                    <div class="w-12 h-12 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
-                    <span class="text-amber-500 text-[10px] font-bold tracking-widest uppercase">جاري تحليل الأكواد المتعددة...</span>
+                    <div class="w-10 h-10 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
+                    <span class="text-amber-500 text-[10px] font-bold tracking-widest uppercase opacity-80">تحليل الأكواد...</span>
                 </div>
             </div>
         </div>
 
         <div id="hotspot-layer" class="absolute inset-0 pointer-events-none z-30"></div>
 
-        <div id="pagination-ctrl" class="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-6 nav-panel rounded-full nav-hidden z-[110]">
-            <button onclick="event.stopPropagation(); changePage(-1)" class="btn-action">
-                <i data-lucide="chevron-right" class="w-6 h-6"></i>
+        <div id="pagination-ctrl" class="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-5 nav-panel rounded-2xl nav-hidden z-[110]">
+            <button onclick="event.stopPropagation(); changePage(-1)" id="prev-btn" class="btn-action">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
             </button>
-            <div class="flex items-center gap-3 font-bold text-sm">
-                <span id="current-page" class="text-amber-500">1</span>
-                <span class="text-slate-600">/</span>
-                <span id="total-pages" class="text-slate-400">3</span>
+            <div class="flex items-center gap-3 font-bold text-xs">
+                <span id="current-page" class="text-amber-500 min-w-[12px] text-center">1</span>
+                <span class="text-slate-700">/</span>
+                <span id="total-pages" class="text-slate-500">42</span>
             </div>
-            <button onclick="event.stopPropagation(); changePage(1)" class="btn-action">
-                <i data-lucide="chevron-left" class="w-6 h-6"></i>
+            <button onclick="event.stopPropagation(); changePage(1)" id="next-btn" class="btn-action">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
             </button>
         </div>
 
-        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-8 left-8 glass-header px-5 py-2 rounded-full text-amber-500 text-[10px] font-bold opacity-0 pointer-events-none transition-all duration-300 z-[120] border border-amber-500/20 hover:bg-amber-500 hover:text-black uppercase">إغلاق المعاينة</button>
+        <button id="exit-btn" onclick="exitAppFullscreen()" class="fixed top-8 left-6 glass-header px-6 py-2.5 rounded-full text-amber-500 text-[10px] font-bold opacity-0 pointer-events-none transition-all duration-300 z-[120] border border-amber-500/30 hover:bg-amber-500 hover:text-black uppercase tracking-wider">إغلاق</button>
     </main>
 
-    <footer id="main-footer">
-        <p>برمجيات دار المها للطباعة &copy; <span id="year"></span></p>
+    <footer>
+        <p>برمجيات دار المها &copy; <span id="year"></span></p>
     </footer>
 
     <script>
-        const MENU_IMAGES = [
-            'Chocolate Guide-States_1.webp',
-            'Chocolate Guide-States_2.webp',
-            'Chocolate Guide-States_3.webp',
-            'Chocolate Guide-States_4.webp',
-            'Chocolate Guide-States_5.webp',
-            'Chocolate Guide-States_6.webp',
-            'Chocolate Guide-States_7.webp',
-            'Chocolate Guide-States_8.webp',
-            'Chocolate Guide-States_9.webp',
-            'Chocolate Guide-States_10.webp',
-            'Chocolate Guide-States_11.webp',
-            'Chocolate Guide-States_12.webp',
-            'Chocolate Guide-States_13.webp',
-            'Chocolate Guide-States_14.webp',
-            'Chocolate Guide-States_15.webp',
-            'Chocolate Guide-States_16.webp',
-            'Chocolate Guide-States_17.webp',
-            'Chocolate Guide-States_18.webp',
-            'Chocolate Guide-States_19.webp',
-            'Chocolate Guide-States_20.webp',
-            'Chocolate Guide-States_21.webp',
-            'Chocolate Guide-States_22.webp',
-            'Chocolate Guide-States_23.webp',
-            'Chocolate Guide-States_24.webp',
-            'Chocolate Guide-States_25.webp',
-            'Chocolate Guide-States_26.webp',
-            'Chocolate Guide-States_27.webp',
-            'Chocolate Guide-States_28.webp',
-            'Chocolate Guide-States_29.webp',
-            'Chocolate Guide-States_30.webp',
-            'Chocolate Guide-States_31.webp',
-            'Chocolate Guide-States_32.webp',
-            'Chocolate Guide-States_33.webp',
-            'Chocolate Guide-States_34.webp',
-            'Chocolate Guide-States_35.webp',
-            'Chocolate Guide-States_36.webp',
-            'Chocolate Guide-States_37.webp',
-            'Chocolate Guide-States_38.webp',
-            'Chocolate Guide-States_39.webp',
-            'Chocolate Guide-States_40.webp',
-            'Chocolate Guide-States_41.webp',
-            'Chocolate Guide-States_42.webp',
-            'Chocolate Guide-States_43.webp',
-            'Chocolate Guide-States_44.webp',
-            'Chocolate Guide-States_45.webp',
-            'Chocolate Guide-States_46.webp',
-            'Chocolate Guide-States_47.webp',
-            'Chocolate Guide-States_48.webp',
-            'Chocolate Guide-States_49.webp',
-            'Chocolate Guide-States_50.webp',
-            'Chocolate Guide-States_51.webp',
-            'Chocolate Guide-States_52.webp',
-            'Chocolate Guide-States_53.webp',
-            'Chocolate Guide-States_54.webp',
-            'Chocolate Guide-States_55.webp',
-            'Chocolate Guide-States_56.webp',
-            'Chocolate Guide-States_57.webp',
-            'Chocolate Guide-States_58.webp',
-            'Chocolate Guide-States_59.webp',
-            'Chocolate Guide-States_60.webp',
-            'Chocolate Guide-States_61.webp',
-            'Chocolate Guide-States_62.webp',
-            'Chocolate Guide-States_63.webp',
-            'Chocolate Guide-States_64.webp',
-            'Chocolate Guide-States_65.webp'
-        ];
+        const MENU_IMAGES = Array.from({length: 65}, (_, i) => `Chocolate%20Guide-States_${i+1}.webp`);
 
-        lucide.createIcons();
         const renderTarget = document.getElementById('render-target');
         const hotspotLayer = document.getElementById('hotspot-layer');
         const paginationCtrl = document.getElementById('pagination-ctrl');
         const loader = document.getElementById('loader');
         
-        document.getElementById('year').textContent = new Date().getFullYear();
-
         let currentPage = 1;
-        let totalPages = MENU_IMAGES.length;
         let wrappers = [];
         let hideTimeout;
-        let discoveredQRs = {}; 
+        let discoveredQRs = new Map(); 
 
-        window.addEventListener('DOMContentLoaded', initializeApp);
+        document.getElementById('year').textContent = new Date().getFullYear();
+        lucide.createIcons();
 
         function showControls() {
             paginationCtrl.classList.remove('nav-hidden');
             clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(() => paginationCtrl.classList.add('nav-hidden'), 4000);
+            hideTimeout = setTimeout(() => paginationCtrl.classList.add('nav-hidden'), 3500);
         }
 
         function initializeApp() {
@@ -273,15 +203,16 @@
                 wrappers.push(wrapper);
             });
             renderTarget.appendChild(fragment);
-            document.getElementById('total-pages').textContent = totalPages;
+            document.getElementById('total-pages').textContent = MENU_IMAGES.length;
             loadPageData(1);
             showControls();
         }
 
         async function loadPageData(pageNo) {
-            const index = pageNo - 1;
-            const wrapper = wrappers[index];
-            if (!wrapper || wrapper.querySelector('img')) {
+            const wrapper = wrappers[pageNo - 1];
+            if (!wrapper) return;
+            
+            if (wrapper.querySelector('img')) {
                 renderQRBoxes(pageNo);
                 return;
             }
@@ -292,7 +223,7 @@
             img.onload = () => {
                 if (pageNo === 1) {
                     loader.style.opacity = '0';
-                    setTimeout(() => loader.style.display = 'none', 500);
+                    setTimeout(() => loader.style.display = 'none', 300);
                 }
                 processImageForQRs(img, pageNo);
             };
@@ -301,131 +232,131 @@
         }
 
         /**
-         * خوارزمية المسح الشبكي المكثف (Dense Grid Scanning)
-         * تقوم بتقسيم الصورة إلى 9 قطاعات متداخلة لضمان اكتشاف كافة الأكواد
+         * خوارزمية المسح الشبكي المحسنة:
+         * 1. تقسيم ذكي لتقليل عدد عمليات التحليل.
+         * 2. منع تكرار المربعات بناءً على تقارب الموقع الفيزيائي.
          */
         function processImageForQRs(img, pageNo) {
             const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { alpha: false });
             canvas.width = img.naturalWidth;
             canvas.height = img.naturalHeight;
             ctx.drawImage(img, 0, 0);
             
-            const detectedResults = [];
+            const results = [];
             
-            // 1. المسح العام (Full Scale) مع محاولة قلب الألوان
+            // دالة مساعدة لمنع التكرار بناءً على المركز (Center point deduplication)
+            const isNewQR = (newLoc, content) => {
+                const newCX = (newLoc.topLeftCorner.x + newLoc.bottomRightCorner.x) / 2;
+                const newCY = (newLoc.topLeftCorner.y + newLoc.bottomRightCorner.y) / 2;
+                
+                return !results.some(existing => {
+                    const exCX = (existing.location.topLeftCorner.x + existing.location.bottomRightCorner.x) / 2;
+                    const exCY = (existing.location.topLeftCorner.y + existing.location.bottomRightCorner.y) / 2;
+                    const dist = Math.sqrt(Math.pow(newCX - exCX, 2) + Math.pow(newCY - exCY, 2));
+                    // إذا كان المركز قريباً جداً أو المحتوى متطابق، نعتبره مكرراً
+                    return dist < 45 || existing.data === content;
+                });
+            };
+
+            // 1. المسح الشامل (الأسرع)
             const fullData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const mainRes = jsQR(fullData.data, fullData.width, fullData.height, { inversionAttempts: "attemptBoth" });
-            if (mainRes) detectedResults.push(mainRes);
+            if (mainRes) results.push(mainRes);
 
-            // 2. المسح الشبكي (3x3 Grid) لاكتشاف الأكواد المتعددة
-            // نقسم الصورة إلى 9 مناطق متداخلة بنسبة 20% لضمان عدم ضياع أي كود في الفواصل
-            const gridRows = 3;
-            const gridCols = 3;
-            const stepX = canvas.width / (gridCols + 0.5);
-            const stepY = canvas.height / (gridRows + 0.5);
-            const zoneW = stepX * 1.5;
-            const zoneH = stepY * 1.5;
+            // 2. المسح الشبكي الرباعي (أكثر فعالية من 3x3 للصور الطولية)
+            const regions = [
+                {x: 0, y: 0, w: canvas.width, h: canvas.height/1.8}, // النصف العلوي
+                {x: 0, y: canvas.height/2.2, w: canvas.width, h: canvas.height/1.8}, // النصف السفلي
+                {x: 0, y: canvas.height/4, w: canvas.width, h: canvas.height/2} // المنتصف
+            ];
 
-            for (let r = 0; r < gridRows; r++) {
-                for (let c = 0; c < gridCols; c++) {
-                    const x = Math.max(0, c * stepX);
-                    const y = Math.max(0, r * stepY);
-                    const w = Math.min(zoneW, canvas.width - x);
-                    const h = Math.min(zoneH, canvas.height - y);
-
-                    if (w < 40 || h < 40) continue;
-
-                    const subData = ctx.getImageData(x, y, w, h);
-                    const subRes = jsQR(subData.data, subData.width, subData.height, { inversionAttempts: "attemptBoth" });
-
-                    if (subRes) {
-                        // التحقق من عدم تكرار نفس الرابط في نفس الصفحة
-                        const isDuplicate = detectedResults.some(existing => existing.data === subRes.data);
-                        if (!isDuplicate) {
-                            // تصحيح الإحداثيات النسبية لتصبح مطلقة بالنسبة للصورة الكاملة
-                            subRes.location.topLeftCorner.x += x;
-                            subRes.location.topLeftCorner.y += y;
-                            subRes.location.topRightCorner.x += x;
-                            subRes.location.topRightCorner.y += y;
-                            subRes.location.bottomLeftCorner.x += x;
-                            subRes.location.bottomLeftCorner.y += y;
-                            subRes.location.bottomRightCorner.x += x;
-                            subRes.location.bottomRightCorner.y += y;
-                            detectedResults.push(subRes);
-                        }
-                    }
+            regions.forEach(reg => {
+                const subData = ctx.getImageData(reg.x, reg.y, reg.w, reg.h);
+                const subRes = jsQR(subData.data, subData.width, subData.height, { inversionAttempts: "attemptBoth" });
+                
+                if (subRes && isNewQR(subRes.location, subRes.data)) {
+                    subRes.location.topLeftCorner.x += reg.x; subRes.location.topLeftCorner.y += reg.y;
+                    subRes.location.topRightCorner.x += reg.x; subRes.location.topRightCorner.y += reg.y;
+                    subRes.location.bottomLeftCorner.x += reg.x; subRes.location.bottomLeftCorner.y += reg.y;
+                    subRes.location.bottomRightCorner.x += reg.x; subRes.location.bottomRightCorner.y += reg.y;
+                    results.push(subRes);
                 }
-            }
+            });
 
-            discoveredQRs[pageNo] = detectedResults;
+            discoveredQRs.set(pageNo, results);
             if (pageNo === currentPage) renderQRBoxes(pageNo);
         }
 
-        /**
-         * دالة رسم المربعات مع تصحيح ذكي لمساحة العرض (Object-fit Contain Logic)
-         */
         function renderQRBoxes(pageNo) {
             hotspotLayer.innerHTML = '';
-            const data = discoveredQRs[pageNo];
+            const data = discoveredQRs.get(pageNo);
             if (!data || data.length === 0) return;
 
             const img = wrappers[pageNo - 1].querySelector('img');
             if (!img) return;
 
-            const rect = img.getBoundingClientRect();
-            const containerW = rect.width;
-            const containerH = rect.height;
-            const naturalW = img.naturalWidth;
-            const naturalH = img.naturalHeight;
+            // استخدام requestAnimationFrame لضمان دقة الحسابات بعد معالجة المتصفح للصور
+            requestAnimationFrame(() => {
+                const rect = img.getBoundingClientRect();
+                const containerW = rect.width;
+                const containerH = rect.height;
+                const naturalW = img.naturalWidth;
+                const naturalH = img.naturalHeight;
 
-            // حساب الأبعاد الفعلية للصورة المعروضة داخل الإطار (Contain)
-            const ratio = Math.min(containerW / naturalW, containerH / naturalH);
-            const actualW = naturalW * ratio;
-            const actualH = naturalH * ratio;
+                const ratio = Math.min(containerW / naturalW, containerH / naturalH);
+                const actualW = naturalW * ratio;
+                const actualH = naturalH * ratio;
 
-            // حساب الإزاحة (Offsets) لمركزة المربعات بدقة
-            const offsetX = (containerW - actualW) / 2;
-            const offsetY = (containerH - actualH) / 2;
-            const scale = actualW / naturalW;
+                const offsetX = (containerW - actualW) / 2 + rect.left;
+                const offsetY = (containerH - actualH) / 2 + rect.top;
+                const scale = actualW / naturalW;
 
-            data.forEach(qr => {
-                const loc = qr.location;
-                const box = document.createElement('div');
-                box.className = 'qr-hotspot';
-                
-                // تحديد حدود المربع (Bounding Box)
-                const xs = [loc.topLeftCorner.x, loc.topRightCorner.x, loc.bottomLeftCorner.x, loc.bottomRightCorner.x];
-                const ys = [loc.topLeftCorner.y, loc.topRightCorner.y, loc.bottomLeftCorner.y, loc.bottomRightCorner.y];
+                data.forEach(qr => {
+                    const loc = qr.location;
+                    const box = document.createElement('div');
+                    box.className = 'qr-hotspot';
+                    
+                    const minX = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x);
+                    const minY = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y);
+                    const maxX = Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x);
+                    const maxY = Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y);
 
-                const minX = Math.min(...xs);
-                const minY = Math.min(...ys);
-                const maxX = Math.max(...xs);
-                const maxY = Math.max(...ys);
+                    box.style.left = `${minX * scale + offsetX}px`;
+                    box.style.top = `${minY * scale + offsetY}px`;
+                    box.style.width = `${(maxX - minX) * scale}px`;
+                    box.style.height = `${(maxY - minY) * scale}px`;
 
-                const left = minX * scale + offsetX;
-                const top = minY * scale + offsetY;
-                const width = (maxX - minX) * scale;
-                const height = (maxY - minY) * scale;
+                    box.innerHTML = `
+                        <div class="qr-label">فتح الرابط</div>
+                        <i data-lucide="external-link" class="w-4 h-4 text-amber-500"></i>
+                    `;
 
-                box.style.left = `${left}px`;
-                box.style.top = `${top}px`;
-                box.style.width = `${width}px`;
-                box.style.height = `${height}px`;
+                    box.onclick = (e) => {
+                        e.stopPropagation();
+                        window.open(qr.data, '_unfencedTop');
+                    };
 
-                box.innerHTML = `
-                    <div class="qr-label">توجيه الرابط</div>
-                    <i data-lucide="external-link" class="w-4 h-4 text-amber-500 shadow-sm"></i>
-                `;
-
-                box.onclick = (e) => {
-                    e.stopPropagation();
-                    window.open(qr.data, '_blank');
-                };
-
-                hotspotLayer.appendChild(box);
+                    hotspotLayer.appendChild(box);
+                });
+                lucide.createIcons();
             });
-            lucide.createIcons();
+        }
+
+        function changePage(delta) {
+            const nextIdx = currentPage + delta - 1;
+            if (nextIdx < 0 || nextIdx >= wrappers.length) return;
+
+            wrappers[currentPage - 1].classList.remove('active');
+            currentPage = nextIdx + 1;
+            wrappers[currentPage - 1].classList.add('active');
+            
+            document.getElementById('current-page').textContent = currentPage;
+            document.getElementById('prev-btn').disabled = currentPage === 1;
+            document.getElementById('next-btn').disabled = currentPage === MENU_IMAGES.length;
+            
+            loadPageData(currentPage);
+            showControls();
         }
 
         function handleGlobalInteraction(e) {
@@ -434,42 +365,30 @@
             }
         }
 
-        function changePage(delta) {
-            const nextIdx = currentPage + delta - 1;
-            if (nextIdx < 0 || nextIdx >= totalPages) return;
-
-            wrappers[currentPage - 1].classList.remove('active');
-            currentPage = nextIdx + 1;
-            wrappers[currentPage - 1].classList.add('active');
-            
-            document.getElementById('current-page').textContent = currentPage;
-            loadPageData(currentPage);
-            showControls();
-        }
-
         window.toggleAppFullscreen = () => {
-            document.getElementById('top-nav').classList.add('hidden-ui');
-            document.getElementById('main-footer').classList.add('hidden-footer');
+            document.getElementById('top-nav').style.transform = 'translateY(-100%)';
             document.getElementById('menu-container').classList.add('fullscreen');
             document.getElementById('exit-btn').classList.remove('opacity-0', 'pointer-events-none');
-            setTimeout(() => renderQRBoxes(currentPage), 600);
+            setTimeout(() => renderQRBoxes(currentPage), 400);
         };
         
         window.exitAppFullscreen = () => {
-            document.getElementById('top-nav').classList.remove('hidden-ui');
-            document.getElementById('main-footer').classList.remove('hidden-footer');
+            document.getElementById('top-nav').style.transform = 'translateY(0)';
             document.getElementById('menu-container').classList.remove('fullscreen');
             document.getElementById('exit-btn').classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => renderQRBoxes(currentPage), 600);
+            setTimeout(() => renderQRBoxes(currentPage), 400);
         };
 
-        window.onresize = () => renderQRBoxes(currentPage);
-        
+        window.addEventListener('resize', () => renderQRBoxes(currentPage));
+        window.addEventListener('orientationchange', () => setTimeout(() => renderQRBoxes(currentPage), 300));
+
         document.addEventListener('keydown', e => {
             if (e.key === 'ArrowRight' || e.key === 'ArrowUp') changePage(-1);
             if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') changePage(1);
             if (e.key === 'Escape') exitAppFullscreen();
         });
+
+        window.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
