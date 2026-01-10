@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مصفى البيانات الاحترافي المطور</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+        body { font-family: 'Tajawal', sans-serif; }
+        .drop-zone { border: 2px dashed #3b82f6; transition: all 0.3s ease; }
+        .drop-zone.drag-over { background-color: #eff6ff; transform: scale(1.01); }
+        .custom-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        .checkbox-group { max-height: 180px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.5rem; background: #f8fafc; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen py-10 px-4">
+
+    <div class="max-w-6xl mx-auto bg-white rounded-3xl custom-shadow overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-700 to-indigo-800 p-8 text-white text-center">
+            <h1 class="text-3xl font-bold mb-2">إدارة البيانات الذكية</h1>
+            <p class="opacity-90 font-medium text-lg">تصفية المقاولين بناءً على اسم المنطقة (Zone Name)</p>
+        </div>
+
+        <div class="p-8">
+            <!-- Step 1: Upload -->
+            <div id="dropZone" class="drop-zone rounded-2xl p-16 flex flex-col items-center justify-center cursor-pointer bg-blue-50/20 hover:bg-blue-50/40 border-2">
+                <div class="p-5 bg-white rounded-full shadow-sm mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">ارفع ملف CSV</h3>
+                <input type="file" id="fileInput" accept=".csv" class="hidden">
+            </div>
+
+            <!-- Step 2: Controls -->
+            <div id="configArea" class="hidden space-y-8 mt-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Zone Name Search (Primary Filter) -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2"/></svg>
+                            1. ابحث عن اسم المنطقة (Zone Name):
+                        </label>
+                        <input type="text" id="zoneSearchInput" placeholder="اكتب اسم المنطقة هنا..." value="ftk"
+                               class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white font-medium">
+                        <p class="text-xs text-gray-400">سيتم تحديث قائمة المقاولين بالأسفل فوراً</p>
+                    </div>
+
+                    <!-- Dynamic Contractor List -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-width="2"/></svg>
+                            2. اختر المقاولين المتاحين للمنطقة:
+                        </label>
+                        <div id="contractorList" class="checkbox-group space-y-1">
+                            <!-- Populated dynamically based on Zone Search -->
+                        </div>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"/></svg>
+                            3. تصفية الحالة:
+                        </label>
+                        <select id="statusFilter" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white font-medium">
+                            <option value="Pending Physical Installation">Pending Physical Installation</option>
+                            <option value="Done">Done</option>
+                            <option value="ALL">عرض الكل</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filename and Export -->
+                <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-gray-500 mr-1 italic">اسم الملف النهائي:</label>
+                        <input type="text" id="customFileName" placeholder="اسم الملف..."
+                               class="w-full p-4 border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-green-500 font-bold">
+                    </div>
+                </div>
+
+                <div id="resultInfo" class="flex flex-wrap items-center justify-between gap-4 p-6 bg-blue-600 rounded-2xl text-white shadow-xl">
+                    <div class="flex items-center gap-5">
+                        <div class="px-6 py-3 bg-white text-blue-700 rounded-2xl shadow-inner font-black text-2xl" id="matchBadge">0</div>
+                        <p class="font-bold text-lg">سجل مطابق للفلترة</p>
+                    </div>
+                    <div class="flex gap-4">
+                        <button id="downloadBtn" class="bg-green-500 hover:bg-green-400 text-white font-black py-4 px-10 rounded-2xl transition-all shadow-lg disabled:opacity-50">
+                            تصدير إلى Excel
+                        </button>
+                        <button id="resetBtn" class="bg-blue-800/50 hover:bg-blue-800 text-white font-bold py-4 px-6 rounded-2xl transition-colors border border-blue-500/30">
+                            ملف جديد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const configArea = document.getElementById('configArea');
+        const zoneSearchInput = document.getElementById('zoneSearchInput');
+        const contractorList = document.getElementById('contractorList');
+        const statusFilter = document.getElementById('statusFilter');
+        const customFileName = document.getElementById('customFileName');
+        const matchBadge = document.getElementById('matchBadge');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        let rawData = null;
+        let finalData = null;
+        let originalFileName = "";
+        let selectedContractors = [];
+
+        const columnsToRemove = [
+            "Notes", "FAT", "FDT", "Street", "House", 
+            "Device Username", "ModifiedOn", "UsrGPSLocationLatitude", 
+            "UsrGPSLocationLongitude", "Email", "Name"
+        ];
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        // مراقبة كتابة Zone Name لتحديث قائمة المقاولين فوراً
+        zoneSearchInput.addEventListener('input', () => {
+            selectedContractors = []; // إعادة تعيين المقاولين المختارين عند تغيير المنطقة
+            updateContractorList();
+            applyFilters();
+            updateFileName();
+        });
+
+        statusFilter.addEventListener('change', () => { applyFilters(); updateFileName(); });
+
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                alert("يرجى اختيار ملف CSV.");
+                return;
+            }
+            originalFileName = file.name.replace(/\.[^/.]+$/, "");
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: 'greedy',
+                transformHeader: (h) => h.trim(),
+                complete: function(results) {
+                    rawData = results.data;
+                    if (rawData.length > 0) {
+                        configArea.classList.remove('hidden');
+                        dropZone.classList.add('hidden');
+                        updateContractorList();
+                        applyFilters();
+                        updateFileName();
+                    }
+                }
+            });
+        }
+
+        // تحديث قائمة المقاولين بناءً على Zone Name الحالي
+        function updateContractorList() {
+            if (!rawData) return;
+            const searchTerm = zoneSearchInput.value.toLowerCase().trim();
+            const headers = Object.keys(rawData[0]);
+            const zoneKey = headers.find(h => h.toLowerCase() === "zone name");
+            const contKey = headers.find(h => h.toLowerCase() === "zone contractor");
+
+            if (!contKey || !zoneKey) return;
+
+            // استخراج المقاولين الذين لديهم سجلات في المنطقة المكتوبة
+            const availableContractors = [...new Set(
+                rawData.filter(row => String(row[zoneKey] || "").toLowerCase().includes(searchTerm))
+                       .map(row => row[contKey])
+            )].filter(Boolean).sort();
+
+            contractorList.innerHTML = "";
+            if (availableContractors.length === 0) {
+                contractorList.innerHTML = "<p class='text-xs text-red-400 p-2'>لا يوجد مقاولين لهذه المنطقة</p>";
+                return;
+            }
+
+            availableContractors.forEach(c => {
+                const label = document.createElement('label');
+                label.className = "flex items-center gap-3 p-2 hover:bg-blue-100 rounded-lg cursor-pointer text-sm font-medium transition-colors";
+                const isChecked = selectedContractors.includes(c);
+                label.innerHTML = `<input type="checkbox" value="${c}" ${isChecked ? 'checked' : ''} class="cont-check w-4 h-4 rounded text-blue-600 focus:ring-blue-500"> <span>${c}</span>`;
+                
+                label.querySelector('input').addEventListener('change', (e) => {
+                    if (e.target.checked) selectedContractors.push(c);
+                    else selectedContractors = selectedContractors.filter(item => item !== c);
+                    applyFilters();
+                    updateFileName();
+                });
+                contractorList.appendChild(label);
+            });
+        }
+
+        function updateFileName() {
+            const zoneText = zoneSearchInput.value.trim();
+            const statusText = statusFilter.value === "ALL" ? "" : statusFilter.value;
+            
+            let nameParts = [];
+            if (zoneText) nameParts.push(zoneText);
+            if (statusText) nameParts.push(statusText);
+            if (selectedContractors.length > 0) {
+                if (selectedContractors.length <= 2) nameParts.push(selectedContractors.join('_'));
+                else nameParts.push(`${selectedContractors[0]}_&_آخرون`);
+            }
+            
+            customFileName.value = nameParts.length > 0 ? nameParts.join(' - ') : originalFileName;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return "";
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return dateStr;
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}/${m}/${d}`;
+        }
+
+        function applyFilters() {
+            if (!rawData) return;
+            const searchTerm = zoneSearchInput.value.toLowerCase().trim();
+            const statusTarget = statusFilter.value;
+
+            const headers = Object.keys(rawData[0]);
+            const zoneKey = headers.find(h => h.toLowerCase() === "zone name");
+            const statusKey = headers.find(h => h.toLowerCase() === "status");
+            const contKey = headers.find(h => h.toLowerCase() === "zone contractor");
+            const dateKey = headers.find(h => h.toLowerCase() === "createdon");
+
+            let filtered = rawData.filter(row => {
+                const zoneVal = String(row[zoneKey] || "").toLowerCase();
+                const statusVal = statusKey ? String(row[statusKey] || "").trim() : "";
+                const contVal = contKey ? String(row[contKey] || "").trim() : "";
+                
+                const zoneMatch = searchTerm === "" ? true : zoneVal.includes(searchTerm);
+                const statusMatch = statusTarget === "ALL" ? true : statusVal === statusTarget;
+                const contMatch = selectedContractors.length === 0 ? true : selectedContractors.includes(contVal);
+
+                return zoneMatch && statusMatch && contMatch;
+            });
+
+            if (dateKey) {
+                filtered.sort((a, b) => new Date(b[dateKey]) - new Date(a[dateKey]));
+            }
+
+            finalData = filtered.map(row => {
+                const newRow = { ...row };
+                if (dateKey && newRow[dateKey]) newRow[dateKey] = formatDate(newRow[dateKey]);
+                columnsToRemove.forEach(col => {
+                    const actualKey = Object.keys(newRow).find(k => k.toLowerCase() === col.toLowerCase());
+                    if (actualKey) delete newRow[actualKey];
+                });
+                return newRow;
+            });
+
+            matchBadge.textContent = finalData.length;
+            downloadBtn.disabled = finalData.length === 0;
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            const worksheet = XLSX.utils.json_to_sheet(finalData);
+            const colWidths = Object.keys(finalData[0] || {}).map(key => {
+                let maxLen = key.length;
+                finalData.slice(0, 100).forEach(row => {
+                    const val = String(row[key] || "");
+                    if (val.length > maxLen) maxLen = val.length;
+                });
+                return { wch: maxLen + 5 };
+            });
+            worksheet['!cols'] = colWidths;
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+            const fileName = (customFileName.value || "Report").replace(/[/\\?%*:|"<>]/g, '-');
+            XLSX.writeFile(workbook, `${fileName}.xlsx`);
+        });
+
+        resetBtn.addEventListener('click', () => location.reload());
+    </script>
+</body>
+</html>
+
