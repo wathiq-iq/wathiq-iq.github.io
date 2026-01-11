@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to Excel Pro Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass-card { background: white; border: 1px solid #e2e8f0; }
+        .checkbox-group-container { max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 0.75rem; background: #fff; }
+        .checkbox-item { display: flex; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        .checkbox-item:hover { background-color: #f8fafc; }
+        .checkbox-item input[type="checkbox"] { width: 1.2rem; height: 1.2rem; margin-right: 0.75rem; flex-shrink: 0; }
+        .group-btn { transition: all 0.2s; border: 1px solid #e2e8f0; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.825rem; font-weight: 500; white-space: nowrap; }
+        .group-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
+        #smartGroups::-webkit-scrollbar { height: 6px; }
+        #smartGroups::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] min-h-screen text-slate-900">
+
+    <div class="max-w-6xl mx-auto py-8 px-4">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+            <div class="text-center md:text-left">
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">CSV to Excel Converter</h1>
+                <p class="text-slate-500 mt-1">نظام الفلترة الذكي للمناطق (FTK حصراً)</p>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-2xl shadow-sm border overflow-hidden">
+            <!-- Step 1 -->
+            <div class="p-6 border-b bg-white">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">1</div>
+                    <h2 class="text-lg font-bold">تحميل الملف</h2>
+                </div>
+                <input type="file" id="csvInput" accept=".csv" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-slate-900 file:text-white border-2 border-dashed rounded-xl p-4">
+            </div>
+
+            <!-- Step 2 -->
+            <div id="configSection" class="hidden p-6 bg-[#fcfdfe]">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">2</div>
+                    <h2 class="text-lg font-bold">الفلترة الذكية والتخصيص</h2>
+                </div>
+
+                <!-- Smart Group Selectors -->
+                <div class="mb-8">
+                    <label class="block text-sm font-bold text-slate-700 mb-3">اختر المجموعة السريعة (FTK فقط):</label>
+                    <div class="flex flex-wrap gap-2 overflow-x-auto pb-2" id="smartGroups">
+                        <button onclick="applySmartFilter('all')" class="group-btn active">الكل</button>
+                        <button onclick="applySmartFilter('in_house')" class="group-btn">ان هاوس</button>
+                        <button onclick="applySmartFilter('tikrit')" class="group-btn">تكريت</button>
+                        <button onclick="applySmartFilter('samarra')" class="group-btn">سامراء</button>
+                        <button onclick="applySmartFilter('alam')" class="group-btn">العلم</button>
+                        <button onclick="applySmartFilter('dujail')" class="group-btn">الدجيل</button>
+                        <button onclick="applySmartFilter('dhuluiya')" class="group-btn">الضلوعية</button>
+                        <button onclick="applySmartFilter('tuz')" class="group-btn">الطوز</button>
+                        <button onclick="applySmartFilter('door')" class="group-btn">الدور</button>
+                        <button onclick="applySmartFilter('sulaiman_bek')" class="group-btn">سليمان بيك</button>
+                        <button onclick="applySmartFilter('baiji')" class="group-btn">بيجي</button>
+                        <button onclick="applySmartFilter('shirqat')" class="group-btn">الشرقاط</button>
+                        <button onclick="applySmartFilter('siniya')" class="group-btn">الصينية</button>
+                        <button onclick="applySmartFilter('balad')" class="group-btn">بلد</button>
+                        <button onclick="applySmartFilter('amerli')" class="group-btn">امرلي</button>
+                        <button onclick="applySmartFilter('ishaqi')" class="group-btn">الاسحاقي</button>
+                        <button onclick="applySmartFilter('hajjaj')" class="group-btn">الحجاج</button>
+                        <button onclick="applySmartFilter('zawiya')" class="group-btn">الزوية</button>
+                        <button onclick="applySmartFilter('sadira')" class="group-btn">سديرة</button>
+                        <button onclick="applySmartFilter('yankaja')" class="group-btn">ينكجه</button>
+                        <button onclick="applySmartFilter('shukra')" class="group-btn">شكرا</button>
+                        <button onclick="applySmartFilter('hijal')" class="group-btn">حجل</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Manual Filter -->
+                    <div class="space-y-4">
+                        <div class="bg-white p-4 rounded-xl border shadow-sm">
+                            <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">بحث يدوي بالمنطقة</label>
+                            <input type="text" id="zoneNameFilter" placeholder="مثال: FTK0001" class="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:border-blue-500">
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border shadow-sm">
+                            <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">اسم ملف التصدير</label>
+                            <input type="text" id="customFileName" class="w-full px-3 py-2 rounded-lg border text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Contractors -->
+                    <div class="bg-white p-4 rounded-xl border shadow-sm">
+                        <div class="flex justify-between mb-2">
+                            <label class="text-sm font-bold">المقاولون</label>
+                            <span id="contractorCount" class="text-[10px] text-blue-600 font-bold">0</span>
+                        </div>
+                        <div id="contractorContainer" class="checkbox-group-container"></div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="bg-white p-4 rounded-xl border shadow-sm">
+                        <div class="flex justify-between mb-2">
+                            <label class="text-sm font-bold">الحالة</label>
+                            <span id="statusCount" class="text-[10px] text-blue-600 font-bold">0</span>
+                        </div>
+                        <div id="statusContainer" class="checkbox-group-container"></div>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-blue-50 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-4">
+                    <div class="flex-1 text-center md:text-left">
+                        <p class="text-blue-800 font-bold">جاهز لاستخراج التقرير المفلتر؟</p>
+                        <p class="text-blue-600 text-xs">سيتم استبعاد أي مناطق لا تبدأ بـ FTK عند اختيار المجموعات الذكية.</p>
+                    </div>
+                    <button id="convertBtn" class="w-full md:w-auto bg-blue-600 text-white font-bold py-3 px-10 rounded-xl shadow-lg hover:bg-blue-700 active:scale-95 transition-all">تحميل ملف Excel</button>
+                </div>
+            </div>
+            <div id="statusMsg" class="p-4 text-center text-sm font-bold hidden border-t"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- إعدادات المناطق المخصصة المحدثة ---
+        const SMART_ZONES = {
+            in_house: { ranges: [], specials: [8888] },
+            tikrit: { ranges: [[1, 44], [98, 99], [7000, 7300]], specials: [103] },
+            samarra: { ranges: [[45, 97], [100, 102], [253, 256]], specials: [] },
+            alam: { ranges: [[238, 252]], specials: [] },
+            dujail: { ranges: [[192, 207]], specials: [] },
+            dhuluiya: { ranges: [[257, 272]], specials: [] },
+            tuz: { ranges: [[128, 162]], specials: [216] },
+            door: { ranges: [[208, 215]], specials: [] },
+            sulaiman_bek: { ranges: [[278, 282]], specials: [] },
+            baiji: { ranges: [[163, 191]], specials: [312] },
+            shirqat: { ranges: [[217, 237]], specials: [] },
+            siniya: { ranges: [[288, 294]], specials: [] },
+            balad: { ranges: [[104, 127], [332, 343]], specials: [] },
+            amerli: { ranges: [[283, 287]], specials: [] },
+            ishaqi: { ranges: [[313, 314]], specials: [] },
+            hajjaj: { ranges: [[304, 311]], specials: [315] },
+            zawiya: { ranges: [[273, 277]], specials: [] },
+            sadira: { ranges: [[322, 331]], specials: [346] },
+            yankaja: { ranges: [[296, 297]], specials: [] },
+            shukra: { ranges: [[316, 321]], specials: [] },
+            hijal: { ranges: [[298, 303]], specials: [344, 345] }
+        };
+
+        let rawData = [];
+        let currentSmartFilter = 'all';
+        const alwaysDelete = ["Notes", "House", "Street", "Email", "Name", "UsrGPSLocationLongitude", "UsrGPSLocationLatitude", "ModifiedOn"];
+        const conditionalColumns = ["FDT", "FAT", "Device Username"];
+
+        const csvInput = document.getElementById('csvInput');
+        const configSection = document.getElementById('configSection');
+        const zoneNameInput = document.getElementById('zoneNameFilter');
+        const contractorContainer = document.getElementById('contractorContainer');
+        const statusContainer = document.getElementById('statusContainer');
+        const convertBtn = document.getElementById('convertBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const customFileName = document.getElementById('customFileName');
+
+        function getZoneNumber(zoneStr) {
+            const match = zoneStr.match(/\d+/);
+            return match ? parseInt(match[0], 10) : null;
+        }
+
+        function isNumberInGroup(num, groupKey) {
+            if (!SMART_ZONES[groupKey]) return true;
+            const config = SMART_ZONES[groupKey];
+            const inRange = config.ranges.some(r => num >= r[0] && num <= r[1]);
+            const isSpecial = config.specials.includes(num);
+            return inRange || isSpecial;
+        }
+
+        function updateExportFileName() {
+            const labels = {
+                'in_house': 'InHouse', 'tikrit': 'Tikrit', 'samarra': 'Samarra', 'alam': 'Alam', 'dujail': 'Dujail',
+                'dhuluiya': 'Dhuluiya', 'tuz': 'Tuz', 'door': 'Door', 'sulaiman_bek': 'SulaimanBek',
+                'baiji': 'Baiji', 'shirqat': 'Shirqat', 'siniya': 'Siniya', 'balad': 'Balad',
+                'amerli': 'Amerli', 'ishaqi': 'Ishaqi', 'hajjaj': 'Hajjaj', 'zawiya': 'Zawiya',
+                'sadira': 'Sadira', 'yankaja': 'Yankaja', 'shukra': 'Shukra', 'hijal': 'Hijal', 'all': 'All'
+            };
+
+            // 1. Get Selected Contractors - replacing spaces with underscore for filename consistency
+            const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked'))
+                .map(cb => cb.value.trim().replace(/\s+/g, '_'));
+            const contractorPart = selectedContractors.length > 0 ? `_${selectedContractors.join('-')}` : "";
+
+            // 2. Get Selected Statuses (Abbreviations)
+            const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => {
+                const val = cb.value.toLowerCase();
+                if (val.includes('pending')) return 'Pending';
+                if (val.includes('done')) return 'Done';
+                if (val.includes('cancel')) return 'Cancel';
+                return val.charAt(0).toUpperCase() + val.slice(1);
+            });
+            const statusPart = selectedStatuses.length > 0 ? `_${selectedStatuses.join('-')}` : "";
+            
+            // 3. Get Group/Area Name
+            const groupPart = labels[currentSmartFilter] || 'Report';
+            
+            // 4. Date
+            const datePart = new Date().toISOString().split('T')[0];
+            
+            // Final Name Structure: Area_Contractor_Status_Date
+            customFileName.value = `${groupPart}${contractorPart}${statusPart}_${datePart}`;
+        }
+
+        window.applySmartFilter = (filter) => {
+            currentSmartFilter = filter;
+            document.querySelectorAll('.group-btn').forEach(btn => {
+                const labels = {
+                    'in_house': 'ان هاوس', 'tikrit': 'تكريت', 'samarra': 'سامراء', 'alam': 'العلم', 'dujail': 'الدجيل',
+                    'dhuluiya': 'الضلوعية', 'tuz': 'الطوز', 'door': 'الدور', 'sulaiman_bek': 'سليمان بيك',
+                    'baiji': 'بيجي', 'shirqat': 'الشرقاط', 'siniya': 'الصينية', 'balad': 'بلد',
+                    'amerli': 'امرلي', 'ishaqi': 'الاسحاقي', 'hajjaj': 'الحجاج', 'zawiya': 'الزوية',
+                    'sadira': 'سديرة', 'yankaja': 'ينكجه', 'shukra': 'شكرا', 'hijal': 'حجل', 'all': 'الكل'
+                };
+                btn.classList.toggle('active', btn.innerText === labels[filter]);
+            });
+            updateExportFileName();
+            updateFilters();
+        };
+
+        csvInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    rawData = results.data;
+                    configSection.classList.remove('hidden');
+                    updateExportFileName();
+                    updateFilters();
+                }
+            });
+        });
+
+        zoneNameInput.addEventListener('input', updateFilters);
+
+        function updateFilters() {
+            const zoneQuery = zoneNameInput.value.toLowerCase();
+            
+            const filteredByZone = rawData.filter(row => {
+                const zoneStr = (row["Zone Name"] || "").toString();
+                const zoneNum = getZoneNumber(zoneStr);
+                const isFTK = zoneStr.toUpperCase().startsWith("FTK");
+                const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
+                
+                let matchesSmart = false;
+                if (currentSmartFilter === 'all') {
+                    matchesSmart = true;
+                } else if (isFTK && zoneNum !== null) {
+                    matchesSmart = isNumberInGroup(zoneNum, currentSmartFilter);
+                }
+                return matchesManual && matchesSmart;
+            });
+
+            const contractors = [...new Set(filteredByZone.map(row => row["Zone Contractor"]).filter(Boolean))].sort();
+            contractorContainer.innerHTML = contractors.map(c => `
+                <label class="checkbox-item"><input type="checkbox" name="contractor" value="${c}" onchange="updateStatusOptions()"><span class="ml-2 text-sm">${c}</span></label>
+            `).join('') || '<div class="p-4 text-xs italic text-slate-400">لا يوجد بيانات</div>';
+            
+            updateStatusOptions();
+        }
+
+        window.updateStatusOptions = () => {
+            const zoneQuery = zoneNameInput.value.toLowerCase();
+            const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
+
+            const filteredData = rawData.filter(row => {
+                const zoneStr = (row["Zone Name"] || "").toString();
+                const zoneNum = getZoneNumber(zoneStr);
+                const isFTK = zoneStr.toUpperCase().startsWith("FTK");
+                const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
+                
+                let matchesSmart = false;
+                if (currentSmartFilter === 'all') {
+                    matchesSmart = true;
+                } else if (isFTK && zoneNum !== null) {
+                    matchesSmart = isNumberInGroup(zoneNum, currentSmartFilter);
+                }
+
+                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
+                return matchesManual && matchesSmart && matchesContractor;
+            });
+
+            const statuses = [...new Set(filteredData.map(row => row["Status"]).filter(Boolean))].sort();
+            statusContainer.innerHTML = statuses.map(s => `
+                <label class="checkbox-item"><input type="checkbox" name="status" value="${s}" onchange="updateFileNameAndCounts()"><span class="ml-2 text-sm">${s}</span></label>
+            `).join('') || '<div class="p-4 text-xs italic text-slate-400">اختر مقاولاً أولاً</div>';
+            
+            updateFileNameAndCounts();
+        };
+
+        window.updateFileNameAndCounts = () => {
+            updateExportFileName();
+            updateCounts();
+        };
+
+        window.updateCounts = () => {
+            document.getElementById('contractorCount').innerText = document.querySelectorAll('input[name="contractor"]:checked').length;
+            document.getElementById('statusCount').innerText = document.querySelectorAll('input[name="status"]:checked').length;
+        };
+
+        function getOptimalWidths(data) {
+            if (data.length === 0) return [];
+            const keys = Object.keys(data[0]);
+            return keys.map(key => {
+                let maxLen = key.toString().length;
+                data.forEach(row => {
+                    const val = row[key] ? row[key].toString() : "";
+                    if (val.length > maxLen) maxLen = val.length;
+                });
+                return { wch: maxLen + 2 };
+            });
+        }
+
+        convertBtn.addEventListener('click', () => {
+            const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
+            const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => cb.value);
+            const zoneQuery = zoneNameInput.value.toLowerCase();
+
+            const processed = rawData.filter(row => {
+                const zoneStr = (row["Zone Name"] || "").toString();
+                const zoneNum = getZoneNumber(zoneStr);
+                const isFTK = zoneStr.toUpperCase().startsWith("FTK");
+                const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
+                
+                let matchesSmart = false;
+                if (currentSmartFilter === 'all') {
+                    matchesSmart = true;
+                } else if (isFTK && zoneNum !== null) {
+                    matchesSmart = isNumberInGroup(zoneNum, currentSmartFilter);
+                }
+
+                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
+                const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(row["Status"]);
+                return matchesManual && matchesSmart && matchesContractor && matchesStatus;
+            });
+
+            if (processed.length === 0) return showStatus("لا توجد بيانات تطابق هذه الفلاتر", "bg-red-100 text-red-700");
+
+            const hasPending = selectedStatuses.some(s => s.includes("Pending"));
+            const hasDone = selectedStatuses.some(s => s.includes("Done"));
+            const shouldDeleteConditional = hasPending && !hasDone;
+
+            const finalData = processed.map(row => {
+                const newRow = { ...row };
+                alwaysDelete.forEach(col => delete newRow[col]);
+                if (shouldDeleteConditional) conditionalColumns.forEach(col => delete newRow[col]);
+                if (newRow["CreatedOn"]) {
+                    const d = new Date(newRow["CreatedOn"]);
+                    if (!isNaN(d.getTime())) newRow["CreatedOn"] = d.toISOString().split('T')[0].replace(/-/g, '/');
+                }
+                return newRow;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(finalData);
+            ws['!cols'] = getOptimalWidths(finalData);
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data");
+            XLSX.writeFile(wb, `${customFileName.value || 'Report'}.xlsx`);
+            showStatus(`تم استخراج ${processed.length} صف بنجاح مع تنسيق الأعمدة التلقائي`, "bg-green-100 text-green-700");
+        });
+
+        function showStatus(msg, cls) {
+            statusMsg.innerText = msg;
+            statusMsg.className = `p-4 text-center text-sm font-bold border-t ${cls}`;
+            statusMsg.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
