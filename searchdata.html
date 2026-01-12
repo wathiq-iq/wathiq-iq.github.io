@@ -11,6 +11,9 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        /* Support for Arabic text rendering */
+        .rtl-cell { direction: rtl; text-align: right; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen">
@@ -19,7 +22,7 @@
         <!-- Header -->
         <header class="mb-8">
             <h1 class="text-3xl font-bold text-indigo-700">Data Search Dashboard</h1>
-            <p class="text-gray-600">Explore and filter records from your dataset.</p>
+            <p class="text-gray-600">Explore and filter records from your dataset (UTF-8 Arabic Support).</p>
         </header>
 
         <!-- Stats Section -->
@@ -31,18 +34,18 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex-grow">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Global Search</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Global Search / البحث</label>
                     <input type="text" id="global-search" placeholder="Search accounts, phones, or zones..." 
                            class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
                 <div class="w-full md:w-48">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Filter</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status / الحالة</label>
                     <select id="status-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="all">All Statuses</option>
                     </select>
                 </div>
                 <div class="w-full md:w-48">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Zone Filter</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Zone / المنطقة</label>
                     <select id="zone-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="all">All Zones</option>
                     </select>
@@ -69,7 +72,7 @@
                 <p class="text-indigo-600 font-medium">Loading dataset...</p>
             </div>
             <div id="no-results" class="hidden py-20 text-center">
-                <p class="text-gray-500">No matching records found.</p>
+                <p class="text-gray-500">No matching records found / لا توجد نتائج.</p>
             </div>
             <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
                 <span id="record-count" class="text-sm text-gray-600 italic">Showing 0 records</span>
@@ -78,7 +81,7 @@
     </div>
 
     <script>
-        // Use the relative filename for local environment access
+        // Updated to the exact filename provided in your history
         const FILE_NAME = 'All_2026-01-12.csv';
         let rawData = [];
 
@@ -96,17 +99,17 @@
         // Initialize App
         async function init() {
             try {
-                // Fetch using relative path to access the local uploaded file directly.
-                // Using the local FILE_NAME instead of the remote URL to avoid CORS/Fetch errors 
-                // when running in the canvas environment with uploaded files.
                 const response = await fetch(FILE_NAME);
                 if (!response.ok) throw new Error("Could not load local file: " + FILE_NAME);
                 
+                // Read as ArrayBuffer first to handle encoding explicitly if needed, 
+                // but usually text() handles UTF-8 correctly. 
                 const csvText = await response.text();
                 
                 Papa.parse(csvText, {
                     header: true,
                     skipEmptyLines: true,
+                    encoding: "UTF-8", // Explicitly set encoding for Arabic
                     complete: function(results) {
                         rawData = results.data;
                         loadingSpinner.classList.add('hidden');
@@ -126,7 +129,7 @@
         function handleLoadError(err) {
             console.error("Load Error:", err);
             loadingSpinner.classList.add('hidden');
-            tableBody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-red-500 font-bold">Error: Unable to load data. <br><small class="text-gray-500 font-normal">Please ensure "${FILE_NAME}" is accessible.</small></td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-red-500 font-bold">Error: Unable to load data. <br><small class="text-gray-500 font-normal">Ensure the file is uploaded and named correctly.</small></td></tr>`;
         }
 
         function setupFilters(data) {
@@ -172,6 +175,12 @@
             `).join('');
         }
 
+        // Helper to detect if string contains Arabic characters
+        function containsArabic(text) {
+            const arabicPattern = /[\u0600-\u06FF]/;
+            return arabicPattern.test(text);
+        }
+
         function updateView(data) {
             if (data.length === 0) {
                 tableBody.innerHTML = '';
@@ -192,6 +201,9 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     ${headers.map(h => {
                         let cellVal = row[h] || '-';
+                        const isArabic = containsArabic(cellVal);
+                        const alignmentClass = isArabic ? 'rtl-cell' : 'text-left';
+
                         if (h === 'Status') {
                             const valLower = String(cellVal).toLowerCase();
                             let pillClass = 'bg-gray-100 text-gray-800';
@@ -199,7 +211,8 @@
                             else if (valLower === 'cancelled') pillClass = 'bg-red-100 text-red-800';
                             return `<td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium ${pillClass}">${cellVal}</span></td>`;
                         }
-                        return `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${cellVal}</td>`;
+                        
+                        return `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 ${alignmentClass}">${cellVal}</td>`;
                     }).join('')}
                 </tr>
             `).join('');
