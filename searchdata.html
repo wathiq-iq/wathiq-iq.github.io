@@ -12,82 +12,113 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
         
-        /* Support for Arabic text rendering */
         .rtl-cell { direction: rtl; text-align: right; }
+        
+        /* Skeleton/Phone Grid specific styles */
+        @media (max-width: 768px) {
+            .mobile-grid-card {
+                display: block;
+                background: white;
+                border-radius: 0.75rem;
+                padding: 1rem;
+                margin-bottom: 1rem;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+            .desktop-only { display: none; }
+        }
+        @media (min-width: 769px) {
+            .mobile-only { display: none; }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen">
 
-    <div id="app" class="max-w-7xl mx-auto px-4 py-8">
+    <div id="app" class="max-w-7xl mx-auto px-4 py-6 md:py-8">
         <!-- Header -->
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-indigo-700">Data Search Dashboard</h1>
-            <p class="text-gray-600">Explore and filter records from your dataset (UTF-8 Arabic Support).</p>
+        <header class="mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">Data Explorer</h1>
+            <p class="text-gray-600 text-sm">Targeted View: Account, Phone, Address, Status, Zone.</p>
         </header>
 
         <!-- Stats Section -->
-        <div id="stats-container" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
             <!-- Stats will be injected here -->
         </div>
 
         <!-- Search and Filters -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-            <div class="flex flex-col md:flex-row gap-4">
+        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
+            <div class="flex flex-col gap-4">
                 <div class="flex-grow">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Global Search / البحث</label>
-                    <input type="text" id="global-search" placeholder="Search accounts, phones, or zones..." 
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Search / بحث</label>
+                    <input type="text" id="global-search" placeholder="Search accounts, phones..." 
                            class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
-                <div class="w-full md:w-48">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status / الحالة</label>
-                    <select id="status-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="all">All Statuses</option>
-                    </select>
-                </div>
-                <div class="w-full md:w-48">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Zone / المنطقة</label>
-                    <select id="zone-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="all">All Zones</option>
-                    </select>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Status / الحالة</label>
+                        <select id="status-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Zone / المنطقة</label>
+                        <select id="zone-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="all">All</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Table View -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr id="table-headers">
-                            <!-- Headers injected here -->
-                        </tr>
-                    </thead>
-                    <tbody id="table-body" class="divide-y divide-gray-100">
-                        <!-- Rows injected here -->
-                    </tbody>
-                </table>
+        <!-- Data Display Area -->
+        <div id="data-container">
+            <!-- Table for Desktop -->
+            <div class="desktop-only bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr id="table-headers">
+                                <!-- Targeted Headers injected here -->
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-gray-100">
+                            <!-- Rows injected here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
+            <!-- Grid for Mobile -->
+            <div id="mobile-body" class="mobile-only">
+                <!-- Cards injected here -->
+            </div>
+
+            <!-- Loading & Empty States -->
             <div id="loading-spinner" class="py-20 text-center">
                 <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mb-4"></div>
-                <p class="text-indigo-600 font-medium">Loading dataset...</p>
+                <p class="text-indigo-600 font-medium">Loading data...</p>
             </div>
             <div id="no-results" class="hidden py-20 text-center">
-                <p class="text-gray-500">No matching records found / لا توجد نتائج.</p>
+                <p class="text-gray-500">No matching records found.</p>
             </div>
-            <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-                <span id="record-count" class="text-sm text-gray-600 italic">Showing 0 records</span>
-            </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="mt-4 p-4 border-t border-gray-100 flex justify-between items-center">
+            <span id="record-count" class="text-sm text-gray-600 italic">Showing 0 records</span>
         </div>
     </div>
 
     <script>
-        // Updated to the exact filename provided in your history
         const FILE_NAME = 'All_2026-01-12.csv';
+        const TARGET_COLUMNS = ['Account', 'Phone', 'Address', 'Status', 'Zone Name', 'Zone Contractor'];
+        
         let rawData = [];
 
         // Elements
         const tableHeaders = document.getElementById('table-headers');
         const tableBody = document.getElementById('table-body');
+        const mobileBody = document.getElementById('mobile-body');
         const globalSearch = document.getElementById('global-search');
         const statusFilter = document.getElementById('status-filter');
         const zoneFilter = document.getElementById('zone-filter');
@@ -96,125 +127,125 @@
         const statsContainer = document.getElementById('stats-container');
         const loadingSpinner = document.getElementById('loading-spinner');
 
-        // Initialize App
         async function init() {
             try {
                 const response = await fetch(FILE_NAME);
-                if (!response.ok) throw new Error("Could not load local file: " + FILE_NAME);
+                if (!response.ok) throw new Error("File load error");
                 
-                // Read as ArrayBuffer first to handle encoding explicitly if needed, 
-                // but usually text() handles UTF-8 correctly. 
                 const csvText = await response.text();
                 
                 Papa.parse(csvText, {
                     header: true,
                     skipEmptyLines: true,
-                    encoding: "UTF-8", // Explicitly set encoding for Arabic
+                    encoding: "UTF-8",
                     complete: function(results) {
                         rawData = results.data;
                         loadingSpinner.classList.add('hidden');
                         setupFilters(rawData);
                         updateView(rawData);
                         renderStats(rawData);
-                    },
-                    error: function(err) {
-                        handleLoadError(err);
                     }
                 });
             } catch (error) {
-                handleLoadError(error);
+                loadingSpinner.innerHTML = `<p class="text-red-500">Error loading data. Verify file name.</p>`;
             }
-        }
-
-        function handleLoadError(err) {
-            console.error("Load Error:", err);
-            loadingSpinner.classList.add('hidden');
-            tableBody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-red-500 font-bold">Error: Unable to load data. <br><small class="text-gray-500 font-normal">Ensure the file is uploaded and named correctly.</small></td></tr>`;
         }
 
         function setupFilters(data) {
             const statuses = [...new Set(data.map(item => item.Status))].filter(Boolean).sort();
             const zones = [...new Set(data.map(item => item['Zone Name']))].filter(Boolean).sort();
 
-            statusFilter.innerHTML = '<option value="all">All Statuses</option>';
+            statusFilter.innerHTML = '<option value="all">All Status</option>';
             zoneFilter.innerHTML = '<option value="all">All Zones</option>';
 
-            statuses.forEach(status => {
-                const opt = document.createElement('option');
-                opt.value = status;
-                opt.textContent = status;
-                statusFilter.appendChild(opt);
-            });
-
-            zones.forEach(zone => {
-                const opt = document.createElement('option');
-                opt.value = zone;
-                opt.textContent = zone;
-                zoneFilter.appendChild(opt);
-            });
+            statuses.forEach(s => statusFilter.add(new Option(s, s)));
+            zones.forEach(z => zoneFilter.add(new Option(z, z)));
         }
 
         function renderStats(data) {
-            const total = data.length;
-            const done = data.filter(r => String(r.Status).toLowerCase() === 'done').length;
-            const cancelled = data.filter(r => String(r.Status).toLowerCase() === 'cancelled').length;
-            const other = total - done - cancelled;
-
             const stats = [
-                { label: 'Total Records', val: total, color: 'indigo' },
-                { label: 'Completed (Done)', val: done, color: 'green' },
-                { label: 'Cancelled', val: cancelled, color: 'red' },
-                { label: 'Other/Pending', val: other, color: 'amber' }
+                { label: 'Total', val: data.length, color: 'indigo' },
+                { label: 'Done', val: data.filter(r => String(r.Status).toLowerCase() === 'done').length, color: 'green' },
+                { label: 'Cancelled', val: data.filter(r => String(r.Status).toLowerCase() === 'cancelled').length, color: 'red' },
+                { label: 'Zones', val: new Set(data.map(r => r['Zone Name'])).size, color: 'amber' }
             ];
 
             statsContainer.innerHTML = stats.map(s => `
-                <div class="bg-white p-4 rounded-xl border-l-4 border-${s.color}-500 shadow-sm">
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${s.label}</p>
-                    <p class="text-2xl font-bold text-gray-800">${s.val.toLocaleString()}</p>
+                <div class="bg-white p-3 rounded-xl border-b-2 border-${s.color}-500 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">${s.label}</p>
+                    <p class="text-lg font-bold text-gray-800">${s.val.toLocaleString()}</p>
                 </div>
             `).join('');
         }
 
-        // Helper to detect if string contains Arabic characters
         function containsArabic(text) {
-            const arabicPattern = /[\u0600-\u06FF]/;
-            return arabicPattern.test(text);
+            return /[\u0600-\u06FF]/.test(text);
+        }
+
+        function getStatusPill(status) {
+            const val = String(status).toLowerCase();
+            let cls = 'bg-gray-100 text-gray-800';
+            if (val === 'done') cls = 'bg-green-100 text-green-800';
+            else if (val === 'cancelled') cls = 'bg-red-100 text-red-800';
+            return `<span class="px-2 py-0.5 rounded-full text-xs font-bold ${cls}">${status}</span>`;
         }
 
         function updateView(data) {
             if (data.length === 0) {
                 tableBody.innerHTML = '';
+                mobileBody.innerHTML = '';
                 noResults.classList.remove('hidden');
-                recordCount.textContent = 'Showing 0 records';
+                recordCount.textContent = '0 records';
                 return;
             }
 
             noResults.classList.add('hidden');
-            const headers = Object.keys(data[0]);
             
-            tableHeaders.innerHTML = headers.map(h => `
-                <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">${h}</th>
+            // 1. Desktop Headers
+            tableHeaders.innerHTML = TARGET_COLUMNS.map(h => `
+                <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">${h}</th>
             `).join('');
 
             const displayData = data.slice(0, 100);
-            tableBody.innerHTML = displayData.map(row => `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    ${headers.map(h => {
-                        let cellVal = row[h] || '-';
-                        const isArabic = containsArabic(cellVal);
-                        const alignmentClass = isArabic ? 'rtl-cell' : 'text-left';
 
-                        if (h === 'Status') {
-                            const valLower = String(cellVal).toLowerCase();
-                            let pillClass = 'bg-gray-100 text-gray-800';
-                            if (valLower === 'done') pillClass = 'bg-green-100 text-green-800';
-                            else if (valLower === 'cancelled') pillClass = 'bg-red-100 text-red-800';
-                            return `<td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium ${pillClass}">${cellVal}</span></td>`;
-                        }
-                        
-                        return `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 ${alignmentClass}">${cellVal}</td>`;
+            // 2. Desktop Rows
+            tableBody.innerHTML = displayData.map(row => `
+                <tr class="hover:bg-gray-50">
+                    ${TARGET_COLUMNS.map(h => {
+                        const val = row[h] || '-';
+                        if (h === 'Status') return `<td class="px-6 py-4">${getStatusPill(val)}</td>`;
+                        const align = containsArabic(val) ? 'rtl-cell' : '';
+                        return `<td class="px-6 py-4 text-sm text-gray-700 ${align}">${val}</td>`;
                     }).join('')}
                 </tr>
+            `).join('');
+
+            // 3. Mobile Grid Cards
+            mobileBody.innerHTML = displayData.map(row => `
+                <div class="mobile-grid-card border border-gray-100">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-indigo-700 ${containsArabic(row.Account) ? 'rtl-cell w-full' : ''}">${row.Account || 'N/A'}</h3>
+                        ${getStatusPill(row.Status)}
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between border-b border-gray-50 pb-1">
+                            <span class="text-gray-400 text-xs uppercase font-semibold">Phone</span>
+                            <span class="text-gray-700 font-medium">${row.Phone || '-'}</span>
+                        </div>
+                        <div class="flex flex-col border-b border-gray-50 pb-1">
+                            <span class="text-gray-400 text-xs uppercase font-semibold mb-1">Address</span>
+                            <span class="text-gray-700 ${containsArabic(row.Address) ? 'rtl-cell' : ''}">${row.Address || '-'}</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-50 pb-1">
+                            <span class="text-gray-400 text-xs uppercase font-semibold">Zone</span>
+                            <span class="text-gray-700">${row['Zone Name'] || '-'}</span>
+                        </div>
+                        <div class="flex flex-col pt-1">
+                            <span class="text-gray-400 text-xs uppercase font-semibold mb-1">Contractor</span>
+                            <span class="text-gray-700 ${containsArabic(row['Zone Contractor']) ? 'rtl-cell' : ''}">${row['Zone Contractor'] || '-'}</span>
+                        </div>
+                    </div>
+                </div>
             `).join('');
 
             recordCount.textContent = `Showing ${data.length} records ${data.length > 100 ? '(first 100 displayed)' : ''}`;
@@ -226,12 +257,11 @@
             const zoneVal = zoneFilter.value;
 
             const results = rawData.filter(item => {
-                const matchesSearch = Object.values(item).some(val => 
-                    String(val).toLowerCase().includes(searchTerm)
+                const matchesSearch = TARGET_COLUMNS.some(col => 
+                    String(item[col]).toLowerCase().includes(searchTerm)
                 );
                 const matchesStatus = statusVal === 'all' || item.Status === statusVal;
                 const matchesZone = zoneVal === 'all' || item['Zone Name'] === zoneVal;
-
                 return matchesSearch && matchesStatus && matchesZone;
             });
 
