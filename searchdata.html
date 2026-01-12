@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Search Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans min-h-screen">
+
+    <div id="app" class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-indigo-700">Data Search Dashboard</h1>
+            <p class="text-gray-600">Explore and filter records from your dataset.</p>
+        </header>
+
+        <!-- Stats Section -->
+        <div id="stats-container" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <!-- Stats will be injected here -->
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-grow">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Global Search</label>
+                    <input type="text" id="global-search" placeholder="Search accounts, phones, or zones..." 
+                           class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="w-full md:w-48">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Filter</label>
+                    <select id="status-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="all">All Statuses</option>
+                    </select>
+                </div>
+                <div class="w-full md:w-48">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Zone Filter</label>
+                    <select id="zone-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="all">All Zones</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr id="table-headers">
+                            <!-- Headers injected here -->
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-gray-100">
+                        <!-- Rows injected here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="loading-spinner" class="py-20 text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mb-4"></div>
+                <p class="text-indigo-600 font-medium">Loading dataset...</p>
+            </div>
+            <div id="no-results" class="hidden py-20 text-center">
+                <p class="text-gray-500">No matching records found.</p>
+            </div>
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+                <span id="record-count" class="text-sm text-gray-600 italic">Showing 0 records</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Use the relative filename for local environment access
+        const FILE_NAME = 'All_2026-01-12.csv';
+        let rawData = [];
+
+        // Elements
+        const tableHeaders = document.getElementById('table-headers');
+        const tableBody = document.getElementById('table-body');
+        const globalSearch = document.getElementById('global-search');
+        const statusFilter = document.getElementById('status-filter');
+        const zoneFilter = document.getElementById('zone-filter');
+        const recordCount = document.getElementById('record-count');
+        const noResults = document.getElementById('no-results');
+        const statsContainer = document.getElementById('stats-container');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        // Initialize App
+        async function init() {
+            try {
+                // Fetch using relative path to access the local uploaded file directly.
+                // Using the local FILE_NAME instead of the remote URL to avoid CORS/Fetch errors 
+                // when running in the canvas environment with uploaded files.
+                const response = await fetch(FILE_NAME);
+                if (!response.ok) throw new Error("Could not load local file: " + FILE_NAME);
+                
+                const csvText = await response.text();
+                
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        rawData = results.data;
+                        loadingSpinner.classList.add('hidden');
+                        setupFilters(rawData);
+                        updateView(rawData);
+                        renderStats(rawData);
+                    },
+                    error: function(err) {
+                        handleLoadError(err);
+                    }
+                });
+            } catch (error) {
+                handleLoadError(error);
+            }
+        }
+
+        function handleLoadError(err) {
+            console.error("Load Error:", err);
+            loadingSpinner.classList.add('hidden');
+            tableBody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-red-500 font-bold">Error: Unable to load data. <br><small class="text-gray-500 font-normal">Please ensure "${FILE_NAME}" is accessible.</small></td></tr>`;
+        }
+
+        function setupFilters(data) {
+            const statuses = [...new Set(data.map(item => item.Status))].filter(Boolean).sort();
+            const zones = [...new Set(data.map(item => item['Zone Name']))].filter(Boolean).sort();
+
+            statusFilter.innerHTML = '<option value="all">All Statuses</option>';
+            zoneFilter.innerHTML = '<option value="all">All Zones</option>';
+
+            statuses.forEach(status => {
+                const opt = document.createElement('option');
+                opt.value = status;
+                opt.textContent = status;
+                statusFilter.appendChild(opt);
+            });
+
+            zones.forEach(zone => {
+                const opt = document.createElement('option');
+                opt.value = zone;
+                opt.textContent = zone;
+                zoneFilter.appendChild(opt);
+            });
+        }
+
+        function renderStats(data) {
+            const total = data.length;
+            const done = data.filter(r => String(r.Status).toLowerCase() === 'done').length;
+            const cancelled = data.filter(r => String(r.Status).toLowerCase() === 'cancelled').length;
+            const other = total - done - cancelled;
+
+            const stats = [
+                { label: 'Total Records', val: total, color: 'indigo' },
+                { label: 'Completed (Done)', val: done, color: 'green' },
+                { label: 'Cancelled', val: cancelled, color: 'red' },
+                { label: 'Other/Pending', val: other, color: 'amber' }
+            ];
+
+            statsContainer.innerHTML = stats.map(s => `
+                <div class="bg-white p-4 rounded-xl border-l-4 border-${s.color}-500 shadow-sm">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${s.label}</p>
+                    <p class="text-2xl font-bold text-gray-800">${s.val.toLocaleString()}</p>
+                </div>
+            `).join('');
+        }
+
+        function updateView(data) {
+            if (data.length === 0) {
+                tableBody.innerHTML = '';
+                noResults.classList.remove('hidden');
+                recordCount.textContent = 'Showing 0 records';
+                return;
+            }
+
+            noResults.classList.add('hidden');
+            const headers = Object.keys(data[0]);
+            
+            tableHeaders.innerHTML = headers.map(h => `
+                <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">${h}</th>
+            `).join('');
+
+            const displayData = data.slice(0, 100);
+            tableBody.innerHTML = displayData.map(row => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    ${headers.map(h => {
+                        let cellVal = row[h] || '-';
+                        if (h === 'Status') {
+                            const valLower = String(cellVal).toLowerCase();
+                            let pillClass = 'bg-gray-100 text-gray-800';
+                            if (valLower === 'done') pillClass = 'bg-green-100 text-green-800';
+                            else if (valLower === 'cancelled') pillClass = 'bg-red-100 text-red-800';
+                            return `<td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium ${pillClass}">${cellVal}</span></td>`;
+                        }
+                        return `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${cellVal}</td>`;
+                    }).join('')}
+                </tr>
+            `).join('');
+
+            recordCount.textContent = `Showing ${data.length} records ${data.length > 100 ? '(first 100 displayed)' : ''}`;
+        }
+
+        function handleFilter() {
+            const searchTerm = globalSearch.value.toLowerCase();
+            const statusVal = statusFilter.value;
+            const zoneVal = zoneFilter.value;
+
+            const results = rawData.filter(item => {
+                const matchesSearch = Object.values(item).some(val => 
+                    String(val).toLowerCase().includes(searchTerm)
+                );
+                const matchesStatus = statusVal === 'all' || item.Status === statusVal;
+                const matchesZone = zoneVal === 'all' || item['Zone Name'] === zoneVal;
+
+                return matchesSearch && matchesStatus && matchesZone;
+            });
+
+            updateView(results);
+        }
+
+        globalSearch.addEventListener('input', handleFilter);
+        statusFilter.addEventListener('change', handleFilter);
+        zoneFilter.addEventListener('change', handleFilter);
+
+        window.onload = init;
+    </script>
+</body>
+</html>
