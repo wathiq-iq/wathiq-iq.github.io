@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Search Explorer & OCR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+        .rtl-cell { direction: rtl; text-align: right; }
+        @media (max-width: 768px) {
+            .mobile-grid-card { display: block; background: white; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .desktop-only { display: none; }
+        }
+        @media (min-width: 769px) { .mobile-only { display: none; } }
+        
+        .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.3s ease; }
+        .drop-zone.active { border-color: #6366f1; background-color: #f5f3ff; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans min-h-screen">
+
+    <div id="app" class="max-w-7xl mx-auto px-4 py-6 md:py-8">
+        <!-- Header -->
+        <header class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">مستكشف البيانات الذكي</h1>
+                <p class="text-gray-600 text-sm">البحث بالبيانات أو عن طريق مسح الصور (OCR)</p>
+            </div>
+            <div id="ocr-status" class="hidden items-center gap-2 bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100">
+                <div class="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent"></div>
+                <span class="text-xs font-medium text-indigo-700">جاري قراءة الصور...</span>
+            </div>
+        </header>
+
+        <!-- Stats Section -->
+        <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6"></div>
+
+        <!-- OCR Upload & Search -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- OCR Upload Zone -->
+            <div class="lg:col-span-1">
+                <div id="drop-zone" class="drop-zone relative h-full flex flex-col items-center justify-center p-6 rounded-xl bg-white text-center cursor-pointer">
+                    <input type="file" id="file-input" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" multiple>
+                    <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <p class="text-sm font-semibold text-gray-700">اضغط أو اسحب صوراً هنا</p>
+                    <p class="text-xs text-gray-400 mt-1">لاستخراج أرقام الهواتف والبحث تلقائياً</p>
+                </div>
+            </div>
+
+            <!-- Manual Filters -->
+            <div class="lg:col-span-2 bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
+                <div class="flex flex-col gap-4">
+                    <div class="flex-grow">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Search / بحث بالاسم أو الرقم</label>
+                        <input type="text" id="global-search" placeholder="اكتب للبحث..." 
+                               class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Status / الحالة</label>
+                            <select id="status-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                                <option value="all">الكل</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Zone / المنطقة</label>
+                            <select id="zone-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                                <option value="all">الكل</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detected Numbers Badge Area -->
+        <div id="ocr-results-badge" class="hidden mb-4 flex flex-wrap gap-2 items-center">
+            <span class="text-xs font-bold text-gray-400 uppercase">الأرقام المكتشفة:</span>
+            <!-- Badges will be injected here -->
+            <button id="clear-ocr" class="text-xs text-red-500 hover:underline ml-2">مسح البحث بالصور</button>
+        </div>
+
+        <!-- Data Display Area -->
+        <div id="data-container">
+            <div class="desktop-only bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr id="table-headers"></tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="mobile-body" class="mobile-only"></div>
+            <div id="loading-spinner" class="py-20 text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mb-4"></div>
+                <p class="text-indigo-600 font-medium">جاري تحميل البيانات...</p>
+            </div>
+            <div id="no-results" class="hidden py-20 text-center">
+                <p class="text-gray-500">لا توجد نتائج مطابقة لبحثك.</p>
+            </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="mt-4 p-4 border-t border-gray-100 flex justify-between items-center">
+            <span id="record-count" class="text-sm text-gray-600 italic">0 سجلات</span>
+        </div>
+    </div>
+
+    <script>
+        const FILE_NAME = 'All_2026-01-12.csv';
+        const TARGET_COLUMNS = ['Account', 'Phone', 'Address', 'Status', 'Zone Name', 'Zone Contractor'];
+        
+        let rawData = [];
+        let detectedPhoneNumbers = new Set();
+
+        // Elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const ocrStatus = document.getElementById('ocr-status');
+        const ocrBadgeArea = document.getElementById('ocr-results-badge');
+        const clearOcrBtn = document.getElementById('clear-ocr');
+        
+        const tableHeaders = document.getElementById('table-headers');
+        const tableBody = document.getElementById('table-body');
+        const mobileBody = document.getElementById('mobile-body');
+        const globalSearch = document.getElementById('global-search');
+        const statusFilter = document.getElementById('status-filter');
+        const zoneFilter = document.getElementById('zone-filter');
+        const recordCount = document.getElementById('record-count');
+        const noResults = document.getElementById('no-results');
+        const statsContainer = document.getElementById('stats-container');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        async function init() {
+            try {
+                const response = await fetch(FILE_NAME);
+                if (!response.ok) throw new Error("File load error");
+                const csvText = await response.text();
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    encoding: "UTF-8",
+                    complete: function(results) {
+                        rawData = results.data;
+                        loadingSpinner.classList.add('hidden');
+                        setupFilters(rawData);
+                        updateView(rawData);
+                        renderStats(rawData);
+                    }
+                });
+            } catch (error) {
+                loadingSpinner.innerHTML = `<p class="text-red-500">حدث خطأ في تحميل الملف. تأكد من وجوده باسم: ${FILE_NAME}</p>`;
+            }
+        }
+
+        // --- OCR LOGIC ---
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        
+        async function handleFiles(files) {
+            if (!files.length) return;
+            ocrStatus.classList.replace('hidden', 'flex');
+            
+            for (let file of files) {
+                const result = await Tesseract.recognize(file, 'eng', {
+                    logger: m => console.log(m)
+                });
+                
+                // البحث عن أرقام هواتف (عراقية غالباً 11 رقم تبدأ بـ 07)
+                const phoneRegex = /(07[3-9][0-9]{8})/g;
+                const found = result.data.text.match(phoneRegex);
+                
+                if (found) {
+                    found.forEach(num => detectedPhoneNumbers.add(num));
+                }
+            }
+            
+            ocrStatus.classList.replace('flex', 'hidden');
+            renderOCRBadges();
+            handleFilter();
+        }
+
+        function renderOCRBadges() {
+            if (detectedPhoneNumbers.size > 0) {
+                ocrBadgeArea.classList.remove('hidden');
+                // الاحتفاظ بزر المسح
+                const badgesHtml = Array.from(detectedPhoneNumbers).map(num => `
+                    <span class="bg-indigo-600 text-white text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                        ${num}
+                        <button onclick="removeNumber('${num}')" class="hover:text-red-200">×</button>
+                    </span>
+                `).join('');
+                
+                // تحديث المنطقة مع الحفاظ على زر المسح الكلي
+                const currentBadges = ocrBadgeArea.querySelectorAll('span');
+                currentBadges.forEach(b => b.remove());
+                ocrBadgeArea.insertAdjacentHTML('afterbegin', badgesHtml);
+            } else {
+                ocrBadgeArea.classList.add('hidden');
+            }
+        }
+
+        window.removeNumber = (num) => {
+            detectedPhoneNumbers.delete(num);
+            renderOCRBadges();
+            handleFilter();
+        };
+
+        clearOcrBtn.addEventListener('click', () => {
+            detectedPhoneNumbers.clear();
+            renderOCRBadges();
+            handleFilter();
+        });
+
+        // Drag & Drop UI
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        dropZone.addEventListener('dragover', () => dropZone.classList.add('active'));
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
+        dropZone.addEventListener('drop', (e) => {
+            dropZone.classList.remove('active');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        // --- FILTER & VIEW LOGIC ---
+        function setupFilters(data) {
+            const statuses = [...new Set(data.map(item => item.Status))].filter(Boolean).sort();
+            const zones = [...new Set(data.map(item => item['Zone Name']))].filter(Boolean).sort();
+            statusFilter.innerHTML = '<option value="all">الكل</option>';
+            zoneFilter.innerHTML = '<option value="all">الكل</option>';
+            statuses.forEach(s => statusFilter.add(new Option(s, s)));
+            zones.forEach(z => zoneFilter.add(new Option(z, z)));
+        }
+
+        function renderStats(data) {
+            const stats = [
+                { label: 'الإجمالي', val: data.length, color: 'indigo' },
+                { label: 'مكتمل', val: data.filter(r => String(r.Status).toLowerCase() === 'done').length, color: 'green' },
+                { label: 'ملغي', val: data.filter(r => String(r.Status).toLowerCase() === 'cancelled').length, color: 'red' },
+                { label: 'المناطق', val: new Set(data.map(r => r['Zone Name'])).size, color: 'amber' }
+            ];
+            statsContainer.innerHTML = stats.map(s => `
+                <div class="bg-white p-3 rounded-xl border-b-2 border-${s.color}-500 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">${s.label}</p>
+                    <p class="text-lg font-bold text-gray-800">${s.val.toLocaleString()}</p>
+                </div>
+            `).join('');
+        }
+
+        function getStatusPill(status) {
+            const val = String(status).toLowerCase();
+            let cls = 'bg-gray-100 text-gray-800';
+            if (val === 'done') cls = 'bg-green-100 text-green-800';
+            else if (val === 'cancelled') cls = 'bg-red-100 text-red-800';
+            return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${cls}">${status}</span>`;
+        }
+
+        function updateView(data) {
+            if (data.length === 0) {
+                tableBody.innerHTML = '';
+                mobileBody.innerHTML = '';
+                noResults.classList.remove('hidden');
+                recordCount.textContent = '0 سجلات';
+                return;
+            }
+            noResults.classList.add('hidden');
+            tableHeaders.innerHTML = TARGET_COLUMNS.map(h => `<th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">${h}</th>`).join('');
+            const displayData = data.slice(0, 50);
+
+            tableBody.innerHTML = displayData.map(row => `
+                <tr class="hover:bg-gray-50">
+                    ${TARGET_COLUMNS.map(h => {
+                        const val = row[h] || '-';
+                        if (h === 'Status') return `<td class="px-6 py-4">${getStatusPill(val)}</td>`;
+                        const isAr = /[\u0600-\u06FF]/.test(val);
+                        return `<td class="px-6 py-4 text-sm text-gray-700 ${isAr ? 'rtl-cell' : ''}">${val}</td>`;
+                    }).join('')}
+                </tr>
+            `).join('');
+
+            mobileBody.innerHTML = displayData.map(row => `
+                <div class="mobile-grid-card border border-gray-100">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-indigo-700 ${/[\u0600-\u06FF]/.test(row.Account) ? 'rtl-cell w-full' : ''}">${row.Account || 'N/A'}</h3>
+                        ${getStatusPill(row.Status)}
+                    </div>
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex justify-between border-b pb-1"><span>رقم الهاتف</span><span class="font-medium">${row.Phone || '-'}</span></div>
+                        <div class="flex flex-col border-b pb-1"><span>العنوان</span><span class="${/[\u0600-\u06FF]/.test(row.Address) ? 'rtl-cell' : ''}">${row.Address || '-'}</span></div>
+                        <div class="flex justify-between border-b pb-1"><span>المنطقة</span><span>${row['Zone Name'] || '-'}</span></div>
+                        <div class="flex flex-col pt-1"><span>المقاول</span><span class="${/[\u0600-\u06FF]/.test(row['Zone Contractor']) ? 'rtl-cell' : ''}">${row['Zone Contractor'] || '-'}</span></div>
+                    </div>
+                </div>
+            `).join('');
+            recordCount.textContent = `عرض ${data.length} سجل (أول 50)`;
+        }
+
+        function handleFilter() {
+            const searchTerm = globalSearch.value.toLowerCase();
+            const statusVal = statusFilter.value;
+            const zoneVal = zoneFilter.value;
+            const hasOcr = detectedPhoneNumbers.size > 0;
+
+            const results = rawData.filter(item => {
+                const phone = String(item.Phone);
+                // إذا كان هناك أرقام مكتشفة، نبحث عنها فقط
+                const matchesOCR = !hasOcr || Array.from(detectedPhoneNumbers).some(num => phone.includes(num));
+                
+                const matchesSearch = TARGET_COLUMNS.some(col => 
+                    String(item[col]).toLowerCase().includes(searchTerm)
+                );
+                const matchesStatus = statusVal === 'all' || item.Status === statusVal;
+                const matchesZone = zoneVal === 'all' || item['Zone Name'] === zoneVal;
+                
+                return matchesOCR && matchesSearch && matchesStatus && matchesZone;
+            });
+            updateView(results);
+        }
+
+        globalSearch.addEventListener('input', handleFilter);
+        statusFilter.addEventListener('change', handleFilter);
+        zoneFilter.addEventListener('change', handleFilter);
+        window.onload = init;
+    </script>
+</body>
+</html>
