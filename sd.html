@@ -22,6 +22,9 @@
         
         .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.3s ease; }
         .drop-zone.active { border-color: #6366f1; background-color: #f5f3ff; }
+        
+        /* Progress bar animation */
+        .stat-progress { transition: width 0.5s ease-in-out; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen">
@@ -39,8 +42,16 @@
             </div>
         </header>
 
-        <!-- Stats Section -->
-        <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6"></div>
+        <!-- Comprehensive Stats Section -->
+        <div id="stats-panel" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+            <h2 class="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                إحصائيات النتائج الحالية
+            </h2>
+            <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Stats injected here -->
+            </div>
+        </div>
 
         <!-- OCR Upload & Search -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -83,7 +94,6 @@
         <!-- Detected Numbers Badge Area -->
         <div id="ocr-results-badge" class="hidden mb-4 flex flex-wrap gap-2 items-center">
             <span class="text-xs font-bold text-gray-400 uppercase">الأرقام المكتشفة:</span>
-            <!-- Badges will be injected here -->
             <button id="clear-ocr" class="text-xs text-red-500 hover:underline ml-2">مسح البحث بالصور</button>
         </div>
 
@@ -120,6 +130,7 @@
         const TARGET_COLUMNS = ['Account', 'Phone', 'Address', 'Status', 'Zone Name', 'Zone Contractor'];
         
         let rawData = [];
+        let filteredData = [];
         let detectedPhoneNumbers = new Set();
 
         // Elements
@@ -151,10 +162,11 @@
                     encoding: "UTF-8",
                     complete: function(results) {
                         rawData = results.data;
+                        filteredData = rawData;
                         loadingSpinner.classList.add('hidden');
                         setupFilters(rawData);
-                        updateView(rawData);
-                        renderStats(rawData);
+                        updateView(filteredData);
+                        renderStats(filteredData);
                     }
                 });
             } catch (error) {
@@ -170,17 +182,14 @@
             ocrStatus.classList.replace('hidden', 'flex');
             
             for (let file of files) {
-                const result = await Tesseract.recognize(file, 'eng', {
-                    logger: m => console.log(m)
-                });
-                
-                // البحث عن أرقام هواتف (عراقية غالباً 11 رقم تبدأ بـ 07)
-                const phoneRegex = /(07[3-9][0-9]{8})/g;
-                const found = result.data.text.match(phoneRegex);
-                
-                if (found) {
-                    found.forEach(num => detectedPhoneNumbers.add(num));
-                }
+                try {
+                    const result = await Tesseract.recognize(file, 'eng');
+                    const phoneRegex = /(07[3-9][0-9]{8})/g;
+                    const found = result.data.text.match(phoneRegex);
+                    if (found) {
+                        found.forEach(num => detectedPhoneNumbers.add(num));
+                    }
+                } catch (e) { console.error("OCR Error", e); }
             }
             
             ocrStatus.classList.replace('flex', 'hidden');
@@ -191,17 +200,15 @@
         function renderOCRBadges() {
             if (detectedPhoneNumbers.size > 0) {
                 ocrBadgeArea.classList.remove('hidden');
-                // الاحتفاظ بزر المسح
+                const currentBadges = ocrBadgeArea.querySelectorAll('.ocr-badge');
+                currentBadges.forEach(b => b.remove());
+                
                 const badgesHtml = Array.from(detectedPhoneNumbers).map(num => `
-                    <span class="bg-indigo-600 text-white text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                    <span class="ocr-badge bg-indigo-600 text-white text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
                         ${num}
                         <button onclick="removeNumber('${num}')" class="hover:text-red-200">×</button>
                     </span>
                 `).join('');
-                
-                // تحديث المنطقة مع الحفاظ على زر المسح الكلي
-                const currentBadges = ocrBadgeArea.querySelectorAll('span');
-                currentBadges.forEach(b => b.remove());
                 ocrBadgeArea.insertAdjacentHTML('afterbegin', badgesHtml);
             } else {
                 ocrBadgeArea.classList.add('hidden');
@@ -220,20 +227,36 @@
             handleFilter();
         });
 
-        // Drag & Drop UI
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => {
-            dropZone.addEventListener(name, e => {
-                e.preventDefault();
-                e.stopPropagation();
-            });
-        });
+        // --- STATS LOGIC ---
+        function renderStats(data) {
+            const total = data.length;
+            const done = data.filter(r => String(r.Status).trim().toLowerCase() === 'done').length;
+            const cancelled = data.filter(r => String(r.Status).trim().toLowerCase() === 'cancelled').length;
+            // "في الانتظار" أو حالات أخرى (التي تكون فارغة أو غير المعرفتين أعلاه)
+            const pending = total - done - cancelled;
 
-        dropZone.addEventListener('dragover', () => dropZone.classList.add('active'));
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
-        dropZone.addEventListener('drop', (e) => {
-            dropZone.classList.remove('active');
-            handleFiles(e.dataTransfer.files);
-        });
+            const calculatePercent = (val) => total > 0 ? Math.round((val / total) * 100) : 0;
+
+            const statsConfig = [
+                { label: 'إجمالي النتائج', val: total, color: 'indigo', pct: 100 },
+                { label: 'بحث مكتمل', val: done, color: 'green', pct: calculatePercent(done) },
+                { label: 'بحث ملغي', val: cancelled, color: 'red', pct: calculatePercent(cancelled) },
+                { label: 'في الانتظار / أخرى', val: pending, color: 'amber', pct: calculatePercent(pending) }
+            ];
+
+            statsContainer.innerHTML = statsConfig.map(s => `
+                <div class="relative overflow-hidden bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase">${s.label}</span>
+                        <span class="text-[10px] font-bold text-${s.color}-600">${s.pct}%</span>
+                    </div>
+                    <div class="text-xl font-bold text-gray-800">${s.val.toLocaleString()}</div>
+                    <div class="mt-2 w-full bg-gray-200 h-1 rounded-full overflow-hidden">
+                        <div class="stat-progress bg-${s.color}-500 h-full" style="width: ${s.pct}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
 
         // --- FILTER & VIEW LOGIC ---
         function setupFilters(data) {
@@ -245,27 +268,14 @@
             zones.forEach(z => zoneFilter.add(new Option(z, z)));
         }
 
-        function renderStats(data) {
-            const stats = [
-                { label: 'الإجمالي', val: data.length, color: 'indigo' },
-                { label: 'مكتمل', val: data.filter(r => String(r.Status).toLowerCase() === 'done').length, color: 'green' },
-                { label: 'ملغي', val: data.filter(r => String(r.Status).toLowerCase() === 'cancelled').length, color: 'red' },
-                { label: 'المناطق', val: new Set(data.map(r => r['Zone Name'])).size, color: 'amber' }
-            ];
-            statsContainer.innerHTML = stats.map(s => `
-                <div class="bg-white p-3 rounded-xl border-b-2 border-${s.color}-500 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase">${s.label}</p>
-                    <p class="text-lg font-bold text-gray-800">${s.val.toLocaleString()}</p>
-                </div>
-            `).join('');
-        }
-
         function getStatusPill(status) {
-            const val = String(status).toLowerCase();
+            const val = String(status).trim().toLowerCase();
             let cls = 'bg-gray-100 text-gray-800';
+            let label = status || 'Pending';
             if (val === 'done') cls = 'bg-green-100 text-green-800';
             else if (val === 'cancelled') cls = 'bg-red-100 text-red-800';
-            return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${cls}">${status}</span>`;
+            else if (val === '') label = 'Pending';
+            return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${cls}">${label}</span>`;
         }
 
         function updateView(data) {
@@ -278,15 +288,16 @@
             }
             noResults.classList.add('hidden');
             tableHeaders.innerHTML = TARGET_COLUMNS.map(h => `<th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">${h}</th>`).join('');
+            
             const displayData = data.slice(0, 100);
 
             tableBody.innerHTML = displayData.map(row => `
                 <tr class="hover:bg-gray-50">
                     ${TARGET_COLUMNS.map(h => {
-                        const val = row[h] || '-';
+                        const val = row[h] || '';
                         if (h === 'Status') return `<td class="px-6 py-4">${getStatusPill(val)}</td>`;
                         const isAr = /[\u0600-\u06FF]/.test(val);
-                        return `<td class="px-6 py-4 text-sm text-gray-700 ${isAr ? 'rtl-cell' : ''}">${val}</td>`;
+                        return `<td class="px-6 py-4 text-sm text-gray-700 ${isAr ? 'rtl-cell' : ''}">${val || '-'}</td>`;
                     }).join('')}
                 </tr>
             `).join('');
@@ -314,21 +325,29 @@
             const zoneVal = zoneFilter.value;
             const hasOcr = detectedPhoneNumbers.size > 0;
 
-            const results = rawData.filter(item => {
+            filteredData = rawData.filter(item => {
                 const phone = String(item.Phone);
-                // إذا كان هناك أرقام مكتشفة، نبحث عنها فقط
                 const matchesOCR = !hasOcr || Array.from(detectedPhoneNumbers).some(num => phone.includes(num));
-                
-                const matchesSearch = TARGET_COLUMNS.some(col => 
-                    String(item[col]).toLowerCase().includes(searchTerm)
-                );
+                const matchesSearch = TARGET_COLUMNS.some(col => String(item[col]).toLowerCase().includes(searchTerm));
                 const matchesStatus = statusVal === 'all' || item.Status === statusVal;
                 const matchesZone = zoneVal === 'all' || item['Zone Name'] === zoneVal;
-                
                 return matchesOCR && matchesSearch && matchesStatus && matchesZone;
             });
-            updateView(results);
+
+            updateView(filteredData);
+            renderStats(filteredData);
         }
+
+        // Drag & Drop UI
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, e => { e.preventDefault(); e.stopPropagation(); });
+        });
+        dropZone.addEventListener('dragover', () => dropZone.classList.add('active'));
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
+        dropZone.addEventListener('drop', (e) => {
+            dropZone.classList.remove('active');
+            handleFiles(e.dataTransfer.files);
+        });
 
         globalSearch.addEventListener('input', handleFilter);
         statusFilter.addEventListener('change', handleFilter);
