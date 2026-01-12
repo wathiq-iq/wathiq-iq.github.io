@@ -278,7 +278,7 @@
             }
             noResults.classList.add('hidden');
             tableHeaders.innerHTML = TARGET_COLUMNS.map(h => `<th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">${h}</th>`).join('');
-            const displayData = data.slice(0, 50);
+            const displayData = data.slice(0, 100);
 
             tableBody.innerHTML = displayData.map(row => `
                 <tr class="hover:bg-gray-50">
@@ -305,7 +305,7 @@
                     </div>
                 </div>
             `).join('');
-            recordCount.textContent = `عرض ${data.length} سجل (أول 50)`;
+            recordCount.textContent = `عرض ${data.length} سجل (أول 100)`;
         }
 
         function handleFilter() {
