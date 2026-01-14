@@ -42,6 +42,15 @@
             </div>
         </header>
 
+        <!-- CSV Error/Upload Warning -->
+        <div id="csv-warning" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <p class="text-sm text-amber-700 font-medium">لم يتم العثور على ملف البيانات التلقائي. يرجى رفع ملف CSV يدوياً.</p>
+            </div>
+            <input type="file" id="csv-manual-input" accept=".csv" class="text-xs text-amber-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200">
+        </div>
+
         <!-- Comprehensive Stats Section (Only visible on search) -->
         <div id="stats-panel" class="hidden-until-search bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
             <h2 class="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
@@ -97,7 +106,7 @@
         <div id="welcome-message" class="py-20 text-center bg-white rounded-xl border border-dashed border-gray-200">
             <svg class="w-16 h-16 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
             <h3 class="text-gray-500 font-medium text-lg">البيانات مخفية لدواعي الخصوصية</h3>
-            <p class="text-gray-400 text-sm max-w-xs mx-auto mt-2">يرجى كتابة اسم المشترك أو رقم الهاتف أو رفع صورة لبدء عرض النتائج.</p>
+            <p id="welcome-status-text" class="text-gray-400 text-sm max-w-xs mx-auto mt-2">يرجى كتابة اسم المشترك أو رقم الهاتف أو رفع صورة لبدء عرض النتائج.</p>
         </div>
 
         <!-- Data Display Area -->
@@ -131,7 +140,8 @@
     </div>
 
     <script>
-        const FILE_NAME = 'All_2026-01-14.csv';
+        // Use a more robust path or allow manual selection
+        const DEFAULT_FILE_NAME = 'All_2026-01-14.csv';
         const TARGET_COLUMNS = ['Account', 'Phone', 'Address', 'Status', 'Zone Name', 'Zone Contractor'];
         
         let rawData = [];
@@ -139,6 +149,9 @@
 
         // Elements
         const welcomeMessage = document.getElementById('welcome-message');
+        const welcomeStatusText = document.getElementById('welcome-status-text');
+        const csvWarning = document.getElementById('csv-warning');
+        const csvManualInput = document.getElementById('csv-manual-input');
         const hiddenContainers = document.querySelectorAll('.hidden-until-search');
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
@@ -157,24 +170,47 @@
         const loadingSpinner = document.getElementById('loading-spinner');
 
         async function init() {
+            // Try to fetch automatically
             try {
-                const response = await fetch(FILE_NAME);
-                if (!response.ok) throw new Error("File load error");
+                // In some environments, local files need absolute or relative paths correctly
+                const response = await fetch(`./${DEFAULT_FILE_NAME}`).catch(() => fetch(DEFAULT_FILE_NAME));
+                if (!response.ok) throw new Error("File not found");
+                
                 const csvText = await response.text();
-                Papa.parse(csvText, {
-                    header: true,
-                    skipEmptyLines: true,
-                    encoding: "UTF-8",
-                    complete: function(results) {
-                        rawData = results.data;
-                        setupFilters(rawData);
-                        // لاحظ: لم نقم باستدعاء updateView هنا لتبقى البيانات مخفية
-                    }
-                });
+                processCSV(csvText);
             } catch (error) {
-                console.error(error);
+                console.warn("Auto-fetch failed, showing manual upload option:", error);
+                csvWarning.classList.remove('hidden');
+                welcomeStatusText.innerText = "الرجاء اختيار ملف CSV من جهازك للمتابعة.";
             }
         }
+
+        function processCSV(csvText) {
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                encoding: "UTF-8",
+                complete: function(results) {
+                    rawData = results.data;
+                    setupFilters(rawData);
+                    csvWarning.classList.add('hidden');
+                    welcomeStatusText.innerText = "يرجى كتابة اسم المشترك أو رقم الهاتف أو رفع صورة لبدء عرض النتائج.";
+                },
+                error: function(err) {
+                    console.error("Parsing error:", err);
+                    alert("خطأ في تحليل ملف CSV.");
+                }
+            });
+        }
+
+        // Manual CSV Upload
+        csvManualInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => processCSV(event.target.result);
+            reader.readAsText(file);
+        });
 
         // --- OCR LOGIC ---
         fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
@@ -276,7 +312,6 @@
         }
 
         function updateView(data) {
-            // إظهار النتائج فقط إذا كان هناك بحث نشط
             const isSearching = globalSearch.value.trim().length > 0 || detectedPhoneNumbers.size > 0;
             
             if (!isSearching) {
@@ -330,6 +365,7 @@
         }
 
         function handleFilter() {
+            if (rawData.length === 0) return;
             const searchTerm = globalSearch.value.trim().toLowerCase();
             const statusVal = statusFilter.value;
             const zoneVal = zoneFilter.value;
@@ -341,9 +377,9 @@
             }
 
             const results = rawData.filter(item => {
-                const phone = String(item.Phone);
+                const phone = String(item.Phone || '');
                 const matchesOCR = !hasOcr || Array.from(detectedPhoneNumbers).some(num => phone.includes(num));
-                const matchesSearch = TARGET_COLUMNS.some(col => String(item[col]).toLowerCase().includes(searchTerm));
+                const matchesSearch = TARGET_COLUMNS.some(col => String(item[col] || '').toLowerCase().includes(searchTerm));
                 const matchesStatus = statusVal === 'all' || item.Status === statusVal;
                 const matchesZone = zoneVal === 'all' || item['Zone Name'] === zoneVal;
                 return matchesOCR && matchesSearch && matchesStatus && matchesZone;
