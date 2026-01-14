@@ -3,119 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Search Explorer</title>
+    <title>Data Search Explorer & OCR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
-        
         .rtl-cell { direction: rtl; text-align: right; }
-        
-        /* Skeleton/Phone Grid specific styles */
         @media (max-width: 768px) {
-            .mobile-grid-card {
-                display: block;
-                background: white;
-                border-radius: 0.75rem;
-                padding: 1rem;
-                margin-bottom: 1rem;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            }
+            .mobile-grid-card { display: block; background: white; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
             .desktop-only { display: none; }
         }
-        @media (min-width: 769px) {
-            .mobile-only { display: none; }
-        }
+        @media (min-width: 769px) { .mobile-only { display: none; } }
+        
+        .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.3s ease; }
+        .drop-zone.active { border-color: #6366f1; background-color: #f5f3ff; }
+        
+        .stat-progress { transition: width 0.5s ease-in-out; }
+        .hidden-until-search { display: none; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen">
 
     <div id="app" class="max-w-7xl mx-auto px-4 py-6 md:py-8">
         <!-- Header -->
-        <header class="mb-6">
-            <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">Data Explorer</h1>
-            <p class="text-gray-600 text-sm">Targeted View: Account, Phone, Address, Status, Zone.</p>
+        <header class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">مستكشف البيانات الذكي</h1>
+                <p class="text-gray-600 text-sm">أدخل تفاصيل البحث لعرض النتائج (محمي)</p>
+            </div>
+            <div id="ocr-status" class="hidden items-center gap-2 bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100">
+                <div class="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent"></div>
+                <span class="text-xs font-medium text-indigo-700">جاري قراءة الصور...</span>
+            </div>
         </header>
 
-        <!-- Stats Section -->
-        <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-            <!-- Stats will be injected here -->
+        <!-- Comprehensive Stats Section (Only visible on search) -->
+        <div id="stats-panel" class="hidden-until-search bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+            <h2 class="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                إحصائيات النتائج الحالية
+            </h2>
+            <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
         </div>
 
-        <!-- Search and Filters -->
-        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
-            <div class="flex flex-col gap-4">
-                <div class="flex-grow">
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Search / بحث</label>
-                    <input type="text" id="global-search" placeholder="Search accounts, phones..." 
-                           class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+        <!-- Search Controls -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="lg:col-span-1">
+                <div id="drop-zone" class="drop-zone relative h-full flex flex-col items-center justify-center p-6 rounded-xl bg-white text-center cursor-pointer">
+                    <input type="file" id="file-input" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" multiple>
+                    <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <p class="text-sm font-semibold text-gray-700">ابحث بواسطة صورة</p>
+                    <p class="text-xs text-gray-400 mt-1">ارفع الصور لاستخراج أرقام الهاتف</p>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Status / الحالة</label>
-                        <select id="status-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                            <option value="all">All</option>
-                        </select>
+            </div>
+
+            <div class="lg:col-span-2 bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
+                <div class="flex flex-col gap-4">
+                    <div class="flex-grow">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">بحث يدوي (الاسم أو رقم الهاتف)</label>
+                        <input type="text" id="global-search" placeholder="اكتب هنا لبدء البحث..." 
+                               class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Zone / المنطقة</label>
-                        <select id="zone-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                            <option value="all">All</option>
-                        </select>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">الحالة</label>
+                            <select id="status-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                                <option value="all">الكل</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">المنطقة</label>
+                            <select id="zone-filter" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                                <option value="all">الكل</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Detected Numbers Badge Area -->
+        <div id="ocr-results-badge" class="hidden mb-4 flex flex-wrap gap-2 items-center">
+            <span class="text-xs font-bold text-gray-400 uppercase">الأرقام المكتشفة:</span>
+            <button id="clear-ocr" class="text-xs text-red-500 hover:underline ml-2">مسح الكل</button>
+        </div>
+
+        <!-- Welcome / Privacy Message -->
+        <div id="welcome-message" class="py-20 text-center bg-white rounded-xl border border-dashed border-gray-200">
+            <svg class="w-16 h-16 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <h3 class="text-gray-500 font-medium text-lg">البيانات مخفية لدواعي الخصوصية</h3>
+            <p class="text-gray-400 text-sm max-w-xs mx-auto mt-2">يرجى كتابة اسم المشترك أو رقم الهاتف أو رفع صورة لبدء عرض النتائج.</p>
+        </div>
+
         <!-- Data Display Area -->
-        <div id="data-container">
-            <!-- Table for Desktop -->
+        <div id="data-display-container" class="hidden-until-search">
             <div class="desktop-only bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scrollbar">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-gray-50 border-b border-gray-200">
-                            <tr id="table-headers">
-                                <!-- Targeted Headers injected here -->
-                            </tr>
+                            <tr id="table-headers"></tr>
                         </thead>
-                        <tbody id="table-body" class="divide-y divide-gray-100">
-                            <!-- Rows injected here -->
-                        </tbody>
+                        <tbody id="table-body" class="divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
             </div>
-
-            <!-- Grid for Mobile -->
-            <div id="mobile-body" class="mobile-only">
-                <!-- Cards injected here -->
-            </div>
-
-            <!-- Loading & Empty States -->
-            <div id="loading-spinner" class="py-20 text-center">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mb-4"></div>
-                <p class="text-indigo-600 font-medium">Loading data...</p>
-            </div>
+            <div id="mobile-body" class="mobile-only"></div>
+            
             <div id="no-results" class="hidden py-20 text-center">
-                <p class="text-gray-500">No matching records found.</p>
+                <p class="text-gray-500">لا توجد نتائج مطابقة لبحثك.</p>
+            </div>
+
+            <!-- Footer Info -->
+            <div class="mt-4 p-4 border-t border-gray-100 flex justify-between items-center">
+                <span id="record-count" class="text-sm text-gray-600 italic">0 سجلات</span>
             </div>
         </div>
 
-        <!-- Footer Info -->
-        <div class="mt-4 p-4 border-t border-gray-100 flex justify-between items-center">
-            <span id="record-count" class="text-sm text-gray-600 italic">Showing 0 records</span>
+        <div id="loading-spinner" class="hidden py-20 text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mb-4"></div>
+            <p class="text-indigo-600 font-medium">جاري معالجة الطلب...</p>
         </div>
     </div>
 
     <script>
-        const FILE_NAME = 'All_2026-01-12.csv';
+        const FILE_NAME = 'All_2026-01-14.csv';
         const TARGET_COLUMNS = ['Account', 'Phone', 'Address', 'Status', 'Zone Name', 'Zone Contractor'];
         
         let rawData = [];
+        let detectedPhoneNumbers = new Set();
 
         // Elements
+        const welcomeMessage = document.getElementById('welcome-message');
+        const hiddenContainers = document.querySelectorAll('.hidden-until-search');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const ocrStatus = document.getElementById('ocr-status');
+        const ocrBadgeArea = document.getElementById('ocr-results-badge');
+        const clearOcrBtn = document.getElementById('clear-ocr');
         const tableHeaders = document.getElementById('table-headers');
         const tableBody = document.getElementById('table-body');
         const mobileBody = document.getElementById('mobile-body');
@@ -131,147 +160,213 @@
             try {
                 const response = await fetch(FILE_NAME);
                 if (!response.ok) throw new Error("File load error");
-                
                 const csvText = await response.text();
-                
                 Papa.parse(csvText, {
                     header: true,
                     skipEmptyLines: true,
                     encoding: "UTF-8",
                     complete: function(results) {
                         rawData = results.data;
-                        loadingSpinner.classList.add('hidden');
                         setupFilters(rawData);
-                        updateView(rawData);
-                        renderStats(rawData);
+                        // لاحظ: لم نقم باستدعاء updateView هنا لتبقى البيانات مخفية
                     }
                 });
             } catch (error) {
-                loadingSpinner.innerHTML = `<p class="text-red-500">Error loading data. Verify file name.</p>`;
+                console.error(error);
             }
         }
 
+        // --- OCR LOGIC ---
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        
+        async function handleFiles(files) {
+            if (!files.length) return;
+            ocrStatus.classList.replace('hidden', 'flex');
+            
+            for (let file of files) {
+                try {
+                    const result = await Tesseract.recognize(file, 'eng');
+                    const phoneRegex = /(07[3-9][0-9]{8})/g;
+                    const found = result.data.text.match(phoneRegex);
+                    if (found) {
+                        found.forEach(num => detectedPhoneNumbers.add(num));
+                    }
+                } catch (e) { console.error("OCR Error", e); }
+            }
+            
+            ocrStatus.classList.replace('flex', 'hidden');
+            renderOCRBadges();
+            handleFilter();
+        }
+
+        function renderOCRBadges() {
+            if (detectedPhoneNumbers.size > 0) {
+                ocrBadgeArea.classList.remove('hidden');
+                const currentBadges = ocrBadgeArea.querySelectorAll('.ocr-badge');
+                currentBadges.forEach(b => b.remove());
+                
+                const badgesHtml = Array.from(detectedPhoneNumbers).map(num => `
+                    <span class="ocr-badge bg-indigo-600 text-white text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                        ${num}
+                        <button onclick="removeNumber('${num}')" class="hover:text-red-200">×</button>
+                    </span>
+                `).join('');
+                ocrBadgeArea.insertAdjacentHTML('afterbegin', badgesHtml);
+            } else {
+                ocrBadgeArea.classList.add('hidden');
+            }
+        }
+
+        window.removeNumber = (num) => {
+            detectedPhoneNumbers.delete(num);
+            renderOCRBadges();
+            handleFilter();
+        };
+
+        clearOcrBtn.addEventListener('click', () => {
+            detectedPhoneNumbers.clear();
+            renderOCRBadges();
+            handleFilter();
+        });
+
+        // --- STATS LOGIC ---
+        function renderStats(data) {
+            const total = data.length;
+            const done = data.filter(r => String(r.Status).trim().toLowerCase() === 'done').length;
+            const cancelled = data.filter(r => String(r.Status).trim().toLowerCase() === 'cancelled').length;
+            const pending = total - done - cancelled;
+
+            const calculatePercent = (val) => total > 0 ? Math.round((val / total) * 100) : 0;
+
+            const statsConfig = [
+                { label: 'النتائج المطابقة', val: total, color: 'indigo', pct: 100 },
+                { label: 'مكتمل', val: done, color: 'green', pct: calculatePercent(done) },
+                { label: 'ملغي', val: cancelled, color: 'red', pct: calculatePercent(cancelled) },
+                { label: 'انتظار/أخرى', val: pending, color: 'amber', pct: calculatePercent(pending) }
+            ];
+
+            statsContainer.innerHTML = statsConfig.map(s => `
+                <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase">${s.label}</span>
+                        <span class="text-[10px] font-bold text-${s.color}-600">${s.pct}%</span>
+                    </div>
+                    <div class="text-xl font-bold text-gray-800">${s.val.toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
+        // --- FILTER & VIEW LOGIC ---
         function setupFilters(data) {
             const statuses = [...new Set(data.map(item => item.Status))].filter(Boolean).sort();
             const zones = [...new Set(data.map(item => item['Zone Name']))].filter(Boolean).sort();
-
-            statusFilter.innerHTML = '<option value="all">All Status</option>';
-            zoneFilter.innerHTML = '<option value="all">All Zones</option>';
-
+            statusFilter.innerHTML = '<option value="all">الكل</option>';
+            zoneFilter.innerHTML = '<option value="all">الكل</option>';
             statuses.forEach(s => statusFilter.add(new Option(s, s)));
             zones.forEach(z => zoneFilter.add(new Option(z, z)));
         }
 
-        function renderStats(data) {
-            const stats = [
-                { label: 'Total', val: data.length, color: 'indigo' },
-                { label: 'Done', val: data.filter(r => String(r.Status).toLowerCase() === 'done').length, color: 'green' },
-                { label: 'Cancelled', val: data.filter(r => String(r.Status).toLowerCase() === 'cancelled').length, color: 'red' },
-                { label: 'Zones', val: new Set(data.map(r => r['Zone Name'])).size, color: 'amber' }
-            ];
-
-            statsContainer.innerHTML = stats.map(s => `
-                <div class="bg-white p-3 rounded-xl border-b-2 border-${s.color}-500 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">${s.label}</p>
-                    <p class="text-lg font-bold text-gray-800">${s.val.toLocaleString()}</p>
-                </div>
-            `).join('');
-        }
-
-        function containsArabic(text) {
-            return /[\u0600-\u06FF]/.test(text);
-        }
-
         function getStatusPill(status) {
-            const val = String(status).toLowerCase();
+            const val = String(status).trim().toLowerCase();
             let cls = 'bg-gray-100 text-gray-800';
+            let label = status || 'Pending';
             if (val === 'done') cls = 'bg-green-100 text-green-800';
             else if (val === 'cancelled') cls = 'bg-red-100 text-red-800';
-            return `<span class="px-2 py-0.5 rounded-full text-xs font-bold ${cls}">${status}</span>`;
+            return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${cls}">${label}</span>`;
         }
 
         function updateView(data) {
+            // إظهار النتائج فقط إذا كان هناك بحث نشط
+            const isSearching = globalSearch.value.trim().length > 0 || detectedPhoneNumbers.size > 0;
+            
+            if (!isSearching) {
+                welcomeMessage.classList.remove('hidden');
+                hiddenContainers.forEach(c => c.style.display = 'none');
+                return;
+            }
+
+            welcomeMessage.classList.add('hidden');
+            hiddenContainers.forEach(c => c.style.display = 'block');
+
             if (data.length === 0) {
                 tableBody.innerHTML = '';
                 mobileBody.innerHTML = '';
                 noResults.classList.remove('hidden');
-                recordCount.textContent = '0 records';
+                recordCount.textContent = '0 سجلات';
                 return;
             }
 
             noResults.classList.add('hidden');
+            tableHeaders.innerHTML = TARGET_COLUMNS.map(h => `<th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase">${h}</th>`).join('');
             
-            // 1. Desktop Headers
-            tableHeaders.innerHTML = TARGET_COLUMNS.map(h => `
-                <th class="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">${h}</th>
-            `).join('');
-
             const displayData = data.slice(0, 100);
 
-            // 2. Desktop Rows
             tableBody.innerHTML = displayData.map(row => `
                 <tr class="hover:bg-gray-50">
                     ${TARGET_COLUMNS.map(h => {
-                        const val = row[h] || '-';
+                        const val = row[h] || '';
                         if (h === 'Status') return `<td class="px-6 py-4">${getStatusPill(val)}</td>`;
-                        const align = containsArabic(val) ? 'rtl-cell' : '';
-                        return `<td class="px-6 py-4 text-sm text-gray-700 ${align}">${val}</td>`;
+                        const isAr = /[\u0600-\u06FF]/.test(val);
+                        return `<td class="px-6 py-4 text-sm text-gray-700 ${isAr ? 'rtl-cell' : ''}">${val || '-'}</td>`;
                     }).join('')}
                 </tr>
             `).join('');
 
-            // 3. Mobile Grid Cards
             mobileBody.innerHTML = displayData.map(row => `
                 <div class="mobile-grid-card border border-gray-100">
                     <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-indigo-700 ${containsArabic(row.Account) ? 'rtl-cell w-full' : ''}">${row.Account || 'N/A'}</h3>
+                        <h3 class="font-bold text-indigo-700 ${/[\u0600-\u06FF]/.test(row.Account) ? 'rtl-cell w-full' : ''}">${row.Account || 'N/A'}</h3>
                         ${getStatusPill(row.Status)}
                     </div>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between border-b border-gray-50 pb-1">
-                            <span class="text-gray-400 text-xs uppercase font-semibold">Phone</span>
-                            <span class="text-gray-700 font-medium">${row.Phone || '-'}</span>
-                        </div>
-                        <div class="flex flex-col border-b border-gray-50 pb-1">
-                            <span class="text-gray-400 text-xs uppercase font-semibold mb-1">Address</span>
-                            <span class="text-gray-700 ${containsArabic(row.Address) ? 'rtl-cell' : ''}">${row.Address || '-'}</span>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-50 pb-1">
-                            <span class="text-gray-400 text-xs uppercase font-semibold">Zone</span>
-                            <span class="text-gray-700">${row['Zone Name'] || '-'}</span>
-                        </div>
-                        <div class="flex flex-col pt-1">
-                            <span class="text-gray-400 text-xs uppercase font-semibold mb-1">Contractor</span>
-                            <span class="text-gray-700 ${containsArabic(row['Zone Contractor']) ? 'rtl-cell' : ''}">${row['Zone Contractor'] || '-'}</span>
-                        </div>
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex justify-between border-b pb-1"><span>رقم الهاتف</span><span class="font-medium">${row.Phone || '-'}</span></div>
+                        <div class="flex flex-col border-b pb-1"><span>العنوان</span><span class="${/[\u0600-\u06FF]/.test(row.Address) ? 'rtl-cell' : ''}">${row.Address || '-'}</span></div>
+                        <div class="flex justify-between border-b pb-1"><span>المنطقة</span><span>${row['Zone Name'] || '-'}</span></div>
+                        <div class="flex flex-col pt-1"><span>المقاول</span><span class="${/[\u0600-\u06FF]/.test(row['Zone Contractor']) ? 'rtl-cell' : ''}">${row['Zone Contractor'] || '-'}</span></div>
                     </div>
                 </div>
             `).join('');
-
-            recordCount.textContent = `Showing ${data.length} records ${data.length > 100 ? '(first 100 displayed)' : ''}`;
+            recordCount.textContent = `عرض ${data.length} سجل مطابِق`;
         }
 
         function handleFilter() {
-            const searchTerm = globalSearch.value.toLowerCase();
+            const searchTerm = globalSearch.value.trim().toLowerCase();
             const statusVal = statusFilter.value;
             const zoneVal = zoneFilter.value;
+            const hasOcr = detectedPhoneNumbers.size > 0;
+
+            if (searchTerm.length === 0 && !hasOcr) {
+                updateView([]);
+                return;
+            }
 
             const results = rawData.filter(item => {
-                const matchesSearch = TARGET_COLUMNS.some(col => 
-                    String(item[col]).toLowerCase().includes(searchTerm)
-                );
+                const phone = String(item.Phone);
+                const matchesOCR = !hasOcr || Array.from(detectedPhoneNumbers).some(num => phone.includes(num));
+                const matchesSearch = TARGET_COLUMNS.some(col => String(item[col]).toLowerCase().includes(searchTerm));
                 const matchesStatus = statusVal === 'all' || item.Status === statusVal;
                 const matchesZone = zoneVal === 'all' || item['Zone Name'] === zoneVal;
-                return matchesSearch && matchesStatus && matchesZone;
+                return matchesOCR && matchesSearch && matchesStatus && matchesZone;
             });
 
             updateView(results);
+            renderStats(results);
         }
+
+        // Drag & Drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, e => { e.preventDefault(); e.stopPropagation(); });
+        });
+        dropZone.addEventListener('dragover', () => dropZone.classList.add('active'));
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
+        dropZone.addEventListener('drop', (e) => {
+            dropZone.classList.remove('active');
+            handleFiles(e.dataTransfer.files);
+        });
 
         globalSearch.addEventListener('input', handleFilter);
         statusFilter.addEventListener('change', handleFilter);
         zoneFilter.addEventListener('change', handleFilter);
-
         window.onload = init;
     </script>
 </body>
