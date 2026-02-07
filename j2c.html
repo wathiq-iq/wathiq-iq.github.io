@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محول JSON إلى CSV الاحترافي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        .code-font { font-family: 'ui-monospace', monospace; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg shadow-inner">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold">Smart Data <span class="text-blue-400">Converter</span></h1>
+            </div>
+            <div class="flex gap-2">
+                <button id="formatBtn" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded transition">تنسيق JSON</button>
+                <button id="clearBtn" class="text-xs border border-slate-700 hover:bg-slate-800 px-3 py-2 rounded transition">مسح</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="container mx-auto flex-grow p-4 flex flex-col gap-4">
+        
+        <!-- Controls -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
+            <div class="flex items-center gap-4 text-sm font-medium text-slate-600">
+                <div class="flex items-center gap-2">
+                    <label>الفاصل:</label>
+                    <select id="delimiter" class="border rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value=",">فاصلة ( , )</option>
+                        <option value=";">فاصلة منقوطة ( ; )</option>
+                        <option value="&#09;">Tab</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="flattenJson" checked class="w-4 h-4 accent-blue-600">
+                    <label for="flattenJson">تسطيح متقدم (gps.lat, site.id)</label>
+                </div>
+            </div>
+            <button id="downloadBtn" disabled class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                تحميل ملف Excel/CSV
+            </button>
+        </div>
+
+        <!-- Editors -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[450px]">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                <div class="bg-slate-50 px-4 py-2 border-b text-sm font-bold text-slate-600 flex justify-between">
+                    JSON INPUT
+                    <span id="jsonStatus" class="text-xs font-normal">جاهز</span>
+                </div>
+                <textarea id="jsonInput" class="flex-grow p-4 code-font text-xs outline-none resize-none custom-scrollbar" placeholder="الصق بيانات JSON هنا..."></textarea>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                <div class="bg-slate-50 px-4 py-2 border-b text-sm font-bold text-slate-600 flex justify-between">
+                    CSV OUTPUT
+                    <button id="copyBtn" class="text-blue-600 hover:underline">نسخ المخرجات</button>
+                </div>
+                <textarea id="csvOutput" readonly class="flex-grow p-4 code-font text-xs bg-slate-50 outline-none resize-none custom-scrollbar text-slate-500" placeholder="ستظهر البيانات المحولة هنا..."></textarea>
+            </div>
+        </div>
+
+        <!-- Table Preview -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+            <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="font-bold text-slate-700 text-sm">معاينة الجدول (أول 5 صفوف)</h3>
+                <span id="rowCount" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">0 صفوف</span>
+            </div>
+            <div class="overflow-x-auto custom-scrollbar max-h-72">
+                <table class="w-full text-[12px] text-right border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 sticky top-0">
+                        <tr id="tableHeader"></tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100">
+                        <tr><td colspan="100%" class="p-10 text-center text-slate-400">لا توجد بيانات للعرض حالياً</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-6 py-3 rounded-lg shadow-2xl translate-y-32 transition-transform duration-300">تم بنجاح!</div>
+
+    <script>
+        const jsonInput = document.getElementById('jsonInput');
+        const csvOutput = document.getElementById('csvOutput');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const tableHeader = document.getElementById('tableHeader');
+        const tableBody = document.getElementById('tableBody');
+
+        /**
+         * خوارزمية التسطيح المتقدمة
+         * تتعامل مع الكائنات المتداخلة (Nested) والمصفوفات (Arrays)
+         */
+        function flatten(obj, prefix = '') {
+            let result = {};
+            for (const key in obj) {
+                const newKey = prefix ? `${prefix}.${key}` : key;
+                if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+                    Object.assign(result, flatten(obj[key], newKey));
+                } else {
+                    // تحويل المصفوفات أو القيم المنطقية لنصوص قابلة للقراءة في CSV
+                    result[newKey] = Array.isArray(obj[key]) ? JSON.stringify(obj[key]) : obj[key];
+                }
+            }
+            return result;
+        }
+
+        /**
+         * منطق التحويل الرئيسي
+         */
+        function handleConversion() {
+            const raw = jsonInput.value.trim();
+            if (!raw) { reset(); return; }
+
+            try {
+                let parsed = JSON.parse(raw);
+                let dataArray = [];
+
+                // الذكاء في استخراج البيانات: إذا كان الكائن يحتوي على مصفوفة "items" أو ما شابه
+                if (Array.isArray(parsed)) {
+                    dataArray = parsed;
+                } else if (parsed.items && Array.isArray(parsed.items)) {
+                    dataArray = parsed.items;
+                } else if (typeof parsed === 'object') {
+                    // البحث عن أول مصفوفة داخل الكائن
+                    const firstArrayKey = Object.keys(parsed).find(k => Array.isArray(parsed[k]));
+                    dataArray = firstArrayKey ? parsed[firstArrayKey] : [parsed];
+                }
+
+                if (dataArray.length === 0) throw new Error("لم يتم العثور على مصفوفة بيانات");
+
+                // التسطيح
+                const processed = document.getElementById('flattenJson').checked 
+                    ? dataArray.map(item => flatten(item)) 
+                    : dataArray;
+
+                // استخراج العناوين الفريدة من كافة الصفوف (لضمان عدم ضياع بيانات)
+                const headers = Array.from(new Set(processed.flatMap(row => Object.keys(row))));
+                const delimiter = document.getElementById('delimiter').value;
+
+                // بناء صفوف CSV
+                const csvRows = [];
+                csvRows.push(headers.map(h => escapeCSV(h, delimiter)).join(delimiter));
+
+                processed.forEach(row => {
+                    const values = headers.map(h => escapeCSV(row[h], delimiter));
+                    csvRows.push(values.join(delimiter));
+                });
+
+                const result = csvRows.join('\r\n');
+                csvOutput.value = result;
+                downloadBtn.disabled = false;
+                document.getElementById('rowCount').textContent = `${dataArray.length} صفوف`;
+                updatePreview(headers, processed);
+                setStatus("صالح", "text-green-600");
+
+            } catch (e) {
+                setStatus("JSON غير صالح: " + e.message, "text-red-600");
+                downloadBtn.disabled = true;
+                csvOutput.value = "";
+            }
+        }
+
+        function escapeCSV(val, delimiter) {
+            if (val === null || val === undefined) return "";
+            let s = String(val);
+            if (s.includes(delimiter) || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+                s = '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+        }
+
+        function updatePreview(headers, data) {
+            tableHeader.innerHTML = headers.map(h => `<th class="p-2 border-b whitespace-nowrap">${h}</th>`).join('');
+            tableBody.innerHTML = data.slice(0, 5).map(row => {
+                return `<tr>${headers.map(h => `<td class="p-2 border-b text-slate-500 truncate max-w-[150px]">${row[h] ?? '-'}</td>`).join('')}</tr>`;
+            }).join('');
+        }
+
+        function reset() {
+            csvOutput.value = "";
+            tableHeader.innerHTML = "";
+            tableBody.innerHTML = '<tr><td colspan="100%" class="p-10 text-center text-slate-400">لا توجد بيانات للعرض حالياً</td></tr>';
+            downloadBtn.disabled = true;
+            document.getElementById('rowCount').textContent = "0 صفوف";
+            setStatus("جاهز", "text-slate-400");
+        }
+
+        function setStatus(txt, cls) {
+            const s = document.getElementById('jsonStatus');
+            s.textContent = txt;
+            s.className = `text-xs font-bold ${cls}`;
+        }
+
+        // Events
+        jsonInput.addEventListener('input', handleConversion);
+        document.getElementById('delimiter').addEventListener('change', handleConversion);
+        document.getElementById('flattenJson').addEventListener('change', handleConversion);
+
+        document.getElementById('formatBtn').addEventListener('click', () => {
+            try {
+                const obj = JSON.parse(jsonInput.value);
+                jsonInput.value = JSON.stringify(obj, null, 4);
+                handleConversion();
+            } catch(e) {}
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            jsonInput.value = "";
+            reset();
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob(["\ufeff" + csvOutput.value], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `converted_data_${Date.now()}.csv`;
+            a.click();
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            csvOutput.select();
+            document.execCommand('copy');
+            const t = document.getElementById('toast');
+            t.classList.remove('translate-y-32');
+            setTimeout(() => t.classList.add('translate-y-32'), 2000);
+        });
+    </script>
+</body>
+</html>
