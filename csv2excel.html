@@ -150,17 +150,8 @@
 
         let rawData = [];
         let currentSmartFilter = 'all';
-        
-        // الأعمدة التي سيتم حذفها دائماً
         const alwaysDelete = ["Notes", "House", "Street", "Email", "Name", "UsrGPSLocationLongitude", "UsrGPSLocationLatitude", "ModifiedOn"];
-        
-        // الأعمدة المطلوب قراءتها إذا وجدت (لن يتم حذفها)
-        const columnsToKeep = [
-            "Number", "StartDate", "EndDate", "Contract Type", "Device Username", 
-            "IP Address", "MAC Address", "UsrONTSerial", "Zone", "trial", "Free", 
-            "UsrHasActiveSession", "SapBrimId", "Services", "UsrPlan", "Bundle", "Contractor",
-            "CreatedOn", "Status", "Zone Contractor", "Zone Name", "FDT", "FAT"
-        ];
+        const conditionalColumns = ["FDT", "FAT", "Device Username"];
 
         const csvInput = document.getElementById('csvInput');
         const configSection = document.getElementById('configSection');
@@ -193,10 +184,12 @@
                 'sadira': 'Sadira', 'yankaja': 'Yankaja', 'shukra': 'Shukra', 'hijal': 'Hijal', 'all': 'All'
             };
 
+            // 1. Get Selected Contractors - replacing spaces with underscore for filename consistency
             const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked'))
                 .map(cb => cb.value.trim().replace(/\s+/g, '_'));
             const contractorPart = selectedContractors.length > 0 ? `_${selectedContractors.join('-')}` : "";
 
+            // 2. Get Selected Statuses (Abbreviations)
             const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => {
                 const val = cb.value.toLowerCase();
                 if (val.includes('pending')) return 'Pending';
@@ -206,9 +199,13 @@
             });
             const statusPart = selectedStatuses.length > 0 ? `_${selectedStatuses.join('-')}` : "";
             
+            // 3. Get Group/Area Name
             const groupPart = labels[currentSmartFilter] || 'Report';
+            
+            // 4. Date
             const datePart = new Date().toISOString().split('T')[0];
             
+            // Final Name Structure: Area_Contractor_Status_Date
             customFileName.value = `${groupPart}${contractorPart}${statusPart}_${datePart}`;
         }
 
@@ -249,7 +246,7 @@
             const zoneQuery = zoneNameInput.value.toLowerCase();
             
             const filteredByZone = rawData.filter(row => {
-                const zoneStr = (row["Zone Name"] || row["Zone"] || "").toString();
+                const zoneStr = (row["Zone Name"] || "").toString();
                 const zoneNum = getZoneNumber(zoneStr);
                 const isFTK = zoneStr.toUpperCase().startsWith("FTK");
                 const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
@@ -263,7 +260,7 @@
                 return matchesManual && matchesSmart;
             });
 
-            const contractors = [...new Set(filteredByZone.map(row => row["Zone Contractor"] || row["Contractor"]).filter(Boolean))].sort();
+            const contractors = [...new Set(filteredByZone.map(row => row["Zone Contractor"]).filter(Boolean))].sort();
             contractorContainer.innerHTML = contractors.map(c => `
                 <label class="checkbox-item"><input type="checkbox" name="contractor" value="${c}" onchange="updateStatusOptions()"><span class="ml-2 text-sm">${c}</span></label>
             `).join('') || '<div class="p-4 text-xs italic text-slate-400">لا يوجد بيانات</div>';
@@ -276,7 +273,7 @@
             const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
 
             const filteredData = rawData.filter(row => {
-                const zoneStr = (row["Zone Name"] || row["Zone"] || "").toString();
+                const zoneStr = (row["Zone Name"] || "").toString();
                 const zoneNum = getZoneNumber(zoneStr);
                 const isFTK = zoneStr.toUpperCase().startsWith("FTK");
                 const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
@@ -288,8 +285,7 @@
                     matchesSmart = isNumberInGroup(zoneNum, currentSmartFilter);
                 }
 
-                const rowContractor = row["Zone Contractor"] || row["Contractor"];
-                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(rowContractor);
+                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
                 return matchesManual && matchesSmart && matchesContractor;
             });
 
@@ -330,7 +326,7 @@
             const zoneQuery = zoneNameInput.value.toLowerCase();
 
             const processed = rawData.filter(row => {
-                const zoneStr = (row["Zone Name"] || row["Zone"] || "").toString();
+                const zoneStr = (row["Zone Name"] || "").toString();
                 const zoneNum = getZoneNumber(zoneStr);
                 const isFTK = zoneStr.toUpperCase().startsWith("FTK");
                 const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
@@ -342,37 +338,25 @@
                     matchesSmart = isNumberInGroup(zoneNum, currentSmartFilter);
                 }
 
-                const rowContractor = row["Zone Contractor"] || row["Contractor"];
-                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(rowContractor);
+                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
                 const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(row["Status"]);
                 return matchesManual && matchesSmart && matchesContractor && matchesStatus;
             });
 
             if (processed.length === 0) return showStatus("لا توجد بيانات تطابق هذه الفلاتر", "bg-red-100 text-red-700");
 
-            const finalData = processed.map(row => {
-                const newRow = {};
-                // بناء السطر الجديد فقط بالأعمدة المطلوبة والموجودة فعلياً في الملف الأصلي
-                Object.keys(row).forEach(key => {
-                    if (columnsToKeep.includes(key) && !alwaysDelete.includes(key)) {
-                        newRow[key] = row[key];
-                    }
-                });
+            const hasPending = selectedStatuses.some(s => s.includes("Pending"));
+            const hasDone = selectedStatuses.some(s => s.includes("Done"));
+            const shouldDeleteConditional = hasPending && !hasDone;
 
-                // تنسيق التاريخ إذا وجد
+            const finalData = processed.map(row => {
+                const newRow = { ...row };
+                alwaysDelete.forEach(col => delete newRow[col]);
+                if (shouldDeleteConditional) conditionalColumns.forEach(col => delete newRow[col]);
                 if (newRow["CreatedOn"]) {
                     const d = new Date(newRow["CreatedOn"]);
                     if (!isNaN(d.getTime())) newRow["CreatedOn"] = d.toISOString().split('T')[0].replace(/-/g, '/');
                 }
-                if (newRow["StartDate"]) {
-                    const d = new Date(newRow["StartDate"]);
-                    if (!isNaN(d.getTime())) newRow["StartDate"] = d.toISOString().split('T')[0].replace(/-/g, '/');
-                }
-                if (newRow["EndDate"]) {
-                    const d = new Date(newRow["EndDate"]);
-                    if (!isNaN(d.getTime())) newRow["EndDate"] = d.toISOString().split('T')[0].replace(/-/g, '/');
-                }
-                
                 return newRow;
             });
 
