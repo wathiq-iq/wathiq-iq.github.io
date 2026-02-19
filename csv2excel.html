@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV to Excel Pro Converter + Preview</title>
+    <title>EL Tools Data Converter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -21,11 +21,15 @@
         #smartGroups::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
         /* Preview Table Styles */
-        .table-container { max-height: 400px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
+        .table-container { max-height: 500px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th { position: sticky; top: 0; background: #f8fafc; z-index: 10; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: right; }
         td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
         tr:hover { background-color: #f1f5f9; }
+
+        .pagination-btn { padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; font-size: 0.875rem; transition: all 0.2s; }
+        .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pagination-btn:not(:disabled):hover { background-color: #f1f5f9; border-color: #cbd5e1; }
     </style>
 </head>
 <body class="bg-[#f8fafc] min-h-screen text-slate-900">
@@ -33,8 +37,8 @@
         <!-- Header -->
         <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
             <div class="text-center md:text-right w-full">
-                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">محول CSV إلى Excel الذكي</h1>
-                <p class="text-slate-500 mt-1">نظام الفلترة المتقدم للمناطق (FTK حصراً) مع معاينة فورية</p>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">CSV2Excel</h1>
+                <p class="text-slate-500 mt-1">EL Tools Converter</p>
             </div>
         </div>
 
@@ -43,7 +47,7 @@
             <div class="p-6 border-b bg-white">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">1</div>
-                    <h2 class="text-lg font-bold">تحميل ملف الـ CSV الرئيسي</h2>
+                    <h2 class="text-lg font-bold">تحميل ملف الـ CSV</h2>
                 </div>
                 <input type="file" id="csvInput" accept=".csv" class="block w-full text-sm text-slate-500 file:ml-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-slate-900 file:text-white border-2 border-dashed rounded-xl p-4 cursor-pointer hover:border-blue-400 transition-colors">
             </div>
@@ -57,7 +61,7 @@
 
                 <!-- Smart Group Selectors -->
                 <div class="mb-8">
-                    <label class="block text-sm font-bold text-slate-700 mb-3">اختر المجموعة السريعة (تلقائياً لـ FTK):</label>
+                    <label class="block text-sm font-bold text-slate-700 mb-3">اختر المجموعة السريعة</label>
                     <div class="flex flex-wrap gap-2 overflow-x-auto pb-2" id="smartGroups">
                         <button onclick="applySmartFilter('all')" class="group-btn active">الكل</button>
                         <button onclick="applySmartFilter('in_house')" class="group-btn">ان هاوس</button>
@@ -85,7 +89,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    <!-- Manual Search & Name -->
                     <div class="space-y-4">
                         <div class="bg-white p-4 rounded-xl border shadow-sm">
                             <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">بحث يدوي بالمنطقة</label>
@@ -97,7 +100,6 @@
                         </div>
                     </div>
 
-                    <!-- Contractors Selection -->
                     <div class="bg-white p-4 rounded-xl border shadow-sm">
                         <div class="flex justify-between mb-2">
                             <label class="text-sm font-bold">المقاولون</label>
@@ -106,7 +108,6 @@
                         <div id="contractorContainer" class="checkbox-group-container"></div>
                     </div>
 
-                    <!-- Status Selection -->
                     <div class="bg-white p-4 rounded-xl border shadow-sm">
                         <div class="flex justify-between mb-2">
                             <label class="text-sm font-bold">الحالة</label>
@@ -116,23 +117,34 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Preview Section -->
-                <div class="mb-8">
-                    <div class="flex items-center justify-between mb-4">
+                <!-- Step 3: Preview Section with Pagination -->
+                <div class="mb-8 bg-white border rounded-2xl p-6 shadow-sm">
+                    <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">3</div>
-                            <h2 class="text-lg font-bold">معاينة النتائج المفلترة</h2>
+                            <h2 class="text-lg font-bold">معاينة البيانات (عرض مقسم)</h2>
                         </div>
-                        <div id="resultsCount" class="text-sm font-medium text-slate-600">
-                            سيتم تصدير: <span id="countNumber" class="text-blue-600 font-bold">0</span> صف
+                        
+                        <!-- Pagination Controls -->
+                        <div id="paginationControls" class="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border">
+                            <button id="prevPage" class="pagination-btn" onclick="changePage(-1)">السابق</button>
+                            <div class="text-sm font-bold text-slate-700">
+                                صفحة <span id="currentPageNum" class="text-blue-600">1</span> من <span id="totalPagesNum">1</span>
+                            </div>
+                            <button id="nextPage" class="pagination-btn" onclick="changePage(1)">التالي</button>
+                        </div>
+
+                        <div id="resultsCount" class="text-sm font-medium text-slate-600 bg-blue-50 px-4 py-2 rounded-lg">
+                            الإجمالي: <span id="countNumber" class="text-blue-600 font-bold">0</span> صف
                         </div>
                     </div>
-                    <div class="table-container bg-white shadow-inner">
+
+                    <div class="table-container shadow-inner bg-slate-50 rounded-xl">
                         <table id="previewTable">
                             <thead id="previewHead"></thead>
                             <tbody id="previewBody">
                                 <tr>
-                                    <td colspan="100%" class="text-center py-8 text-slate-400">قم بتحميل ملف لرؤية المعاينة</td>
+                                    <td colspan="100%" class="text-center py-12 text-slate-400">يرجى تحميل ملف CSV للبدء</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -140,12 +152,12 @@
                 </div>
 
                 <!-- Export Button -->
-                <div class="bg-blue-600 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-4 text-white">
+                <div class="bg-blue-600 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-4 text-white shadow-xl">
                     <div class="flex-1 text-center md:text-right">
-                        <p class="font-bold text-lg">جاهز للتحميل؟</p>
-                        <p class="text-blue-100 text-sm opacity-80">سيتم تطبيق جميع قواعد حذف الأعمدة التلقائية وتنسيق التواريخ عند التحميل.</p>
+                        <p class="font-bold text-xl">تحويل وتحميل الملف النهائي</p>
+                        <p class="text-blue-100 text-sm opacity-90 mt-1">سيتم تصدير كافة البيانات المفلترة في ملف Excel واحد منسق.</p>
                     </div>
-                    <button id="convertBtn" class="w-full md:w-auto bg-white text-blue-600 font-bold py-4 px-12 rounded-xl shadow-xl hover:bg-slate-50 active:scale-95 transition-all text-lg">تحميل ملف Excel</button>
+                    <button id="convertBtn" class="w-full md:w-auto bg-white text-blue-600 font-bold py-4 px-14 rounded-xl shadow-lg hover:bg-slate-50 active:scale-95 transition-all text-lg">تحميل Excel</button>
                 </div>
             </div>
             <div id="statusMsg" class="p-4 text-center text-sm font-bold hidden border-t"></div>
@@ -153,7 +165,6 @@
     </div>
 
     <script>
-        // --- إعدادات المناطق المخصصة ---
         const SMART_ZONES = {
             in_house: { ranges: [], specials: [8888] },
             tikrit: { ranges: [[1, 44], [98, 99], [7000, 7300]], specials: [103] },
@@ -179,7 +190,11 @@
         };
 
         let rawData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const rowsPerPage = 50;
         let currentSmartFilter = 'all';
+
         const alwaysDelete = ["Notes", "House", "Street", "Email", "Name", "UsrGPSLocationLongitude", "UsrGPSLocationLatitude", "ModifiedOn"];
         const conditionalColumns = ["FDT", "FAT", "Device Username"];
 
@@ -194,6 +209,8 @@
         const previewHead = document.getElementById('previewHead');
         const previewBody = document.getElementById('previewBody');
         const countNumber = document.getElementById('countNumber');
+        const currentPageNum = document.getElementById('currentPageNum');
+        const totalPagesNum = document.getElementById('totalPagesNum');
 
         function getZoneNumber(zoneStr) {
             const match = zoneStr.match(/\d+/);
@@ -203,9 +220,7 @@
         function isNumberInGroup(num, groupKey) {
             if (!SMART_ZONES[groupKey]) return true;
             const config = SMART_ZONES[groupKey];
-            const inRange = config.ranges.some(r => num >= r[0] && num <= r[1]);
-            const isSpecial = config.specials.includes(num);
-            return inRange || isSpecial;
+            return config.ranges.some(r => num >= r[0] && num <= r[1]) || config.specials.includes(num);
         }
 
         function updateExportFileName() {
@@ -234,22 +249,6 @@
             customFileName.value = `${groupPart}${contractorPart}${statusPart}_${datePart}`;
         }
 
-        window.applySmartFilter = (filter) => {
-            currentSmartFilter = filter;
-            document.querySelectorAll('.group-btn').forEach(btn => {
-                const labels = {
-                    'in_house': 'ان هاوس', 'tikrit': 'تكريت', 'samarra': 'سامراء', 'alam': 'العلم', 'dujail': 'الدجيل',
-                    'dhuluiya': 'الضلوعية', 'tuz': 'الطوز', 'door': 'الدور', 'sulaiman_bek': 'سليمان بيك',
-                    'baiji': 'بيجي', 'shirqat': 'الشرقاط', 'siniya': 'الصينية', 'balad': 'بلد',
-                    'amerli': 'امرلي', 'ishaqi': 'الاسحاقي', 'hajjaj': 'الحجاج', 'zawiya': 'الزوية',
-                    'sadira': 'سديرة', 'yankaja': 'ينكجه', 'shukra': 'شكرا', 'hijal': 'حجل', 'all': 'الكل'
-                };
-                btn.classList.toggle('active', btn.innerText === labels[filter]);
-            });
-            updateExportFileName();
-            updateFilters();
-        };
-
         csvInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -265,7 +264,25 @@
             });
         });
 
-        zoneNameInput.addEventListener('input', updateFilters);
+        window.applySmartFilter = (filter) => {
+            currentSmartFilter = filter;
+            document.querySelectorAll('.group-btn').forEach(btn => {
+                const labels = {
+                    'in_house': 'ان هاوس', 'tikrit': 'تكريت', 'samarra': 'سامراء', 'alam': 'العلم', 'dujail': 'الدجيل',
+                    'dhuluiya': 'الضلوعية', 'tuz': 'الطوز', 'door': 'الدور', 'sulaiman_bek': 'سليمان بيك',
+                    'baiji': 'بيجي', 'shirqat': 'الشرقاط', 'siniya': 'الصينية', 'balad': 'بلد',
+                    'amerli': 'امرلي', 'ishaqi': 'الاسحاقي', 'hajjaj': 'الحجاج', 'zawiya': 'الزوية',
+                    'sadira': 'سديرة', 'yankaja': 'ينكجه', 'shukra': 'شكرا', 'hijal': 'حجل', 'all': 'الكل'
+                };
+                btn.classList.toggle('active', btn.innerText === labels[filter]);
+            });
+            updateFilters();
+        };
+
+        zoneNameInput.addEventListener('input', () => {
+            currentPage = 1;
+            updateFilters();
+        });
 
         function updateFilters() {
             const zoneQuery = zoneNameInput.value.toLowerCase();
@@ -274,12 +291,7 @@
                 const zoneNum = getZoneNumber(zoneStr);
                 const isFTK = zoneStr.toUpperCase().startsWith("FTK");
                 const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
-                let matchesSmart = false;
-                if (currentSmartFilter === 'all') {
-                    matchesSmart = true;
-                } else if (isFTK && zoneNum !== null) {
-                    matchesSmart = isNumberInGroup(zoneNum, currentSmartFilter);
-                }
+                let matchesSmart = (currentSmartFilter === 'all') || (isFTK && zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter));
                 return matchesManual && matchesSmart;
             });
 
@@ -292,35 +304,51 @@
         }
 
         window.updateStatusOptions = () => {
-            const zoneQuery = zoneNameInput.value.toLowerCase();
             const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
+            const zoneQuery = zoneNameInput.value.toLowerCase();
 
-            const filteredData = rawData.filter(row => {
+            const filteredForStatus = rawData.filter(row => {
                 const zoneStr = (row["Zone Name"] || "").toString();
                 const zoneNum = getZoneNumber(zoneStr);
                 const isFTK = zoneStr.toUpperCase().startsWith("FTK");
                 const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
-                let matchesSmart = false;
-                if (currentSmartFilter === 'all') {
-                    matchesSmart = true;
-                } else if (isFTK && zoneNum !== null) {
-                    matchesSmart = isNumberInGroup(zoneNum, currentSmartFilter);
-                }
+                let matchesSmart = (currentSmartFilter === 'all') || (isFTK && zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter));
                 const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
                 return matchesManual && matchesSmart && matchesContractor;
             });
 
-            const statuses = [...new Set(filteredData.map(row => row["Status"]).filter(Boolean))].sort();
+            const statuses = [...new Set(filteredForStatus.map(row => row["Status"]).filter(Boolean))].sort();
             statusContainer.innerHTML = statuses.map(s => `
-                <label class="checkbox-item"><input type="checkbox" name="status" value="${s}" onchange="updateUI()"><span class="mr-2 text-sm">${s}</span></label>
+                <label class="checkbox-item"><input type="checkbox" name="status" value="${s}" onchange="resetAndRender()"><span class="mr-2 text-sm">${s}</span></label>
             `).join('') || '<div class="p-4 text-xs italic text-slate-400">اختر مقاولاً أولاً</div>';
             
-            updateUI();
+            resetAndRender();
         };
+
+        function resetAndRender() {
+            currentPage = 1;
+            updateUI();
+        }
 
         function updateUI() {
             updateExportFileName();
             updateCounts();
+            
+            const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
+            const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => cb.value);
+            const zoneQuery = zoneNameInput.value.toLowerCase();
+
+            filteredData = rawData.filter(row => {
+                const zoneStr = (row["Zone Name"] || "").toString();
+                const zoneNum = getZoneNumber(zoneStr);
+                const isFTK = zoneStr.toUpperCase().startsWith("FTK");
+                const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
+                let matchesSmart = (currentSmartFilter === 'all') || (isFTK && zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter));
+                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
+                const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(row["Status"]);
+                return matchesManual && matchesSmart && matchesContractor && matchesStatus;
+            });
+
             renderPreview();
         }
 
@@ -329,103 +357,78 @@
             document.getElementById('statusCount').innerText = document.querySelectorAll('input[name="status"]:checked').length;
         }
 
-        function getFilteredData() {
-            const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
-            const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => cb.value);
-            const zoneQuery = zoneNameInput.value.toLowerCase();
-
-            return rawData.filter(row => {
-                const zoneStr = (row["Zone Name"] || "").toString();
-                const zoneNum = getZoneNumber(zoneStr);
-                const isFTK = zoneStr.toUpperCase().startsWith("FTK");
-                const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
-                let matchesSmart = false;
-                if (currentSmartFilter === 'all') {
-                    matchesSmart = true;
-                } else if (isFTK && zoneNum !== null) {
-                    matchesSmart = isNumberInGroup(zoneNum, currentSmartFilter);
-                }
-                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
-                const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(row["Status"]);
-                return matchesManual && matchesSmart && matchesContractor && matchesStatus;
-            });
-        }
-
         function renderPreview() {
-            const data = getFilteredData();
-            countNumber.innerText = data.length;
+            countNumber.innerText = filteredData.length;
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
+            totalPagesNum.innerText = totalPages;
+            currentPageNum.innerText = currentPage;
 
-            if (data.length === 0) {
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+
+            if (filteredData.length === 0) {
                 previewHead.innerHTML = '';
-                previewBody.innerHTML = '<tr><td colspan="100%" class="text-center py-8 text-slate-400">لا توجد بيانات مطابقة للفلاتر الحالية</td></tr>';
+                previewBody.innerHTML = '<tr><td colspan="100%" class="text-center py-12 text-slate-400 font-bold">لا توجد نتائج تطابق الفلاتر المحددة</td></tr>';
                 return;
             }
 
-            // تحديد الأعمدة التي ستظهر (بعد حذف الأعمدة غير المرغوب فيها)
-            const firstRow = data[0];
-            const visibleKeys = Object.keys(firstRow).filter(key => !alwaysDelete.includes(key));
-            
-            // Header
+            const visibleKeys = Object.keys(filteredData[0]).filter(key => !alwaysDelete.includes(key));
             previewHead.innerHTML = `<tr>${visibleKeys.map(key => `<th>${key}</th>`).join('')}</tr>`;
 
-            // Body (Limit to 50 rows for performance)
-            const displayData = data.slice(0, 50);
-            previewBody.innerHTML = displayData.map(row => `
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const pageData = filteredData.slice(start, end);
+
+            previewBody.innerHTML = pageData.map(row => `
                 <tr>${visibleKeys.map(key => `<td>${row[key] || ''}</td>`).join('')}</tr>
             `).join('');
+        }
 
-            if (data.length > 50) {
-                previewBody.innerHTML += `<tr><td colspan="${visibleKeys.length}" class="text-center py-4 bg-slate-50 text-slate-500 font-medium">... تم عرض أول 50 صفاً فقط من أصل ${data.length} ...</td></tr>`;
+        window.changePage = (direction) => {
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            const next = currentPage + direction;
+            if (next >= 1 && next <= totalPages) {
+                currentPage = next;
+                renderPreview();
+                document.querySelector('.table-container').scrollTop = 0;
             }
-        }
-
-        function getOptimalWidths(data) {
-            if (data.length === 0) return [];
-            const keys = Object.keys(data[0]);
-            return keys.map(key => {
-                let maxLen = key.toString().length;
-                data.slice(0, 100).forEach(row => { // Check first 100 rows for performance
-                    const val = row[key] ? row[key].toString() : "";
-                    if (val.length > maxLen) maxLen = val.length;
-                });
-                return { wch: Math.min(maxLen + 2, 50) };
-            });
-        }
+        };
 
         convertBtn.addEventListener('click', () => {
-            const processed = getFilteredData();
-            if (processed.length === 0) return showStatus("لا توجد بيانات تطابق هذه الفلاتر", "bg-red-100 text-red-700");
+            if (filteredData.length === 0) return showStatus("لا توجد بيانات للتصدير", "bg-red-100 text-red-700");
 
             const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => cb.value);
-            const hasPending = selectedStatuses.some(s => s.toLowerCase().includes("pending"));
-            const hasDone = selectedStatuses.some(s => s.toLowerCase().includes("done"));
-            const shouldDeleteConditional = hasPending && !hasDone;
+            const shouldDeleteConditional = selectedStatuses.some(s => s.toLowerCase().includes("pending")) && !selectedStatuses.some(s => s.toLowerCase().includes("done"));
 
-            const finalData = processed.map(row => {
+            const finalData = filteredData.map(row => {
                 const newRow = { ...row };
                 alwaysDelete.forEach(col => delete newRow[col]);
                 if (shouldDeleteConditional) conditionalColumns.forEach(col => delete newRow[col]);
                 
-                // Format CreatedOn to YYYY/MM/DD?
                 if (newRow["CreatedOn"]) {
                     const d = new Date(newRow["CreatedOn"]);
                     if (!isNaN(d.getTime())) {
-                        const year = d.getFullYear();
-                        const month = String(d.getMonth() + 1).padStart(2, '0');
-                        const day = String(d.getDate()).padStart(2, '0');
-                        newRow["CreatedOn"] = `${year}/${month}/${day}`;
+                        newRow["CreatedOn"] = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
                     }
                 }
                 return newRow;
             });
 
             const ws = XLSX.utils.json_to_sheet(finalData);
-            ws['!cols'] = getOptimalWidths(finalData);
+            const keys = Object.keys(finalData[0]);
+            ws['!cols'] = keys.map(key => {
+                let maxLen = key.length;
+                finalData.slice(0, 50).forEach(r => {
+                    const val = r[key] ? r[key].toString().length : 0;
+                    if (val > maxLen) maxLen = val;
+                });
+                return { wch: Math.min(maxLen + 2, 50) };
+            });
 
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Data");
+            XLSX.utils.book_append_sheet(wb, ws, "Filtered Data");
             XLSX.writeFile(wb, `${customFileName.value || 'Report'}.xlsx`);
-            showStatus(`تم استخراج ${processed.length} صف بنجاح بنسق Excel`, "bg-green-100 text-green-700");
+            showStatus(`تم تصدير ${filteredData.length} صفاً بنجاح`, "bg-green-100 text-green-700");
         });
 
         function showStatus(msg, cls) {
