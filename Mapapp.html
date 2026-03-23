@@ -373,7 +373,7 @@
             const content = currentResults[fmt];
             if (!content) return;
             
-            const zonename = lastDisplayValue.replace(/FAT\d-/gm, '').trim() || lastSiteId;
+            const zonename = lastDisplayValue.replace(/FAT[0-9]+-/gm, '').trim() || lastSiteId;
             const mimes = { geojson: 'application/geo+json', wkt: 'text/plain', kml: 'application/vnd.google-earth.kml+xml' };
             const ext = { geojson: 'geojson', wkt: 'txt', kml: 'kml' };
             
