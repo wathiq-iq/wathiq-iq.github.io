@@ -1,267 +1,150 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise GIS Geometry Engine</title>
+    <title>محرك هندسة نظم المعلومات الجغرافية - إصدار مستقر</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;700&display=swap');
+        body { font-family: 'IBM Plex Sans Arabic', sans-serif; }
         .glass-panel {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.08);
         }
-        pre { font-family: 'Fira Code', monospace; font-size: 0.85rem; }
-        #map { width: 100%; height: 100%; border-radius: 0.5rem; z-index: 1; }
+        pre { font-family: 'Consolas', 'Monaco', monospace; font-size: 0.8rem; direction: ltr; text-align: left; }
+        #map { width: 100%; height: 100%; border-radius: 0.75rem; z-index: 1; }
+        .view-tab.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+        
+        /* Smooth Loading */
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900">
 
-    <div class="max-w-6xl mx-auto p-6 space-y-6">
+    <div class="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
         <!-- Header -->
-        <header class="flex justify-between items-center bg-slate-900 text-white p-6 rounded-2xl shadow-xl">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight">GIS Geometry Engine</h1>
-                <p class="text-slate-400 text-sm">Batch Processing & Visualizer</p>
+        <header class="flex flex-col md:flex-row justify-between items-center bg-blue-900 text-white p-6 rounded-3xl shadow-2xl gap-4">
+            <div class="text-right">
+                <h1 class="text-2xl font-bold tracking-tight">محرك هندسة GIS <span class="text-blue-300 text-sm font-normal">v2.1 Stable</span></h1>
+                <p class="text-blue-100/70 text-sm">أداة تحويل وتصدير البيانات الهيكلية لشبكات الألياف البصرية</p>
             </div>
-            <div id="statusIndicator" class="px-4 py-2 rounded-full text-xs font-mono bg-green-500/20 text-green-400 border border-green-500/30">
-                ENGINE READY
+            <div id="statusIndicator" class="px-5 py-2 rounded-full text-xs font-bold bg-blue-800 border border-blue-700 text-blue-100 flex items-center gap-2">
+                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                النظام جاهز للعمل
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Input Section -->
-            <section class="lg:col-span-1 space-y-4">
-                <div class="glass-panel p-5 rounded-2xl shadow-sm space-y-4">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Input Panel -->
+            <section class="lg:col-span-4 space-y-4">
+                <div class="glass-panel p-6 rounded-3xl shadow-lg border border-white space-y-4">
                     <div class="flex items-center justify-between">
-                        <h2 class="font-bold flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                            Input Data
+                        <h2 class="font-bold flex items-center gap-2 text-slate-700">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            مدخلات البيانات
                         </h2>
                         <input type="file" id="fileUpload" class="hidden" accept=".json,.txt">
-                        <button onclick="document.getElementById('fileUpload').click()" class="text-[10px] px-2 py-1 bg-blue-50 text-blue-600 rounded border border-blue-100 hover:bg-blue-100 transition-colors">
-                            Upload JSON
+                        <button onclick="document.getElementById('fileUpload').click()" class="text-xs px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-all font-bold">
+                            رفع ملف
                         </button>
                     </div>
                     
-                    <p class="text-xs text-slate-500">Input JSON with <code>items: [{ siteId, multiCoordinates }]</code>.</p>
+                    <textarea id="jsonInput" dir="ltr" spellcheck="false" class="w-full h-[400px] p-4 rounded-2xl border border-slate-200 text-xs font-mono focus:ring-4 focus:ring-blue-500/10 focus:outline-none bg-white shadow-inner resize-none" placeholder='{ "items": [...] }'></textarea>
                     
-                    <textarea id="jsonInput" class="w-full h-64 p-3 rounded-lg border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder='{ "items": [ { "siteId": "LOC-1", "displayValue": "Location Name", "multiCoordinates": [...] } ] }'></textarea>
-                    
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="loadSample(3)" class="text-xs py-2 bg-slate-100 hover:bg-slate-200 rounded font-medium transition-colors">Sample (3)</button>
-                        <button onclick="loadSample(25)" class="text-xs py-2 bg-slate-100 hover:bg-slate-200 rounded font-medium transition-colors">Sample (25)</button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="loadSample(6)" class="text-xs py-3 bg-white border border-slate-200 hover:border-blue-400 rounded-xl font-bold transition-all shadow-sm">عينة بسيطة</button>
+                        <button onclick="loadSample(30)" class="text-xs py-3 bg-white border border-slate-200 hover:border-blue-400 rounded-xl font-bold transition-all shadow-sm">عينة منطقة ضخمة</button>
                     </div>
 
-                    <button id="processBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-200">
-                        Process Batch Geometry
+                    <button id="processBtn" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        تحليل وتحويل البيانات
                     </button>
                 </div>
             </section>
 
-            <!-- Results Section -->
-            <section class="lg:col-span-2 space-y-4 flex flex-col min-h-[500px]">
-                <div class="glass-panel p-5 rounded-2xl shadow-sm flex-grow flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="font-bold">Output & Visualization</h2>
-                        <div id="performanceMetrics" class="text-[10px] font-mono text-slate-400"></div>
+            <!-- Results Panel -->
+            <section class="lg:col-span-8 flex flex-col min-h-[600px] space-y-4">
+                <div class="glass-panel p-6 rounded-3xl shadow-lg border border-white flex-grow flex flex-col">
+                    <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+                        <div class="flex items-center gap-4">
+                            <h2 class="font-bold text-slate-700">النتائج المعالجة</h2>
+                            <div id="performanceMetrics" dir="ltr" class="text-[10px] font-mono bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100">
+                                0 items | 0ms
+                            </div>
+                        </div>
+                        
+                        <div class="flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 w-full md:w-auto">
+                            <button onclick="showFormat('kml')" class="view-tab flex-1 md:flex-none px-6 py-2 rounded-xl text-xs font-bold transition-all active" data-format="kml">ملف KML</button>
+                            <button onclick="showFormat('geojson')" class="view-tab flex-1 md:flex-none px-6 py-2 rounded-xl text-xs font-bold transition-all" data-format="geojson">GeoJSON</button>
+                            <button onclick="showFormat('map')" class="view-tab flex-1 md:flex-none px-6 py-2 rounded-xl text-xs font-bold transition-all" data-format="map">الخريطة</button>
+                        </div>
                     </div>
 
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <button onclick="showFormat('geojson')" class="view-tab px-4 py-1.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700" data-format="geojson">GeoJSON</button>
-                        <button onclick="showFormat('map')" class="view-tab px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-format="map">Map Preview</button>
-                        <button onclick="showFormat('wkt')" class="view-tab px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-format="wkt">WKT</button>
-                        <button onclick="showFormat('kml')" class="view-tab px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-format="kml">KML</button>
-                    </div>
-
-                    <div class="flex-grow relative overflow-hidden rounded-lg border border-slate-200 bg-white">
-                        <div id="codeContainer" class="absolute inset-0 p-4 overflow-auto">
-                            <pre id="outputCode" class="whitespace-pre-wrap break-all text-slate-700"></pre>
+                    <div class="flex-grow relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl">
+                        <div id="codeContainer" class="absolute inset-0 p-1 overflow-auto bg-slate-900">
+                            <pre id="outputCode" class="p-6 text-green-400 leading-relaxed"></pre>
                         </div>
                         <div id="mapContainer" class="absolute inset-0 hidden">
                             <div id="map"></div>
                         </div>
                     </div>
 
-                    <div class="mt-4 flex justify-end gap-2">
-                        <button onclick="copyToClipboard()" class="flex items-center gap-2 px-4 py-2 text-xs font-medium border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                            Copy
-                        </button>
-                        <button id="downloadBtn" onclick="downloadOutput()" class="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50" disabled>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            Download
-                        </button>
+                    <div class="mt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <p class="text-[11px] text-slate-400 text-center md:text-right">
+                            * ملاحظة: تم إصلاح مشكلة التحميل لتتوافق مع بيئة Google Earth بشكل أفضل.
+                        </p>
+                        <div class="flex gap-3 w-full md:w-auto">
+                            <button onclick="copyToClipboard()" class="flex-1 md:flex-none px-6 py-3 text-xs font-bold border border-slate-200 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-3 8h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                نسخ الكود
+                            </button>
+                            <button id="downloadBtn" onclick="downloadOutput()" class="flex-1 md:flex-none px-8 py-3 text-xs font-bold bg-slate-900 text-white rounded-xl hover:bg-black transition-all shadow-lg disabled:opacity-40 flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                تحميل الملف النهائي
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
         </div>
     </div>
 
-    <!-- Modal for Errors -->
-    <div id="errorModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <h3 class="text-red-600 font-bold text-lg mb-2">Processing Error</h3>
-            <p id="errorMessage" class="text-slate-600 text-sm mb-6"></p>
-            <button onclick="closeError()" class="w-full py-2 bg-slate-900 text-white rounded-lg font-medium">Close</button>
+    <!-- Error UI -->
+    <div id="errorModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md hidden flex items-center justify-center p-6 z-[9999]">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
+            <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h3 class="text-slate-900 font-bold text-xl mb-3">تنسيق JSON غير صحيح</h3>
+            <p id="errorMessage" class="text-slate-500 text-sm mb-8 leading-relaxed"></p>
+            <button onclick="closeError()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:shadow-xl transition-all">إعادة المحاولة</button>
         </div>
     </div>
 
-    <script type="module">
-        const workerCode = `
-            class CanonicalGeometry {
-                constructor(type, siteId, displayValue) {
-                    this.type = type;
-                    this.siteId = siteId;
-                    this.displayValue = displayValue;
-                    this.rings = []; 
-                }
-            }
+    <!-- Toast UI -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-2xl opacity-0 transition-all pointer-events-none z-[10000]">
+        تم النسخ للحافظة بنجاح
+    </div>
 
-            self.onmessage = async function(e) {
-                const { input, format } = e.data;
-                const start = performance.now();
-
-                try {
-                    const root = typeof input === 'string' ? JSON.parse(input) : input;
-                    const items = Array.isArray(root.items) ? root.items : [root];
-                    const geometries = [];
-
-                    for (const item of items) {
-                        const siteId = String(item.siteId || "unknown");
-                        const displayValue = String(item.displayValue || siteId);
-                        const rawCoords = item.multiCoordinates;
-                        if (!Array.isArray(rawCoords) || rawCoords.length === 0) continue;
-
-                        const geom = new CanonicalGeometry('Polygon', siteId, displayValue);
-                        const getCoord = (p, idx) => {
-                            if (Array.isArray(p)) return p[idx];
-                            if (idx === 0) return p.longitude || p.lon || p.lng;
-                            return p.latitude || p.lat;
-                        };
-
-                        const firstLon = getCoord(rawCoords[0], 0);
-                        const firstLat = getCoord(rawCoords[0], 1);
-                        let ringSize = rawCoords.length;
-                        const lastPt = rawCoords[rawCoords.length - 1];
-                        const isClosed = (getCoord(lastPt, 0) === firstLon && getCoord(lastPt, 1) === firstLat);
-                        if (!isClosed) ringSize += 1;
-
-                        const f64 = new Float64Array(ringSize * 2);
-                        for (let i = 0; i < rawCoords.length; i++) {
-                            f64[i * 2] = getCoord(rawCoords[i], 0);
-                            f64[i * 2 + 1] = getCoord(rawCoords[i], 1);
-                        }
-                        if (!isClosed) {
-                            f64[(ringSize - 1) * 2] = firstLon;
-                            f64[(ringSize - 1) * 2 + 1] = firstLat;
-                        }
-                        geom.rings.push(f64);
-                        geometries.push(geom);
-                    }
-
-                    if (geometries.length === 0) throw new Error("No valid items found.");
-
-                    let result = "";
-                    if (format === 'geojson') result = toGeoJSONBatch(geometries);
-                    else if (format === 'wkt') result = toWKTBatch(geometries);
-                    else if (format === 'kml') result = toKMLBatch(geometries);
-
-                    const end = performance.now();
-                    self.postMessage({ 
-                        success: true, 
-                        data: result, 
-                        count: geometries.length,
-                        firstSiteId: geometries[0].siteId,
-                        firstDisplay: geometries[0].displayValue,
-                        ms: (end - start).toFixed(2)
-                    });
-                } catch (err) {
-                    self.postMessage({ success: false, error: err.message });
-                }
-            };
-
-            function toGeoJSONBatch(geoms) {
-                const features = geoms.map(g => ({
-                    type: "Feature",
-                    properties: { Zone: g.siteId, Display: g.displayValue },
-                    geometry: { 
-                        type: "Polygon", 
-                        coordinates: g.rings.map(r => {
-                            const arr = [];
-                            for(let i=0; i<r.length; i+=2) arr.push([r[i], r[i+1]]);
-                            return arr;
-                        })
-                    }
-                }));
-                return JSON.stringify({ type: "FeatureCollection", features }, null, 2);
-            }
-
-            function toWKTBatch(geoms) {
-                const parts = geoms.map(g => {
-                    const ring = g.rings[0];
-                    let s = "POLYGON((";
-                    for (let i = 0; i < ring.length; i += 2) {
-                        s += ring[i] + " " + ring[i+1] + (i === ring.length - 2 ? "" : ",");
-                    }
-                    return s + "))";
-                });
-                return geoms.length === 1 ? parts[0] : \`GEOMETRYCOLLECTION(\${parts.join(",")})\`;
-            }
-
-            function toKMLBatch(geoms) {
-                const firstDisplay = geoms.length > 0 ? geoms[0].displayValue : "export";
-                const zonename = firstDisplay.replace(/FAT\\d-/gm, '').trim();
-                
-                const placemarks = geoms.map(g => {
-                    const ring = g.rings[0];
-                    const chunks = [];
-                    for (let i = 0; i < ring.length; i += 2) {
-                        chunks.push(\`\${ring[i]},\${ring[i+1]},0\`);
-                    }
-                    return \`
-    <Placemark>
-      <name>\${g.displayValue}</name>
-      <description>ID: \${g.siteId}</description>
-      <styleUrl>#msn_line</styleUrl>
-      <Polygon>
-        <tessellate>1</tessellate>
-        <outerBoundaryIs>
-          <LinearRing><coordinates>\${chunks.join(" ")}</coordinates></LinearRing>
-        </outerBoundaryIs>
-      </Polygon>
-    </Placemark>\`;
-                }).join("");
-
-                return \`<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-  <Document>
-    <name>\${zonename}</name>
-    <Style id="msn_line">
-      <LineStyle><color>ff000000</color><width>4</width></LineStyle>
-      <PolyStyle><color>40007cf5</color></PolyStyle>
-    </Style>
-    <Folder>
-      <name>fat_region</name>
-      <open>0</open>
-      \${placemarks}
-    </Folder>
-  </Document>
-</kml>\`;
-            }
-        `;
-
-        const blob = new Blob([workerCode], { type: 'application/javascript' });
-        const worker = new Worker(URL.createObjectURL(blob));
-
-        let currentResults = { geojson: '', wkt: '', kml: '' };
-        let activeFormat = 'geojson';
+    <script>
+        // Core Logic for Processing GIS Hierarchy
+        let currentResults = { geojson: '', kml: '', filename: 'GIS_Export' };
+        let activeFormat = 'kml';
         let map = null;
         let geojsonLayer = null;
-        let lastSiteId = 'batch_export';
-        let lastDisplayValue = 'batch_export';
 
         const ui = {
             input: document.getElementById('jsonInput'),
@@ -274,163 +157,246 @@
             errorModal: document.getElementById('errorModal'),
             errorMsg: document.getElementById('errorMessage'),
             mapContainer: document.getElementById('mapContainer'),
-            codeContainer: document.getElementById('codeContainer')
+            codeContainer: document.getElementById('codeContainer'),
+            toast: document.getElementById('toast')
+        };
+
+        // Utility: Show message
+        const showToast = (msg) => {
+            ui.toast.textContent = msg;
+            ui.toast.classList.remove('opacity-0', 'translate-y-4');
+            setTimeout(() => ui.toast.classList.add('opacity-0', 'translate-y-4'), 2500);
+        };
+
+        // Utility: Run Conversion Logic
+        function convertData(inputStr, format) {
+            try {
+                const start = performance.now();
+                const root = JSON.parse(inputStr);
+                const items = Array.isArray(root.items) ? root.items : (root.features ? root.features : [root]);
+                
+                const data = items.map(item => {
+                    const props = item.properties || item;
+                    const coords = item.multiCoordinates || (item.geometry ? item.geometry.coordinates[0] : null);
+                    return {
+                        siteId: String(props.siteId || "Site_Unknown"),
+                        displayValue: String(props.displayValue || "Element"),
+                        address: props.address || { line1: props.type || "" },
+                        coords: coords
+                    };
+                }).filter(i => i.coords);
+
+                let result = '';
+                if (format === 'geojson') {
+                    result = JSON.stringify({
+                        type: "FeatureCollection",
+                        features: data.map(d => ({
+                            type: "Feature",
+                            properties: { siteId: d.siteId, name: d.displayValue, type: d.address.line1 || d.address },
+                            geometry: { 
+                                type: "Polygon", 
+                                coordinates: [d.coords.map(c => [
+                                    c.lon || c.lng || c.longitude || c[0], 
+                                    c.lat || c.latitude || c[1]
+                                ])]
+                            }
+                        }))
+                    }, null, 2);
+                } else {
+                    // KML Advanced Structure
+                    const groups = {};
+                    data.forEach(d => {
+                        if (!groups[d.siteId]) groups[d.siteId] = [];
+                        groups[d.siteId].push(d);
+                    });
+
+                    let folders = Object.keys(groups).map(sid => {
+                        const marks = groups[sid].map(item => {
+                            // Robust check for FDT markers in address
+                            const addrLine = String(item.address.line1 || item.address || "");
+                            const isFDT = addrLine.includes('FDT_Synced_from_QGIS') || addrLine.includes('ZONE_FROM_JOGET');
+                            
+                            const color = isFDT ? "ffffaa00" : "ff00ffff"; // Blue for FDT, Cyan for FAT
+                            const cStr = item.coords.map(c => {
+                                const lo = c.lon || c.lng || c.longitude || c[0];
+                                const la = c.lat || c.latitude || c[1];
+                                return `${lo},${la},0`;
+                            }).join(" ");
+
+                            return `
+      <Placemark>
+        <name>${sid}</name>
+        <Style><LineStyle><color>${color}</color><width>3</width></LineStyle><PolyStyle><color>40${color.substring(2)}</color></PolyStyle></Style>
+        <Polygon><outerBoundaryIs><LinearRing><coordinates>${cStr} ${cStr.split(' ')[0]}</coordinates></LinearRing></outerBoundaryIs></Polygon>
+      </Placemark>`;
+                        }).join("");
+                        return `<name>${sid}</name>${marks}`;
+                    }).join("");
+
+                    result = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Zone_Export</name>
+  <Folder>
+${folders}
+</Folder>
+</Document>
+</kml>`;
+                }
+
+                return { 
+                    content: result, 
+                    count: data.length, 
+                    ms: (performance.now() - start).toFixed(1) 
+                };
+            } catch (err) {
+                throw new Error("تنسيق JSON غير صالح أو ناقص البيانات: " + err.message);
+            }
+        }
+
+        async function processEngine() {
+            const val = ui.input.value.trim();
+            if (!val) return;
+
+            ui.processBtn.disabled = true;
+            try {
+                const kmlRes = convertData(val, 'kml');
+                const geoRes = convertData(val, 'geojson');
+                
+                currentResults.kml = kmlRes.content;
+                currentResults.geojson = geoRes.content;
+                
+                ui.metrics.textContent = `${kmlRes.count} elements | ${kmlRes.ms}ms`;
+                ui.downloadBtn.disabled = false;
+                showFormat(activeFormat);
+            } catch (e) {
+                ui.errorMsg.textContent = e.message;
+                ui.errorModal.classList.remove('hidden');
+            } finally {
+                ui.processBtn.disabled = false;
+            }
+        }
+
+        // Fixed Download Implementation
+        window.downloadOutput = () => {
+            const content = activeFormat === 'map' ? currentResults.geojson : currentResults[activeFormat];
+            if (!content) return;
+
+            const ext = activeFormat === 'map' ? 'geojson' : activeFormat;
+            const filename = `GIS_Export_${new Date().getTime()}.${ext}`;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            }
+        };
+
+        window.copyToClipboard = () => {
+            const text = activeFormat === 'map' ? currentResults.geojson : currentResults[activeFormat];
+            if (!text) return;
+
+            const tempInput = document.createElement("textarea");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            showToast("تم النسخ بنجاح");
+        };
+
+        window.showFormat = (fmt) => {
+            activeFormat = fmt;
+            document.querySelectorAll('.view-tab').forEach(b => {
+                b.classList.toggle('active', b.dataset.format === fmt);
+            });
+
+            if (fmt === 'map') {
+                ui.codeContainer.classList.add('hidden');
+                ui.mapContainer.classList.remove('hidden');
+                initMap();
+                updateMap();
+            } else {
+                ui.mapContainer.classList.add('hidden');
+                ui.codeContainer.classList.remove('hidden');
+                ui.output.textContent = currentResults[fmt] || "";
+            }
         };
 
         function initMap() {
             if (map) return;
-            map = L.map('map').setView([0, 0], 2);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+            map = L.map('map', { zoomControl: false }).setView([33.31, 44.36], 12);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
         }
+
+        function updateMap() {
+            if (!map || !currentResults.geojson) return;
+            if (geojsonLayer) map.removeLayer(geojsonLayer);
+            
+            try {
+                geojsonLayer = L.geoJSON(JSON.parse(currentResults.geojson), {
+                    style: (f) => {
+                        const type = String(f.properties.type || "");
+                        const isFDT = type.includes('FDT') || type.includes('ZONE_FROM_JOGET');
+                        return {
+                            color: isFDT ? '#2563eb' : '#d97706',
+                            fillOpacity: 0.3,
+                            weight: 3
+                        };
+                    }
+                }).addTo(map);
+                map.fitBounds(geojsonLayer.getBounds(), { padding: [40, 40] });
+            } catch(e) {}
+        }
+
+        window.loadSample = (count) => {
+            const items = [];
+            const blon = 44.36;
+            const blat = 33.31;
+            for(let j=0; j<count; j++) {
+                const sid = `AREA_${Math.floor(j/6) + 1}`;
+                const ox = (j%6) * 0.01;
+                const oy = Math.floor(j/6) * 0.01;
+                const coords = [];
+                for(let i=0; i<6; i++){
+                    const a = (i/6)*6.28;
+                    coords.push({ lon: blon + ox + Math.cos(a)*0.004, lat: blat + oy + Math.sin(a)*0.004 });
+                }
+                items.push({
+                    siteId: sid,
+                    displayValue: j%6===0 ? `FDT-${sid}` : `FAT-${j}`,
+                    address: { line1: j%6===0 ? "ZONE_FROM_JOGET" : "FAT_Region" },
+                    multiCoordinates: coords
+                });
+            }
+            ui.input.value = JSON.stringify({ items }, null, 2);
+            processEngine();
+        };
 
         ui.fileUpload.onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (event) => {
-                ui.input.value = event.target.result;
+            reader.onload = (re) => {
+                ui.input.value = re.target.result;
                 processEngine();
             };
             reader.readAsText(file);
         };
 
-        window.loadSample = (itemCount) => {
-            const items = [];
-            for(let j=0; j<itemCount; j++) {
-                const coords = [];
-                const siteId = `SITE-${1000 + j}`;
-                const displayValue = `FAT1-Location Name ${j + 1}`;
-                const centerLon = -122.4194 + (Math.random() - 0.5) * 5;
-                const centerLat = 37.7749 + (Math.random() - 0.5) * 5;
-                for(let i=0; i<10; i++) {
-                    const angle = (i / 10) * Math.PI * 2;
-                    coords.push({
-                        longitude: parseFloat((Math.cos(angle) * 0.1 + centerLon).toFixed(6)),
-                        latitude: parseFloat((Math.sin(angle) * 0.1 + centerLat).toFixed(6))
-                    });
-                }
-                items.push({ siteId, displayValue, multiCoordinates: coords });
-            }
-            ui.input.value = JSON.stringify({ items }, null, 2);
-        };
-
-        window.showFormat = (fmt) => {
-            activeFormat = fmt;
-            
-            if (fmt === 'map') {
-                ui.codeContainer.classList.add('hidden');
-                ui.mapContainer.classList.remove('hidden');
-                initMap();
-                updateMapData();
-                setTimeout(() => map.invalidateSize(), 100);
-            } else {
-                ui.mapContainer.classList.add('hidden');
-                ui.codeContainer.classList.remove('hidden');
-                ui.output.textContent = currentResults[fmt] || "No data processed yet.";
-            }
-
-            document.querySelectorAll('.view-tab').forEach(btn => {
-                const isMatch = btn.dataset.format === fmt;
-                btn.className = isMatch 
-                    ? "view-tab px-4 py-1.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700"
-                    : "view-tab px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200";
-            });
-
-            ui.downloadBtn.disabled = !currentResults.geojson;
-        };
-
-        function updateMapData() {
-            if (!map || !currentResults.geojson) return;
-            if (geojsonLayer) map.removeLayer(geojsonLayer);
-
-            const data = JSON.parse(currentResults.geojson);
-            geojsonLayer = L.geoJSON(data, {
-                style: { color: "#2563eb", weight: 2, fillOpacity: 0.2 },
-                onEachFeature: (feature, layer) => {
-                    layer.bindPopup(`<strong>Name:</strong> ${feature.properties.Display}<br><strong>ID:</strong> ${feature.properties.Zone}`);
-                }
-            }).addTo(map);
-
-            if (data.features.length > 0) {
-                map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20] });
-            }
-        }
-
-        window.copyToClipboard = () => {
-            const text = activeFormat === 'map' ? currentResults.geojson : ui.output.textContent;
-            const el = document.createElement('textarea');
-            el.value = text;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-        };
-
-        window.downloadOutput = () => {
-            const fmt = activeFormat === 'map' ? 'geojson' : activeFormat;
-            const content = currentResults[fmt];
-            if (!content) return;
-            
-            const zonename = lastDisplayValue.replace(/FAT[0-9]+-/gm, '').trim() || lastSiteId;
-            const mimes = { geojson: 'application/geo+json', wkt: 'text/plain', kml: 'application/vnd.google-earth.kml+xml' };
-            const ext = { geojson: 'geojson', wkt: 'txt', kml: 'kml' };
-            
-            const blob = new Blob([content], { type: mimes[fmt] });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${zonename}.${ext[fmt]}`;
-            a.click();
-            URL.revokeObjectURL(url);
-        };
-
-        async function processEngine() {
-            const raw = ui.input.value.trim();
-            if (!raw) return;
-
-            ui.processBtn.disabled = true;
-            ui.processBtn.textContent = "Processing Batch...";
-            ui.status.textContent = "ENGINE BUSY";
-
-            try {
-                const formats = ['geojson', 'wkt', 'kml'];
-                for (const fmt of formats) {
-                    const result = await runTask(raw, fmt);
-                    currentResults[fmt] = result.data;
-                    lastSiteId = result.firstSiteId;
-                    lastDisplayValue = result.firstDisplay || result.firstSiteId;
-                    ui.metrics.textContent = `Processed ${result.count} items in ${result.ms}ms`;
-                }
-                showFormat(activeFormat);
-            } catch (err) {
-                ui.errorMsg.textContent = err.message || err;
-                ui.errorModal.classList.remove('hidden');
-            } finally {
-                ui.processBtn.disabled = false;
-                ui.processBtn.textContent = "Process Batch Geometry";
-                ui.status.textContent = "ENGINE READY";
-            }
-        }
-
-        ui.processBtn.onclick = processEngine;
-
-        function runTask(input, format) {
-            return new Promise((resolve, reject) => {
-                const onMsg = (e) => {
-                    if (e.data.success) resolve(e.data);
-                    else reject(e.data.error);
-                    worker.removeEventListener('message', onMsg);
-                };
-                worker.addEventListener('message', onMsg);
-                worker.postMessage({ input, format });
-            });
-        }
-
         window.closeError = () => ui.errorModal.classList.add('hidden');
-
-        loadSample(3);
+        ui.processBtn.onclick = processEngine;
+        
+        // Init
+        setTimeout(() => loadSample(6), 300);
     </script>
 </body>
 </html>
