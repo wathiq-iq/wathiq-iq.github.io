@@ -15,21 +15,17 @@
         .checkbox-item { display: flex; align-items: center; padding: 0.6rem 1rem; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
         .checkbox-item:hover { background-color: #f8fafc; }
         .checkbox-item input[type="checkbox"] { width: 1.1rem; height: 1.1rem; margin-left: 0.75rem; flex-shrink: 0; }
-        .group-btn { transition: all 0.2s; border: 1px solid #e2e8f0; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.825rem; font-weight: 500; white-space: nowrap; }
+        .group-btn { transition: all 0.2s; border: 1px solid #e2e8f0; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.825rem; font-weight: 500; white-space: nowrap; cursor: pointer; background: white; }
         .group-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
-        #smartGroups::-webkit-scrollbar { height: 6px; }
-        #smartGroups::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
-        /* Preview Table Styles */
+        #smartGroups::-webkit-scrollbar, #govGroups::-webkit-scrollbar { height: 6px; }
+        #smartGroups::-webkit-scrollbar-thumb, #govGroups::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .table-container { max-height: 500px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th { position: sticky; top: 0; background: #f8fafc; z-index: 10; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: right; }
         td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
         tr:hover { background-color: #f1f5f9; }
-
         .pagination-btn { padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; font-size: 0.875rem; transition: all 0.2s; }
         .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pagination-btn:not(:disabled):hover { background-color: #f1f5f9; border-color: #cbd5e1; }
     </style>
 </head>
 <body class="bg-[#f8fafc] min-h-screen text-slate-900">
@@ -38,7 +34,7 @@
         <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
             <div class="text-center md:text-right w-full">
                 <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">CSV2Excel</h1>
-                <p class="text-slate-500 mt-1">EL Tools Converter</p>
+                <p class="text-slate-500 mt-1">EL Tools Converter - Smart Gov Edition</p>
             </div>
         </div>
 
@@ -59,9 +55,32 @@
                     <h2 class="text-lg font-bold">الفلترة الذكية والتخصيص</h2>
                 </div>
 
-                <!-- Smart Group Selectors -->
-                <div class="mb-8">
-                    <label class="block text-sm font-bold text-slate-700 mb-3">اختر المجموعة السريعة</label>
+                <!-- Governorates Selectors -->
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-slate-700 mb-3">اختر المحافظة</label>
+                    <div class="flex flex-wrap gap-2 overflow-x-auto pb-2" id="govGroups">
+                        <button onclick="applyGovFilter('ALL')" class="group-btn active" data-gov="ALL">الكل</button>
+                        <button onclick="applyGovFilter('FTK')" class="group-btn" data-gov="FTK">صلاح الدين</button>
+                        <button onclick="applyGovFilter('FBG')" class="group-btn" data-gov="FBG">بغداد</button>
+                        <button onclick="applyGovFilter('FBS')" class="group-btn" data-gov="FBS">البصرة</button>
+                        <button onclick="applyGovFilter('FDW')" class="group-btn" data-gov="FDW">القادسية</button>
+                        <button onclick="applyGovFilter('FKU')" class="group-btn" data-gov="FKU">واسط</button>
+                        <button onclick="applyGovFilter('FNJ')" class="group-btn" data-gov="FNJ">النجف</button>
+                        <button onclick="applyGovFilter('FRM')" class="group-btn" data-gov="FRM">الانبار</button>
+                        <button onclick="applyGovFilter('FBB')" class="group-btn" data-gov="FBB">بابل</button>
+                        <button onclick="applyGovFilter('FKR')" class="group-btn" data-gov="FKR">كربلاء</button>
+                        <button onclick="applyGovFilter('FKK')" class="group-btn" data-gov="FKK">كركوك</button>
+                        <button onclick="applyGovFilter('FAM')" class="group-btn" data-gov="FAM">ميسان</button>
+                        <button onclick="applyGovFilter('FMU')" class="group-btn" data-gov="FMU">المثنى</button>
+                        <button onclick="applyGovFilter('FNS')" class="group-btn" data-gov="FNS">ذي قار</button>
+                        <button onclick="applyGovFilter('FDY')" class="group-btn" data-gov="FDY">ديالى</button>
+                        <button onclick="applyGovFilter('FMS')" class="group-btn" data-gov="FMS">نينوى</button>
+                    </div>
+                </div>
+
+                <!-- Smart Group Selectors (Conditional for Salah aldin) -->
+                <div class="mb-8 transition-all duration-300" id="smartGroupContainer">
+                    <label class="block text-sm font-bold text-slate-700 mb-3">المناطق الذكية (صلاح الدين)</label>
                     <div class="flex flex-wrap gap-2 overflow-x-auto pb-2" id="smartGroups">
                         <button onclick="applySmartFilter('all')" class="group-btn active">الكل</button>
                         <button onclick="applySmartFilter('in_house')" class="group-btn">ان هاوس</button>
@@ -117,15 +136,13 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Preview Section with Pagination -->
+                <!-- Preview Section -->
                 <div class="mb-8 bg-white border rounded-2xl p-6 shadow-sm">
                     <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">3</div>
-                            <h2 class="text-lg font-bold">معاينة البيانات (عرض مقسم)</h2>
+                            <h2 class="text-lg font-bold">معاينة البيانات</h2>
                         </div>
-                        
-                        <!-- Pagination Controls -->
                         <div id="paginationControls" class="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border">
                             <button id="prevPage" class="pagination-btn" onclick="changePage(-1)">السابق</button>
                             <div class="text-sm font-bold text-slate-700">
@@ -133,12 +150,10 @@
                             </div>
                             <button id="nextPage" class="pagination-btn" onclick="changePage(1)">التالي</button>
                         </div>
-
                         <div id="resultsCount" class="text-sm font-medium text-slate-600 bg-blue-50 px-4 py-2 rounded-lg">
                             الإجمالي: <span id="countNumber" class="text-blue-600 font-bold">0</span> صف
                         </div>
                     </div>
-
                     <div class="table-container shadow-inner bg-slate-50 rounded-xl">
                         <table id="previewTable">
                             <thead id="previewHead"></thead>
@@ -155,7 +170,7 @@
                 <div class="bg-blue-600 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-4 text-white shadow-xl">
                     <div class="flex-1 text-center md:text-right">
                         <p class="font-bold text-xl">تحويل وتحميل الملف النهائي</p>
-                        <p class="text-blue-100 text-sm opacity-90 mt-1">سيتم تصدير كافة البيانات المفلترة في ملف Excel واحد منسق.</p>
+                        <p class="text-blue-100 text-sm opacity-90 mt-1">سيتم تصدير البيانات المفلترة بناءً على المحافظة والمنطقة المختارة.</p>
                     </div>
                     <button id="convertBtn" class="w-full md:w-auto bg-white text-blue-600 font-bold py-4 px-14 rounded-xl shadow-lg hover:bg-slate-50 active:scale-95 transition-all text-lg">تحميل Excel</button>
                 </div>
@@ -165,6 +180,13 @@
     </div>
 
     <script>
+        const GOV_CODES = {
+            FDW: "Qadisiya", FBG: "Baghdad", FKU: "Wasit", FNJ: "Najaf",
+            FRM: "Anbar", FBB: "Babil", FBS: "Basrah", FKR: "Karballa",
+            FTK: "Salah aldin", FKK: "Kirkuk", FAM: "Misan", FMU: "Muthanna",
+            FNS: "Thy Qar", FDY: "Diala", FMS: "Naynawa"
+        };
+
         const SMART_ZONES = {
             in_house: { ranges: [], specials: [8888] },
             tikrit: { ranges: [[1, 44], [98, 99], [7000, 7300]], specials: [103] },
@@ -194,8 +216,9 @@
         let currentPage = 1;
         const rowsPerPage = 50;
         let currentSmartFilter = 'all';
+        let currentGovFilter = 'ALL';
 
-        const alwaysDelete = ["Notes", "House", "Street", "Email", "Name", "UsrGPSLocationLongitude", "UsrGPSLocationLatitude", "ModifiedOn"];
+        const alwaysDelete = ["Address", "Notes", "House", "Street", "Email", "Name", "UsrGPSLocationLongitude", "UsrGPSLocationLatitude", "ModifiedOn"];
         const conditionalColumns = ["FDT", "FAT", "Device Username"];
 
         const csvInput = document.getElementById('csvInput');
@@ -203,6 +226,7 @@
         const zoneNameInput = document.getElementById('zoneNameFilter');
         const contractorContainer = document.getElementById('contractorContainer');
         const statusContainer = document.getElementById('statusContainer');
+        const smartGroupContainer = document.getElementById('smartGroupContainer');
         const convertBtn = document.getElementById('convertBtn');
         const statusMsg = document.getElementById('statusMsg');
         const customFileName = document.getElementById('customFileName');
@@ -223,32 +247,6 @@
             return config.ranges.some(r => num >= r[0] && num <= r[1]) || config.specials.includes(num);
         }
 
-        function updateExportFileName() {
-            const labels = {
-                'in_house': 'InHouse', 'tikrit': 'Tikrit', 'samarra': 'Samarra', 'alam': 'Alam', 'dujail': 'Dujail',
-                'dhuluiya': 'Dhuluiya', 'tuz': 'Tuz', 'door': 'Door', 'sulaiman_bek': 'SulaimanBek',
-                'baiji': 'Baiji', 'shirqat': 'Shirqat', 'siniya': 'Siniya', 'balad': 'Balad',
-                'amerli': 'Amerli', 'ishaqi': 'Ishaqi', 'hajjaj': 'Hajjaj', 'zawiya': 'Zawiya',
-                'sadira': 'Sadira', 'yankaja': 'Yankaja', 'shukra': 'Shukra', 'hijal': 'Hijal', 'all': 'All'
-            };
-
-            const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked'))
-                .map(cb => cb.value.trim().replace(/\s+/g, '_'));
-            const contractorPart = selectedContractors.length > 0 ? `_${selectedContractors.join('-')}` : "";
-
-            const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => {
-                const val = cb.value.toLowerCase();
-                if (val.includes('pending')) return 'Pending';
-                if (val.includes('done')) return 'Done';
-                if (val.includes('cancel')) return 'Cancel';
-                return val.charAt(0).toUpperCase() + val.slice(1);
-            });
-            const statusPart = selectedStatuses.length > 0 ? `_${selectedStatuses.join('-')}` : "";
-            const groupPart = labels[currentSmartFilter] || 'Report';
-            const datePart = new Date().toISOString().split('T')[0];
-            customFileName.value = `${groupPart}${contractorPart}${statusPart}_${datePart}`;
-        }
-
         csvInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -258,15 +256,33 @@
                 complete: function(results) {
                     rawData = results.data;
                     configSection.classList.remove('hidden');
-                    updateExportFileName();
                     updateFilters();
                 }
             });
         });
 
+        window.applyGovFilter = (gov) => {
+            currentGovFilter = gov;
+            currentSmartFilter = 'all'; // Reset smart filter on gov change
+            
+            // UI Toggle for buttons
+            document.querySelectorAll('#govGroups .group-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-gov') === gov);
+            });
+
+            // Show/Hide Smart Zones for Salah aldin (FTK)
+            if (gov === 'FTK') {
+                smartGroupContainer.classList.remove('hidden');
+            } else {
+                smartGroupContainer.classList.add('hidden');
+            }
+
+            updateFilters();
+        };
+
         window.applySmartFilter = (filter) => {
             currentSmartFilter = filter;
-            document.querySelectorAll('.group-btn').forEach(btn => {
+            document.querySelectorAll('#smartGroups .group-btn').forEach(btn => {
                 const labels = {
                     'in_house': 'ان هاوس', 'tikrit': 'تكريت', 'samarra': 'سامراء', 'alam': 'العلم', 'dujail': 'الدجيل',
                     'dhuluiya': 'الضلوعية', 'tuz': 'الطوز', 'door': 'الدور', 'sulaiman_bek': 'سليمان بيك',
@@ -286,16 +302,25 @@
 
         function updateFilters() {
             const zoneQuery = zoneNameInput.value.toLowerCase();
-            const filteredByZone = rawData.filter(row => {
-                const zoneStr = (row["Zone Name"] || "").toString();
+            
+            const filteredByGovAndZone = rawData.filter(row => {
+                const zoneStr = (row["Zone Name"] || "").toString().toUpperCase();
                 const zoneNum = getZoneNumber(zoneStr);
-                const isFTK = zoneStr.toUpperCase().startsWith("FTK");
                 const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
-                let matchesSmart = (currentSmartFilter === 'all') || (isFTK && zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter));
-                return matchesManual && matchesSmart;
+                
+                // 1. Governorate Check
+                let matchesGov = (currentGovFilter === 'ALL') || zoneStr.startsWith(currentGovFilter);
+                
+                // 2. Smart Zone Check (Only if FTK selected)
+                let matchesSmart = true;
+                if (currentGovFilter === 'FTK' && currentSmartFilter !== 'all') {
+                    matchesSmart = zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter);
+                }
+
+                return matchesGov && matchesSmart && matchesManual;
             });
 
-            const contractors = [...new Set(filteredByZone.map(row => row["Zone Contractor"]).filter(Boolean))].sort();
+            const contractors = [...new Set(filteredByGovAndZone.map(row => row["Zone Contractor"]).filter(Boolean))].sort();
             contractorContainer.innerHTML = contractors.map(c => `
                 <label class="checkbox-item"><input type="checkbox" name="contractor" value="${c}" onchange="updateStatusOptions()"><span class="mr-2 text-sm">${c}</span></label>
             `).join('') || '<div class="p-4 text-xs italic text-slate-400">لا يوجد بيانات</div>';
@@ -308,13 +333,16 @@
             const zoneQuery = zoneNameInput.value.toLowerCase();
 
             const filteredForStatus = rawData.filter(row => {
-                const zoneStr = (row["Zone Name"] || "").toString();
+                const zoneStr = (row["Zone Name"] || "").toString().toUpperCase();
                 const zoneNum = getZoneNumber(zoneStr);
-                const isFTK = zoneStr.toUpperCase().startsWith("FTK");
                 const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
-                let matchesSmart = (currentSmartFilter === 'all') || (isFTK && zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter));
+                const matchesGov = (currentGovFilter === 'ALL') || zoneStr.startsWith(currentGovFilter);
+                let matchesSmart = true;
+                if (currentGovFilter === 'FTK' && currentSmartFilter !== 'all') {
+                    matchesSmart = zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter);
+                }
                 const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
-                return matchesManual && matchesSmart && matchesContractor;
+                return matchesGov && matchesSmart && matchesManual && matchesContractor;
             });
 
             const statuses = [...new Set(filteredForStatus.map(row => row["Status"]).filter(Boolean))].sort();
@@ -339,14 +367,17 @@
             const zoneQuery = zoneNameInput.value.toLowerCase();
 
             filteredData = rawData.filter(row => {
-                const zoneStr = (row["Zone Name"] || "").toString();
+                const zoneStr = (row["Zone Name"] || "").toString().toUpperCase();
                 const zoneNum = getZoneNumber(zoneStr);
-                const isFTK = zoneStr.toUpperCase().startsWith("FTK");
                 const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
-                let matchesSmart = (currentSmartFilter === 'all') || (isFTK && zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter));
+                const matchesGov = (currentGovFilter === 'ALL') || zoneStr.startsWith(currentGovFilter);
+                let matchesSmart = true;
+                if (currentGovFilter === 'FTK' && currentSmartFilter !== 'all') {
+                    matchesSmart = zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter);
+                }
                 const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
                 const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(row["Status"]);
-                return matchesManual && matchesSmart && matchesContractor && matchesStatus;
+                return matchesGov && matchesSmart && matchesManual && matchesContractor && matchesStatus;
             });
 
             renderPreview();
@@ -355,6 +386,12 @@
         function updateCounts() {
             document.getElementById('contractorCount').innerText = document.querySelectorAll('input[name="contractor"]:checked').length;
             document.getElementById('statusCount').innerText = document.querySelectorAll('input[name="status"]:checked').length;
+        }
+
+        function updateExportFileName() {
+            const govName = GOV_CODES[currentGovFilter] || 'AllGov';
+            const datePart = new Date().toISOString().split('T')[0];
+            customFileName.value = `${govName}_Report_${datePart}`;
         }
 
         function renderPreview() {
@@ -416,18 +453,11 @@
 
             const ws = XLSX.utils.json_to_sheet(finalData);
             const keys = Object.keys(finalData[0]);
-            ws['!cols'] = keys.map(key => {
-                let maxLen = key.length;
-                finalData.slice(0, 50).forEach(r => {
-                    const val = r[key] ? r[key].toString().length : 0;
-                    if (val > maxLen) maxLen = val;
-                });
-                return { wch: Math.min(maxLen + 2, 50) };
-            });
+            ws['!cols'] = keys.map(key => ({ wch: 20 }));
 
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Filtered Data");
-            XLSX.writeFile(wb, `${customFileName.value || 'Report'}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Data");
+            XLSX.writeFile(wb, `${customFileName.value}.xlsx`);
             showStatus(`تم تصدير ${filteredData.length} صفاً بنجاح`, "bg-green-100 text-green-700");
         });
 
