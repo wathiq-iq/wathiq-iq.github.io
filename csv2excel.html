@@ -17,8 +17,6 @@
         .checkbox-item input[type="checkbox"] { width: 1.1rem; height: 1.1rem; margin-left: 0.75rem; flex-shrink: 0; }
         .group-btn { transition: all 0.2s; border: 1px solid #e2e8f0; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.825rem; font-weight: 500; white-space: nowrap; cursor: pointer; background: white; }
         .group-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
-        #smartGroups::-webkit-scrollbar, #govGroups::-webkit-scrollbar { height: 6px; }
-        #smartGroups::-webkit-scrollbar-thumb, #govGroups::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .table-container { max-height: 500px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th { position: sticky; top: 0; background: #f8fafc; z-index: 10; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: right; }
@@ -33,8 +31,8 @@
         <!-- Header -->
         <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
             <div class="text-center md:text-right w-full">
-                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">CSV2Excel</h1>
-                <p class="text-slate-500 mt-1">EL Tools Converter - Smart Gov Edition</p>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">EL CSV2Excel</h1>
+                <p class="text-slate-500 mt-1">Tools Data Converter - Multi-Gov Export</p>
             </div>
         </div>
 
@@ -52,87 +50,79 @@
             <div id="configSection" class="hidden p-6 bg-[#fcfdfe]">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">2</div>
-                    <h2 class="text-lg font-bold">الفلترة الذكية والتخصيص</h2>
+                    <h2 class="text-lg font-bold">الفلترة والتحميل المتعدد</h2>
                 </div>
 
-                <!-- Governorates Selectors -->
-                <div class="mb-6">
-                    <label class="block text-sm font-bold text-slate-700 mb-3">اختر المحافظة</label>
-                    <div class="flex flex-wrap gap-2 overflow-x-auto pb-2" id="govGroups">
-                        <button onclick="applyGovFilter('ALL')" class="group-btn active" data-gov="ALL">الكل</button>
-                        <button onclick="applyGovFilter('FTK')" class="group-btn" data-gov="FTK">صلاح الدين</button>
-                        <button onclick="applyGovFilter('FBG')" class="group-btn" data-gov="FBG">بغداد</button>
-                        <button onclick="applyGovFilter('FBS')" class="group-btn" data-gov="FBS">البصرة</button>
-                        <button onclick="applyGovFilter('FDW')" class="group-btn" data-gov="FDW">القادسية</button>
-                        <button onclick="applyGovFilter('FKU')" class="group-btn" data-gov="FKU">واسط</button>
-                        <button onclick="applyGovFilter('FNJ')" class="group-btn" data-gov="FNJ">النجف</button>
-                        <button onclick="applyGovFilter('FRM')" class="group-btn" data-gov="FRM">الانبار</button>
-                        <button onclick="applyGovFilter('FBB')" class="group-btn" data-gov="FBB">بابل</button>
-                        <button onclick="applyGovFilter('FKR')" class="group-btn" data-gov="FKR">كربلاء</button>
-                        <button onclick="applyGovFilter('FKK')" class="group-btn" data-gov="FKK">كركوك</button>
-                        <button onclick="applyGovFilter('FAM')" class="group-btn" data-gov="FAM">ميسان</button>
-                        <button onclick="applyGovFilter('FMU')" class="group-btn" data-gov="FMU">المثنى</button>
-                        <button onclick="applyGovFilter('FNS')" class="group-btn" data-gov="FNS">ذي قار</button>
-                        <button onclick="applyGovFilter('FDY')" class="group-btn" data-gov="FDY">ديالى</button>
-                        <button onclick="applyGovFilter('FMS')" class="group-btn" data-gov="FMS">نينوى</button>
-                    </div>
-                </div>
-
-                <!-- Smart Group Selectors (Conditional for Salah aldin) -->
-                <div class="mb-8 transition-all duration-300" id="smartGroupContainer">
-                    <label class="block text-sm font-bold text-slate-700 mb-3">المناطق الذكية (صلاح الدين)</label>
-                    <div class="flex flex-wrap gap-2 overflow-x-auto pb-2" id="smartGroups">
-                        <button onclick="applySmartFilter('all')" class="group-btn active">الكل</button>
-                        <button onclick="applySmartFilter('in_house')" class="group-btn">ان هاوس</button>
-                        <button onclick="applySmartFilter('tikrit')" class="group-btn">تكريت</button>
-                        <button onclick="applySmartFilter('samarra')" class="group-btn">سامراء</button>
-                        <button onclick="applySmartFilter('alam')" class="group-btn">العلم</button>
-                        <button onclick="applySmartFilter('dujail')" class="group-btn">الدجيل</button>
-                        <button onclick="applySmartFilter('dhuluiya')" class="group-btn">الضلوعية</button>
-                        <button onclick="applySmartFilter('tuz')" class="group-btn">الطوز</button>
-                        <button onclick="applySmartFilter('door')" class="group-btn">الدور</button>
-                        <button onclick="applySmartFilter('sulaiman_bek')" class="group-btn">سليمان بيك</button>
-                        <button onclick="applySmartFilter('baiji')" class="group-btn">بيجي</button>
-                        <button onclick="applySmartFilter('shirqat')" class="group-btn">الشرقاط</button>
-                        <button onclick="applySmartFilter('siniya')" class="group-btn">الصينية</button>
-                        <button onclick="applySmartFilter('balad')" class="group-btn">بلد</button>
-                        <button onclick="applySmartFilter('amerli')" class="group-btn">امرلي</button>
-                        <button onclick="applySmartFilter('ishaqi')" class="group-btn">الاسحاقي</button>
-                        <button onclick="applySmartFilter('hajjaj')" class="group-btn">الحجاج</button>
-                        <button onclick="applySmartFilter('zawiya')" class="group-btn">الزوية</button>
-                        <button onclick="applySmartFilter('sadira')" class="group-btn">سديرة</button>
-                        <button onclick="applySmartFilter('yankaja')" class="group-btn">ينكجه</button>
-                        <button onclick="applySmartFilter('shukra')" class="group-btn">شكرا</button>
-                        <button onclick="applySmartFilter('hijal')" class="group-btn">حجل</button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    <div class="space-y-4">
-                        <div class="bg-white p-4 rounded-xl border shadow-sm">
-                            <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">بحث يدوي بالمنطقة</label>
-                            <input type="text" id="zoneNameFilter" placeholder="مثال: FTK0001" class="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:border-blue-500">
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border shadow-sm">
-                            <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">اسم ملف التصدير</label>
-                            <input type="text" id="customFileName" class="w-full px-3 py-2 rounded-lg border text-sm">
-                        </div>
-                    </div>
-
+                <!-- Main Grid for Multiple Selection -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Column 1: Governorates -->
                     <div class="bg-white p-4 rounded-xl border shadow-sm">
                         <div class="flex justify-between mb-2">
-                            <label class="text-sm font-bold">المقاولون</label>
+                            <label class="text-sm font-bold">المحافظات (تحديد متعدد)</label>
+                            <span id="govCount" class="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+                        </div>
+                        <div id="govContainer" class="checkbox-group-container">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Contractors -->
+                    <div class="bg-white p-4 rounded-xl border shadow-sm">
+                        <div class="flex justify-between mb-2">
+                            <label class="text-sm font-bold">المقاولون (تحديد متعدد)</label>
                             <span id="contractorCount" class="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
                         </div>
                         <div id="contractorContainer" class="checkbox-group-container"></div>
                     </div>
 
+                    <!-- Column 3: Status -->
                     <div class="bg-white p-4 rounded-xl border shadow-sm">
                         <div class="flex justify-between mb-2">
-                            <label class="text-sm font-bold">الحالة</label>
+                            <label class="text-sm font-bold">الحالة (تحديد متعدد)</label>
                             <span id="statusCount" class="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
                         </div>
                         <div id="statusContainer" class="checkbox-group-container"></div>
+                    </div>
+
+                    <!-- Column 4: Search & Info -->
+                    <div class="space-y-4">
+                        <div class="bg-white p-4 rounded-xl border shadow-sm">
+                            <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">بحث يدوي بالمنطقة</label>
+                            <input type="text" id="zoneNameFilter" placeholder="مثال: FTK0001" class="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:border-blue-500">
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm">
+                            <label class="block text-xs font-bold text-blue-600 mb-1 uppercase">ملاحظة التصدير</label>
+                            <p class="text-[11px] text-blue-500 leading-relaxed">سيتم إنشاء ملف منفصل لكل تركيبة مختارة (محافظة + مقاول + حالة) لسهولة الأرشفة.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart Groups (FTK Specific) -->
+                <div class="mb-8 hidden transition-all duration-300" id="smartGroupContainer">
+                    <label class="block text-sm font-bold text-slate-700 mb-3">المناطق الذكية (فقط عند اختيار صلاح الدين منفردة)</label>
+                    <div class="flex flex-wrap gap-2 overflow-x-auto pb-2" id="smartGroups">
+                        <button onclick="applySmartFilter('all')" class="group-btn active" data-label="الكل">الكل</button>
+                        <button onclick="applySmartFilter('in_house')" class="group-btn" data-label="ان هاوس">ان هاوس</button>
+                        <button onclick="applySmartFilter('tikrit')" class="group-btn" data-label="تكريت">تكريت</button>
+                        <button onclick="applySmartFilter('samarra')" class="group-btn" data-label="سامراء">سامراء</button>
+                        <button onclick="applySmartFilter('alam')" class="group-btn" data-label="العلم">العلم</button>
+                        <button onclick="applySmartFilter('dujail')" class="group-btn" data-label="الدجيل">الدجيل</button>
+                        <button onclick="applySmartFilter('dhuluiya')" class="group-btn" data-label="الضلوعية">الضلوعية</button>
+                        <button onclick="applySmartFilter('tuz')" class="group-btn" data-label="الطوز">الطوز</button>
+                        <button onclick="applySmartFilter('door')" class="group-btn" data-label="الدور">الدور</button>
+                        <button onclick="applySmartFilter('baiji')" class="group-btn" data-label="بيجي">بيجي</button>
+                        <button onclick="applySmartFilter('shirqat')" class="group-btn" data-label="الشرقاط">الشرقاط</button>
+                        <button onclick="applySmartFilter('balad')" class="group-btn" data-label="بلد">بلد</button>
+                        <button onclick="applySmartFilter('sulaiman_bek')" class="group-btn" data-label="سليمان بيك">سليمان بيك</button>
+                        <button onclick="applySmartFilter('siniya')" class="group-btn" data-label="الصينية">الصينية</button>
+                        <button onclick="applySmartFilter('amerli')" class="group-btn" data-label="امرلي">امرلي</button>
+                        <button onclick="applySmartFilter('ishaqi')" class="group-btn" data-label="الاسحاقي">الاسحاقي</button>
+                        <button onclick="applySmartFilter('hajjaj')" class="group-btn" data-label="الحجاج">الحجاج</button>
+                        <button onclick="applySmartFilter('zawiya')" class="group-btn" data-label="الزوية">الزوية</button>
+                        <button onclick="applySmartFilter('sadira')" class="group-btn" data-label="سديرة">سديرة</button>
+                        <button onclick="applySmartFilter('yankaja')" class="group-btn" data-label="ينكجه">ينكجه</button>
+                        <button onclick="applySmartFilter('shukra')" class="group-btn" data-label="شكرا">شكرا</button>
+                        <button onclick="applySmartFilter('hijal')" class="group-btn" data-label="حجل">حجل</button>
                     </div>
                 </div>
 
@@ -141,7 +131,7 @@
                     <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">3</div>
-                            <h2 class="text-lg font-bold">معاينة البيانات</h2>
+                            <h2 class="text-lg font-bold">معاينة النتائج</h2>
                         </div>
                         <div id="paginationControls" class="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border">
                             <button id="prevPage" class="pagination-btn" onclick="changePage(-1)">السابق</button>
@@ -151,7 +141,7 @@
                             <button id="nextPage" class="pagination-btn" onclick="changePage(1)">التالي</button>
                         </div>
                         <div id="resultsCount" class="text-sm font-medium text-slate-600 bg-blue-50 px-4 py-2 rounded-lg">
-                            الإجمالي: <span id="countNumber" class="text-blue-600 font-bold">0</span> صف
+                            الإجمالي للفلاتر: <span id="countNumber" class="text-blue-600 font-bold">0</span> صف
                         </div>
                     </div>
                     <div class="table-container shadow-inner bg-slate-50 rounded-xl">
@@ -159,7 +149,7 @@
                             <thead id="previewHead"></thead>
                             <tbody id="previewBody">
                                 <tr>
-                                    <td colspan="100%" class="text-center py-12 text-slate-400">يرجى تحميل ملف CSV للبدء</td>
+                                    <td colspan="100%" class="text-center py-12 text-slate-400">يرجى تحميل ملف لظهور البيانات</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -167,12 +157,12 @@
                 </div>
 
                 <!-- Export Button -->
-                <div class="bg-blue-600 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-4 text-white shadow-xl">
+                <div class="bg-slate-900 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-4 text-white shadow-xl">
                     <div class="flex-1 text-center md:text-right">
-                        <p class="font-bold text-xl">تحويل وتحميل الملف النهائي</p>
-                        <p class="text-blue-100 text-sm opacity-90 mt-1">سيتم تصدير البيانات المفلترة بناءً على المحافظة والمنطقة المختارة.</p>
+                        <p class="font-bold text-xl">بدء الاستخراج المتعدد المنفصل</p>
+                        <p class="text-slate-400 text-sm opacity-90 mt-1">سيتم تحميل ملف Excel لكل اختيار من (المحافظة + المقاول + الحالة).</p>
                     </div>
-                    <button id="convertBtn" class="w-full md:w-auto bg-white text-blue-600 font-bold py-4 px-14 rounded-xl shadow-lg hover:bg-slate-50 active:scale-95 transition-all text-lg">تحميل Excel</button>
+                    <button id="convertBtn" class="w-full md:w-auto bg-blue-600 text-white font-bold py-4 px-14 rounded-xl shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-lg">تحميل كل الملفات المنفصلة</button>
                 </div>
             </div>
             <div id="statusMsg" class="p-4 text-center text-sm font-bold hidden border-t"></div>
@@ -180,7 +170,7 @@
     </div>
 
     <script>
-        const GOV_CODES = {
+        const GOV_MAP = {
             FDW: "Qadisiya", FBG: "Baghdad", FKU: "Wasit", FNJ: "Najaf",
             FRM: "Anbar", FBB: "Babil", FBS: "Basrah", FKR: "Karballa",
             FTK: "Salah aldin", FKK: "Kirkuk", FAM: "Misan", FMU: "Muthanna",
@@ -216,36 +206,21 @@
         let currentPage = 1;
         const rowsPerPage = 50;
         let currentSmartFilter = 'all';
-        let currentGovFilter = 'ALL';
 
         const alwaysDelete = ["Address", "Notes", "House", "Street", "Email", "Name", "UsrGPSLocationLongitude", "UsrGPSLocationLatitude", "ModifiedOn"];
         const conditionalColumns = ["FDT", "FAT", "Device Username"];
 
         const csvInput = document.getElementById('csvInput');
         const configSection = document.getElementById('configSection');
-        const zoneNameInput = document.getElementById('zoneNameFilter');
+        const govContainer = document.getElementById('govContainer');
         const contractorContainer = document.getElementById('contractorContainer');
         const statusContainer = document.getElementById('statusContainer');
         const smartGroupContainer = document.getElementById('smartGroupContainer');
+        const zoneNameInput = document.getElementById('zoneNameFilter');
         const convertBtn = document.getElementById('convertBtn');
-        const statusMsg = document.getElementById('statusMsg');
-        const customFileName = document.getElementById('customFileName');
-        const previewHead = document.getElementById('previewHead');
         const previewBody = document.getElementById('previewBody');
+        const previewHead = document.getElementById('previewHead');
         const countNumber = document.getElementById('countNumber');
-        const currentPageNum = document.getElementById('currentPageNum');
-        const totalPagesNum = document.getElementById('totalPagesNum');
-
-        function getZoneNumber(zoneStr) {
-            const match = zoneStr.match(/\d+/);
-            return match ? parseInt(match[0], 10) : null;
-        }
-
-        function isNumberInGroup(num, groupKey) {
-            if (!SMART_ZONES[groupKey]) return true;
-            const config = SMART_ZONES[groupKey];
-            return config.ranges.some(r => num >= r[0] && num <= r[1]) || config.specials.includes(num);
-        }
 
         csvInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -255,217 +230,190 @@
                 skipEmptyLines: true,
                 complete: function(results) {
                     rawData = results.data;
+                    initGovs();
                     configSection.classList.remove('hidden');
-                    updateFilters();
+                    updateGlobalFilters();
                 }
             });
         });
 
-        window.applyGovFilter = (gov) => {
-            currentGovFilter = gov;
-            currentSmartFilter = 'all'; // Reset smart filter on gov change
-            
-            // UI Toggle for buttons
-            document.querySelectorAll('#govGroups .group-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('data-gov') === gov);
-            });
+        function initGovs() {
+            const availableGovs = [...new Set(rawData.map(r => (r["Zone Name"] || "").toString().substring(0,3)))].filter(c => GOV_MAP[c]);
+            govContainer.innerHTML = availableGovs.map(code => `
+                <label class="checkbox-item"><input type="checkbox" name="gov" value="${code}" onchange="updateContractorOptions()"><span class="mr-2 text-sm">${GOV_MAP[code] || code}</span></label>
+            `).join('');
+        }
 
-            // Show/Hide Smart Zones for Salah aldin (FTK)
-            if (gov === 'FTK') {
+        function updateContractorOptions() {
+            const selectedGovs = Array.from(document.querySelectorAll('input[name="gov"]:checked')).map(cb => cb.value);
+            
+            // Show smart filters only if FTK is the ONLY one selected
+            if (selectedGovs.length === 1 && selectedGovs[0] === 'FTK') {
                 smartGroupContainer.classList.remove('hidden');
             } else {
                 smartGroupContainer.classList.add('hidden');
+                currentSmartFilter = 'all';
             }
 
-            updateFilters();
-        };
-
-        window.applySmartFilter = (filter) => {
-            currentSmartFilter = filter;
-            document.querySelectorAll('#smartGroups .group-btn').forEach(btn => {
-                const labels = {
-                    'in_house': 'ان هاوس', 'tikrit': 'تكريت', 'samarra': 'سامراء', 'alam': 'العلم', 'dujail': 'الدجيل',
-                    'dhuluiya': 'الضلوعية', 'tuz': 'الطوز', 'door': 'الدور', 'sulaiman_bek': 'سليمان بيك',
-                    'baiji': 'بيجي', 'shirqat': 'الشرقاط', 'siniya': 'الصينية', 'balad': 'بلد',
-                    'amerli': 'امرلي', 'ishaqi': 'الاسحاقي', 'hajjaj': 'الحجاج', 'zawiya': 'الزوية',
-                    'sadira': 'سديرة', 'yankaja': 'ينكجه', 'shukra': 'شكرا', 'hijal': 'حجل', 'all': 'الكل'
-                };
-                btn.classList.toggle('active', btn.innerText === labels[filter]);
-            });
-            updateFilters();
-        };
-
-        zoneNameInput.addEventListener('input', () => {
-            currentPage = 1;
-            updateFilters();
-        });
-
-        function updateFilters() {
-            const zoneQuery = zoneNameInput.value.toLowerCase();
-            
-            const filteredByGovAndZone = rawData.filter(row => {
+            const subset = rawData.filter(row => {
                 const zoneStr = (row["Zone Name"] || "").toString().toUpperCase();
-                const zoneNum = getZoneNumber(zoneStr);
-                const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
-                
-                // 1. Governorate Check
-                let matchesGov = (currentGovFilter === 'ALL') || zoneStr.startsWith(currentGovFilter);
-                
-                // 2. Smart Zone Check (Only if FTK selected)
-                let matchesSmart = true;
-                if (currentGovFilter === 'FTK' && currentSmartFilter !== 'all') {
-                    matchesSmart = zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter);
-                }
-
-                return matchesGov && matchesSmart && matchesManual;
+                return selectedGovs.length === 0 || selectedGovs.some(g => zoneStr.startsWith(g));
             });
 
-            const contractors = [...new Set(filteredByGovAndZone.map(row => row["Zone Contractor"]).filter(Boolean))].sort();
+            const contractors = [...new Set(subset.map(row => row["Zone Contractor"]).filter(Boolean))].sort();
             contractorContainer.innerHTML = contractors.map(c => `
                 <label class="checkbox-item"><input type="checkbox" name="contractor" value="${c}" onchange="updateStatusOptions()"><span class="mr-2 text-sm">${c}</span></label>
-            `).join('') || '<div class="p-4 text-xs italic text-slate-400">لا يوجد بيانات</div>';
+            `).join('');
             
             updateStatusOptions();
         }
 
-        window.updateStatusOptions = () => {
-            const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
-            const zoneQuery = zoneNameInput.value.toLowerCase();
+        function updateStatusOptions() {
+            const selectedGovs = Array.from(document.querySelectorAll('input[name="gov"]:checked')).map(cb => cb.value);
+            const selectedCons = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
 
-            const filteredForStatus = rawData.filter(row => {
+            const subset = rawData.filter(row => {
                 const zoneStr = (row["Zone Name"] || "").toString().toUpperCase();
-                const zoneNum = getZoneNumber(zoneStr);
-                const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
-                const matchesGov = (currentGovFilter === 'ALL') || zoneStr.startsWith(currentGovFilter);
-                let matchesSmart = true;
-                if (currentGovFilter === 'FTK' && currentSmartFilter !== 'all') {
-                    matchesSmart = zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter);
-                }
-                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
-                return matchesGov && matchesSmart && matchesManual && matchesContractor;
+                const matchesGov = selectedGovs.length === 0 || selectedGovs.some(g => zoneStr.startsWith(g));
+                const matchesCon = selectedCons.length === 0 || selectedCons.includes(row["Zone Contractor"]);
+                return matchesGov && matchesCon;
             });
 
-            const statuses = [...new Set(filteredForStatus.map(row => row["Status"]).filter(Boolean))].sort();
+            const statuses = [...new Set(subset.map(row => row["Status"]).filter(Boolean))].sort();
             statusContainer.innerHTML = statuses.map(s => `
-                <label class="checkbox-item"><input type="checkbox" name="status" value="${s}" onchange="resetAndRender()"><span class="mr-2 text-sm">${s}</span></label>
-            `).join('') || '<div class="p-4 text-xs italic text-slate-400">اختر مقاولاً أولاً</div>';
+                <label class="checkbox-item"><input type="checkbox" name="status" value="${s}" onchange="updateGlobalFilters()"><span class="mr-2 text-sm">${s}</span></label>
+            `).join('');
             
-            resetAndRender();
-        };
-
-        function resetAndRender() {
-            currentPage = 1;
-            updateUI();
+            updateGlobalFilters();
         }
 
-        function updateUI() {
-            updateExportFileName();
-            updateCounts();
-            
-            const selectedContractors = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
-            const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => cb.value);
+        function updateGlobalFilters() {
+            const selectedGovs = Array.from(document.querySelectorAll('input[name="gov"]:checked')).map(cb => cb.value);
+            const selectedCons = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
+            const selectedStats = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => cb.value);
             const zoneQuery = zoneNameInput.value.toLowerCase();
+
+            document.getElementById('govCount').innerText = selectedGovs.length;
+            document.getElementById('contractorCount').innerText = selectedCons.length;
+            document.getElementById('statusCount').innerText = selectedStats.length;
 
             filteredData = rawData.filter(row => {
                 const zoneStr = (row["Zone Name"] || "").toString().toUpperCase();
-                const zoneNum = getZoneNumber(zoneStr);
+                const zoneNum = parseInt(zoneStr.match(/\d+/)?.[0] || -1);
+                
+                const matchesGov = selectedGovs.length === 0 || selectedGovs.some(g => zoneStr.startsWith(g));
+                const matchesCon = selectedCons.length === 0 || selectedCons.includes(row["Zone Contractor"]);
+                const matchesStat = selectedStats.length === 0 || selectedStats.includes(row["Status"]);
                 const matchesManual = !zoneQuery || zoneStr.toLowerCase().includes(zoneQuery);
-                const matchesGov = (currentGovFilter === 'ALL') || zoneStr.startsWith(currentGovFilter);
+                
                 let matchesSmart = true;
-                if (currentGovFilter === 'FTK' && currentSmartFilter !== 'all') {
-                    matchesSmart = zoneNum !== null && isNumberInGroup(zoneNum, currentSmartFilter);
+                if (selectedGovs.length === 1 && selectedGovs[0] === 'FTK' && currentSmartFilter !== 'all') {
+                    const config = SMART_ZONES[currentSmartFilter];
+                    matchesSmart = config.ranges.some(r => zoneNum >= r[0] && zoneNum <= r[1]) || config.specials.includes(zoneNum);
                 }
-                const matchesContractor = selectedContractors.length === 0 || selectedContractors.includes(row["Zone Contractor"]);
-                const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(row["Status"]);
-                return matchesGov && matchesSmart && matchesManual && matchesContractor && matchesStatus;
+
+                return matchesGov && matchesCon && matchesStat && matchesManual && matchesSmart;
             });
 
+            currentPage = 1;
             renderPreview();
         }
 
-        function updateCounts() {
-            document.getElementById('contractorCount').innerText = document.querySelectorAll('input[name="contractor"]:checked').length;
-            document.getElementById('statusCount').innerText = document.querySelectorAll('input[name="status"]:checked').length;
-        }
+        window.applySmartFilter = (f) => {
+            currentSmartFilter = f;
+            document.querySelectorAll('#smartGroups .group-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('onclick').includes(f));
+            });
+            updateGlobalFilters();
+        };
 
-        function updateExportFileName() {
-            const govName = GOV_CODES[currentGovFilter] || 'AllGov';
-            const datePart = new Date().toISOString().split('T')[0];
-            customFileName.value = `${govName}_Report_${datePart}`;
-        }
+        zoneNameInput.addEventListener('input', updateGlobalFilters);
 
         function renderPreview() {
             countNumber.innerText = filteredData.length;
             const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
-            totalPagesNum.innerText = totalPages;
-            currentPageNum.innerText = currentPage;
-
+            document.getElementById('totalPagesNum').innerText = totalPages;
+            document.getElementById('currentPageNum').innerText = currentPage;
             document.getElementById('prevPage').disabled = currentPage === 1;
             document.getElementById('nextPage').disabled = currentPage === totalPages;
 
             if (filteredData.length === 0) {
                 previewHead.innerHTML = '';
-                previewBody.innerHTML = '<tr><td colspan="100%" class="text-center py-12 text-slate-400 font-bold">لا توجد نتائج تطابق الفلاتر المحددة</td></tr>';
+                previewBody.innerHTML = '<tr><td colspan="100%" class="text-center py-12 text-slate-400">لا توجد بيانات تطابق الفلاتر</td></tr>';
                 return;
             }
 
-            const visibleKeys = Object.keys(filteredData[0]).filter(key => !alwaysDelete.includes(key));
-            previewHead.innerHTML = `<tr>${visibleKeys.map(key => `<th>${key}</th>`).join('')}</tr>`;
+            const visibleKeys = Object.keys(filteredData[0]).filter(k => !alwaysDelete.includes(k));
+            previewHead.innerHTML = `<tr>${visibleKeys.map(k => `<th>${k}</th>`).join('')}</tr>`;
 
-            const start = (currentPage - 1) * rowsPerPage;
-            const end = start + rowsPerPage;
-            const pageData = filteredData.slice(start, end);
-
+            const pageData = filteredData.slice((currentPage-1)*rowsPerPage, currentPage*rowsPerPage);
             previewBody.innerHTML = pageData.map(row => `
-                <tr>${visibleKeys.map(key => `<td>${row[key] || ''}</td>`).join('')}</tr>
+                <tr>${visibleKeys.map(k => `<td>${row[k] || ''}</td>`).join('')}</tr>
             `).join('');
         }
 
-        window.changePage = (direction) => {
-            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-            const next = currentPage + direction;
-            if (next >= 1 && next <= totalPages) {
-                currentPage = next;
-                renderPreview();
-                document.querySelector('.table-container').scrollTop = 0;
-            }
+        window.changePage = (dir) => {
+            currentPage += dir;
+            renderPreview();
         };
 
-        convertBtn.addEventListener('click', () => {
-            if (filteredData.length === 0) return showStatus("لا توجد بيانات للتصدير", "bg-red-100 text-red-700");
+        convertBtn.addEventListener('click', async () => {
+            const selectedGovs = Array.from(document.querySelectorAll('input[name="gov"]:checked')).map(cb => cb.value);
+            const selectedCons = Array.from(document.querySelectorAll('input[name="contractor"]:checked')).map(cb => cb.value);
+            const selectedStats = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => cb.value);
 
-            const selectedStatuses = Array.from(document.querySelectorAll('input[name="status"]:checked')).map(cb => cb.value);
-            const shouldDeleteConditional = selectedStatuses.some(s => s.toLowerCase().includes("pending")) && !selectedStatuses.some(s => s.toLowerCase().includes("done"));
+            if (filteredData.length === 0) return alert("لا توجد بيانات للتصدير");
 
-            const finalData = filteredData.map(row => {
-                const newRow = { ...row };
-                alwaysDelete.forEach(col => delete newRow[col]);
-                if (shouldDeleteConditional) conditionalColumns.forEach(col => delete newRow[col]);
-                
-                if (newRow["CreatedOn"]) {
-                    const d = new Date(newRow["CreatedOn"]);
-                    if (!isNaN(d.getTime())) {
-                        newRow["CreatedOn"] = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+            const govsToLoop = selectedGovs.length > 0 ? selectedGovs : ["AllGovs"];
+            const consToLoop = selectedCons.length > 0 ? selectedCons : ["AllContractors"];
+            const statsToLoop = selectedStats.length > 0 ? selectedStats : ["AllStatus"];
+
+            let fileCount = 0;
+
+            for (const g of govsToLoop) {
+                for (const c of consToLoop) {
+                    for (const s of statsToLoop) {
+                        const subset = filteredData.filter(row => {
+                            const matchG = g === "AllGovs" || row["Zone Name"].startsWith(g);
+                            const matchC = c === "AllContractors" || row["Zone Contractor"] === c;
+                            const matchS = s === "AllStatus" || row["Status"] === s;
+                            return matchG && matchC && matchS;
+                        });
+
+                        if (subset.length > 0) {
+                            const name = `${GOV_MAP[g] || g}_${c}_${s}_${new Date().toISOString().split('T')[0]}`.replace(/\s+/g, '_');
+                            exportExcel(subset, name, s);
+                            fileCount++;
+                        }
                     }
                 }
-                return newRow;
-            });
-
-            const ws = XLSX.utils.json_to_sheet(finalData);
-            const keys = Object.keys(finalData[0]);
-            ws['!cols'] = keys.map(key => ({ wch: 20 }));
-
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Data");
-            XLSX.writeFile(wb, `${customFileName.value}.xlsx`);
-            showStatus(`تم تصدير ${filteredData.length} صفاً بنجاح`, "bg-green-100 text-green-700");
+            }
+            showStatus(`تم تنزيل ${fileCount} ملف بنجاح`, "bg-green-100 text-green-700");
         });
 
-        function showStatus(msg, cls) {
-            statusMsg.innerText = msg;
-            statusMsg.className = `p-4 text-center text-sm font-bold border-t ${cls}`;
+        function exportExcel(data, fileName, status) {
+            const isPendingOnly = status.toLowerCase().includes('pending') && !status.toLowerCase().includes('done');
+            const processed = data.map(row => {
+                const n = { ...row };
+                alwaysDelete.forEach(c => delete n[c]);
+                if (isPendingOnly) conditionalColumns.forEach(c => delete n[c]);
+                if (n["CreatedOn"]) {
+                    const d = new Date(n["CreatedOn"]);
+                    if (!isNaN(d.getTime())) n["CreatedOn"] = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+                }
+                return n;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(processed);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data");
+            XLSX.writeFile(wb, `${fileName}.xlsx`);
+        }
+
+        function showStatus(m, c) {
+            statusMsg.innerText = m;
+            statusMsg.className = `p-4 text-center text-sm font-bold border-t ${c}`;
             statusMsg.classList.remove('hidden');
-            setTimeout(() => statusMsg.classList.add('hidden'), 5000);
         }
     </script>
 </body>
